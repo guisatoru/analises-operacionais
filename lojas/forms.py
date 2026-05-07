@@ -83,13 +83,26 @@ class LojaUpdateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         apply_bootstrap_class(self)
 
+
 class EscopoLojaForm(forms.ModelForm):
     class Meta:
         model = EscopoLoja
-        fields = ["loja", "data_inicio", "data_fim"]
+        fields = [
+            "loja",
+            "data_inicio",
+            "data_fim",
+            "insalubridade_fixa_percentual",
+            "insalubridade_banheirista_percentual",
+        ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["insalubridade_fixa_percentual"].widget.attrs[
+            "placeholder"
+        ] = "Ex.: 20.00"
+        self.fields["insalubridade_banheirista_percentual"].widget.attrs[
+            "placeholder"
+        ] = "Ex.: 40.00"
         apply_bootstrap_class(self)
 
 
