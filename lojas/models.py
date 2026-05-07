@@ -2,8 +2,17 @@ from decimal import Decimal
 
 from django.db import models
 from django.core.exceptions import ValidationError
-from django.db.models import Q, UniqueConstraint
+from django.db.models import UniqueConstraint
 
+
+UF_CHOICES = [
+    ("AC", "AC"), ("AL", "AL"), ("AP", "AP"), ("AM", "AM"), ("BA", "BA"),
+    ("CE", "CE"), ("DF", "DF"), ("ES", "ES"), ("GO", "GO"), ("MA", "MA"),
+    ("MT", "MT"), ("MS", "MS"), ("MG", "MG"), ("PA", "PA"), ("PB", "PB"),
+    ("PR", "PR"), ("PE", "PE"), ("PI", "PI"), ("RJ", "RJ"), ("RN", "RN"),
+    ("RS", "RS"), ("RO", "RO"), ("RR", "RR"), ("SC", "SC"), ("SP", "SP"),
+    ("SE", "SE"), ("TO", "TO"),
+]
 
 # Lista de status possíveis para uma loja.
 # Cada item é uma tupla (valor_no_banco, texto_exibido).
@@ -111,11 +120,7 @@ class Loja(models.Model):
         max_length=120,
         blank=True,
     )
-    uf = models.CharField(
-        "UF",
-        max_length=2,
-        blank=True,
-    )
+    uf = models.CharField("UF", max_length=2, choices=UF_CHOICES)
     sub_regiao = models.CharField(
         "Sub-Região",
         max_length=80,
@@ -166,7 +171,7 @@ class Salario(models.Model):
         related_name="salarios",
         verbose_name="Cargo",
     )
-    uf = models.CharField("UF", max_length=2)
+    uf = models.CharField("UF", max_length=2, choices=UF_CHOICES)
     ano = models.PositiveIntegerField("Ano")
     valor = models.DecimalField("Valor base", max_digits=12, decimal_places=2)
 

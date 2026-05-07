@@ -1,12 +1,13 @@
 from django.contrib import admin
+from django.urls import reverse
+from django.utils.html import format_html
 
 from .models import Cargo, EscopoLoja, ItemEscopo, Loja, Salario
 
 @admin.register(Loja)
 class LojaAdmin(admin.ModelAdmin):
-    """Configuração da Loja dentro do Django Admin."""
-
     list_display = (
+        "ver_escopos",
         "nome_referencia",
         "centro_de_custo",
         "cliente",
@@ -61,6 +62,11 @@ class LojaAdmin(admin.ModelAdmin):
         }),
     )
 
+    @admin.display(description="Escopos")
+    def ver_escopos(self, obj):
+        url = reverse("admin:lojas_escopoloja_changelist")
+        return format_html('<a href="{}?loja__id__exact={}">Ver escopos</a>', url, obj.id)
+
 @admin.register(Cargo)
 class CargoAdmin(admin.ModelAdmin):
     search_fields = ("nome",)
@@ -79,7 +85,10 @@ class ItemEscopoInline(admin.TabularInline):
 
 @admin.register(EscopoLoja)
 class EscopoLojaAdmin(admin.ModelAdmin):
-    list_display = ("loja", "data_inicio", "data_fim")
+    def status_fim(self, obj):
+        return obj.data_fim or "Vigente"
+    status_fim.short_description = "Data fim"
+    list_display = ("loja", "data_inicio", "status_fim")
     list_filter = ("loja",)
     autocomplete_fields = ("loja",)
     inlines = [ItemEscopoInline]
