@@ -11,7 +11,7 @@ UF_CHOICES = [
     ("MT", "MT"), ("MS", "MS"), ("MG", "MG"), ("PA", "PA"), ("PB", "PB"),
     ("PR", "PR"), ("PE", "PE"), ("PI", "PI"), ("RJ", "RJ"), ("RN", "RN"),
     ("RS", "RS"), ("RO", "RO"), ("RR", "RR"), ("SC", "SC"), ("SP", "SP"),
-    ("SE", "SE"), ("TO", "TO"),
+    ("SE", "SE"), ("TO", "TO"), ("BR", "BR"),
 ]
 
 # Lista de status possíveis para uma loja.
@@ -209,6 +209,21 @@ class EscopoLoja(models.Model):
         blank=True,
         help_text="Vazio = escopo ainda aberto.",
     )
+    insalubridade_fixa_percentual = models.DecimalField(
+        "Insalubridade fixa (%)",
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text="Percentual aplicado sobre o salário base regional (ex.: 20.00).",
+    )
+
+    insalubridade_banheirista_percentual = models.DecimalField(
+        "Insalubridade banheirista (%)",
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text="Percentual aplicado sobre o salário mínimo nacional (UF=BR).",
+    )
 
     class Meta:
         verbose_name = "Escopo da loja"
@@ -239,6 +254,14 @@ class EscopoLoja(models.Model):
                 raise ValidationError(
                     "Já existe um escopo aberto para esta loja. "
                     "Encerre o anterior informando a data fim antes de abrir outro."
+                )
+            if self.insalubridade_fixa_percentual <= 0 or self.insalubridade_fixa_percentual > 100:
+                raise ValidationError(
+                    "A insalubridade fixa deve ser entre 0 e 100."
+                )
+            if self.insalubridade_banheirista_percentual <= 0 or self.insalubridade_banheirista_percentual > 100:
+                raise ValidationError(
+                    "A insalubridade banheirista deve ser entre 0 e 100."
                 )
 
     def save(self, *args, **kwargs):
