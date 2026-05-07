@@ -1,0 +1,35 @@
+{% extends "lojas/base.html" %}
+{% block content %}
+<h1>Escopos</h1>
+
+<a class="btn btn-primary mb-3" href="{% url 'novo_escopo' %}{% if loja_id_filtro %}?loja={{ loja_id_filtro }}{% endif %}">
+  Novo Escopo
+</a>
+
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Loja</th>
+      <th>Início</th>
+      <th>Fim</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for escopo in escopos %}
+      <tr>
+        <td>{{ escopo.loja.nome_referencia }}</td>
+        <td>{{ escopo.data_inicio|date:"d/m/Y" }}</td>
+        <td>{% if escopo.data_fim %}{{ escopo.data_fim|date:"d/m/Y" }}{% else %}Vigente{% endif %}</td>
+        <td>
+          <a class="btn btn-sm btn-outline-primary" href="{% url 'editar_escopo' escopo.pk %}">
+            Editar
+          </a>
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="4">Nenhum escopo encontrado.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

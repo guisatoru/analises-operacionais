@@ -1,6 +1,7 @@
 from django import forms
+from django.forms import inlineformset_factory
 
-from .models import Loja
+from .models import Loja, EscopoLoja, ItemEscopo
 
 
 # Keep Bootstrap classes in one helper to avoid
@@ -81,3 +82,31 @@ class LojaUpdateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         apply_bootstrap_class(self)
+
+class EscopoLojaForm(forms.ModelForm):
+    class Meta:
+        model = EscopoLoja
+        fields = ["loja", "data_inicio", "data_fim"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        apply_bootstrap_class(self)
+
+
+class ItemEscopoForm(forms.ModelForm):
+    class Meta:
+        model = ItemEscopo
+        fields = ["cargo", "turno", "quantidade"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        apply_bootstrap_class(self)
+
+
+ItemEscopoFormSet = inlineformset_factory(
+    EscopoLoja,
+    ItemEscopo,
+    form=ItemEscopoForm,
+    extra=1,
+    can_delete=True,
+)

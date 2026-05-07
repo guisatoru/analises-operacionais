@@ -2,7 +2,7 @@
 
 {% block titulo %}Lojas{% endblock %}
 
-{% block conteudo %}
+{% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Lojas cadastradas</h2>
@@ -54,6 +54,7 @@
         <table class="table table-hover table-clickable mb-0 align-middle">
             <thead class="table-light">
                 <tr>
+                    <th>Ações</th>
                     <th>Nome Referência</th>
                     <th>Centro de Custo</th>
                     <th>Cliente</th>
@@ -64,6 +65,14 @@
             <tbody>
                 {% for loja in lojas %}
                     <tr onclick="window.location='{% url 'detalhe_loja' loja.pk %}'">
+                        <td>
+                            <a class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation();" href="{% url 'lista_escopos' %}?loja={{ loja.id }}">
+                                Escopos
+                            </a>
+                            <a class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation();" href="{% url 'novo_escopo' %}?loja={{ loja.id }}">
+                                Novo Escopo
+                            </a>
+                        </td>
                         <td><strong>{{ loja.nome_referencia }}</strong></td>
                         <td>{{ loja.centro_de_custo }}</td>
                         <td>{{ loja.cliente|default:"—" }}</td>
@@ -80,7 +89,7 @@
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="5" class="text-center text-muted py-4">
+                        <td colspan="6" class="text-center text-muted py-4">
                             Nenhuma loja encontrada com os filtros atuais.
                         </td>
                     </tr>

@@ -2,8 +2,8 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import LojaForm, LojaUpdateForm
-from .models import STATUS_CHOICES, Loja
+from .forms import LojaForm, LojaUpdateForm, EscopoLojaForm, ItemEscopoFormSet
+from .models import STATUS_CHOICES, Loja, EscopoLoja
 
 
 def store_list(request):
@@ -112,3 +112,64 @@ def store_delete(request, pk):
         return redirect("lista_lojas")
 
     return render(request, "lojas/loja_confirm_delete.html", {"loja": store})
+
+def escopo_list(request):
+    loja_id = request.GET.get("loja")
+    escopos = EscopoLoja.objects.select_related("loja").order_by("-data_inicio")
+
+    if loja_id:
+        escopos = escopos.filter(loja_id=loja_id)
+
+    context = {
+        "escopos": escopos,
+        "loja_id_filtro": loja_id,
+    }
+    return render(request, "lojas/escopo_list.html", context)
+
+
+def escopo_create(request):
+    if request.method == "POST":
+        form = EscopoLojaForm(request.POST)
+        formset = ItemEscopoFormSet(request.POST)
+        if form.is_valid():
+            escopo = form.save(commit=False)
+            formset = ItemEscopoFormSet(request.POST, instance=escopo)
+            if formset.is_valid():
+                escopo.save()
+                formset.instance = escopo
+                formset.save()
+                messages.success(request, "Escopo criado com sucesso.")
+                return redirect("lista_escopos")
+    else:
+        loja_id = request.GET.get("loja")
+        initial = {"loja": loja_id} if loja_id else None
+        form = EscopoLojaForm(initial=initial)
+        formset = ItemEscopoFormSet()
+
+    return render(
+        request,
+        "lojas/escopo_form.html",
+        {"form": form, "formset": formset, "titulo": "Novo Escopo"},
+    )
+
+
+def escopo_update(request, pk):
+    escopo = get_object_or_404(EscopoLoja, pk=pk)
+
+    if request.method == "POST":
+        form = EscopoLojaForm(request.POST, instance=escopo)
+        formset = ItemEscopoFormSet(request.POST, instance=escopo)
+        if form.is_valid() and formset.is_valid():
+            form.save()
+            formset.save()
+            messages.success(request, "Escopo atualizado com sucesso.")
+            return redirect("lista_escopos")
+    else:
+        form = EscopoLojaForm(instance=escopo)
+        formset = ItemEscopoFormSet(instance=escopo)
+
+    return render(
+        request,
+        "lojas/escopo_form.html",
+        {"form": form, "formset": formset, "titulo": f"Editar Escopo #{escopo.pk}"},
+    )
