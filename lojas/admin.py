@@ -1,7 +1,6 @@
 from django.contrib import admin
 
-from .models import Loja
-
+from .models import Cargo, EscopoLoja, ItemEscopo, Loja, Salario
 
 @admin.register(Loja)
 class LojaAdmin(admin.ModelAdmin):
@@ -61,3 +60,26 @@ class LojaAdmin(admin.ModelAdmin):
             "fields": ("created_at", "updated_at"),
         }),
     )
+
+@admin.register(Cargo)
+class CargoAdmin(admin.ModelAdmin):
+    search_fields = ("nome",)
+    list_display = ("nome",)
+
+@admin.register(Salario)
+class SalarioAdmin(admin.ModelAdmin):
+    list_display = ("cargo", "uf", "ano", "valor")
+    list_filter = ("uf", "ano")
+    search_fields = ("cargo__nome",)
+
+class ItemEscopoInline(admin.TabularInline):
+    model = ItemEscopo
+    extra = 0
+    autocomplete_fields = ("cargo",)
+
+@admin.register(EscopoLoja)
+class EscopoLojaAdmin(admin.ModelAdmin):
+    list_display = ("loja", "data_inicio", "data_fim")
+    list_filter = ("loja",)
+    autocomplete_fields = ("loja",)
+    inlines = [ItemEscopoInline]
