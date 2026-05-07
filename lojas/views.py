@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
+from datetime import date
 
 from .forms import LojaForm, LojaUpdateForm, EscopoLojaForm, ItemEscopoFormSet
 from .models import STATUS_CHOICES, Loja, EscopoLoja
@@ -155,13 +156,43 @@ def escopo_create(request):
     if request.method == "POST":
         form = EscopoLojaForm(request.POST)
         formset = ItemEscopoFormSet(request.POST)
+
         if form.is_valid():
             escopo = form.save(commit=False)
+
+            # Procura escopo aberto da mesma loja (se existir).
+            escopo_aberto = (
+                EscopoLoja.objects.filter(loja=escopo.loja, data_fim__isnull=True)
+                .order_by("-data_inicio")
+                .first()
+            )
+
+            escopo_fechado_automaticamente = False
+
+            if escopo_aberto:
+                ano_antigo = escopo_aberto.data_inicio.year
+                ano_novo = escopo.data_inicio.year
+
+                # Só fecha automaticamente se o novo escopo for de ano posterior.
+                if ano_novo > ano_antigo:
+                    escopo_aberto.data_fim = date(ano_antigo, 12, 31)
+                    escopo_aberto.save(update_fields=["data_fim"])
+                    escopo_fechado_automaticamente = True
+
+            # Recria o formset com a instância do escopo (ainda não salva).
             formset = ItemEscopoFormSet(request.POST, instance=escopo)
+
             if formset.is_valid():
                 escopo.save()
                 formset.instance = escopo
                 formset.save()
+
+                if escopo_fechado_automaticamente:
+                    messages.info(
+                        request,
+                        "Escopo anterior encerrado automaticamente por virada de ano.",
+                    )
+
                 messages.success(request, "Escopo criado com sucesso.")
                 return redirect("lista_escopos")
     else:

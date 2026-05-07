@@ -258,12 +258,36 @@ class EscopoLoja(models.Model):
     def clean(self):
         super().clean()
 
+        # 1) Consistência básica de período
         if self.data_fim and self.data_inicio and self.data_fim < self.data_inicio:
             raise ValidationError(
                 {"data_fim": "A data fim não pode ser anterior à data início."}
             )
 
-        # No máximo um escopo aberto (data_fim nula) por loja.
+        # 2) Validação dos percentuais (permite 0 e 100)
+        if (
+            self.insalubridade_fixa_percentual is not None
+            and (
+                self.insalubridade_fixa_percentual < Decimal("0.00")
+                or self.insalubridade_fixa_percentual > Decimal("100.00")
+            )
+        ):
+            raise ValidationError(
+                {"insalubridade_fixa_percentual": "A insalubridade fixa deve estar entre 0 e 100."}
+            )
+
+        if (
+            self.insalubridade_banheirista_percentual is not None
+            and (
+                self.insalubridade_banheirista_percentual < Decimal("0.00")
+                or self.insalubridade_banheirista_percentual > Decimal("100.00")
+            )
+        ):
+            raise ValidationError(
+                {"insalubridade_banheirista_percentual": "A insalubridade banheirista deve estar entre 0 e 100."}
+            )
+
+        # 3) Regra de escopo aberto
         if self.data_fim is None and self.loja_id:
             outros_abertos = EscopoLoja.objects.filter(
                 loja_id=self.loja_id,
@@ -271,23 +295,25 @@ class EscopoLoja(models.Model):
             )
             if self.pk:
                 outros_abertos = outros_abertos.exclude(pk=self.pk)
-            if outros_abertos.exists():
-                raise ValidationError(
-                    "Já existe um escopo aberto para esta loja. "
-                    "Encerre o anterior informando a data fim antes de abrir outro."
-                )
-            if (
-                self.insalubridade_fixa_percentual <= 0
-                or self.insalubridade_fixa_percentual > 100
-            ):
-                raise ValidationError("A insalubridade fixa deve ser entre 0 e 100.")
-            if (
-                self.insalubridade_banheirista_percentual <= 0
-                or self.insalubridade_banheirista_percentual > 100
-            ):
-                raise ValidationError(
-                    "A insalubridade banheirista deve ser entre 0 e 100."
-                )
+
+            escopo_aberto = outros_abertos.order_by("-data_inicio").first()
+
+            if escopo_aberto:
+                # Se não temos data_inicio, não dá para comparar ano com segurança
+                if not self.data_inicio:
+                    raise ValidationError(
+                        "Já existe um escopo aberto para esta loja."
+                    )
+
+                ano_novo = self.data_inicio.year
+                ano_aberto = escopo_aberto.data_inicio.year
+
+                # Permite apenas virada de ano (view fecha o antigo automaticamente).
+                if ano_novo <= ano_aberto:
+                    raise ValidationError(
+                        "Já existe um escopo aberto para esta loja no mesmo ano. "
+                        "Encerre o atual antes de abrir outro."
+                    )
 
     def save(self, *args, **kwargs):
         # Garante validação também quando salvar pelo código (não só pelo formulário).
