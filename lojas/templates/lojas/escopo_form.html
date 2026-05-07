@@ -1,26 +1,51 @@
-{% extends "lojas/base.html" %}
-{% block content %}
+{% extends "lojas/base.html" %} {% block content %}
 <h1>{{ titulo }}</h1>
 
 <form method="post">
   {% csrf_token %}
 
   <div class="card mb-3">
-    <div class="card-body">
-      {{ form.as_p }}
-    </div>
+    <div class="card-body">{{ form.as_p }}</div>
   </div>
 
   <h5>Itens do Escopo</h5>
   {{ formset.management_form }}
 
-  {% for item_form in formset %}
-    <div class="card mb-2">
-      <div class="card-body">
-        {{ item_form.as_p }}
-      </div>
+  <div id="itens-escopo">
+    {% for item_form in formset %}
+    <div class="card mb-2 item-escopo-form">
+      <div class="card-body">{{ item_form.as_p }}</div>
     </div>
-  {% endfor %}
+    {% endfor %}
+  </div>
+
+  <button type="button" id="add-item-btn" class="btn btn-outline-primary mb-3">
+    Adicionar item
+  </button>
+
+  <template id="item-escopo-template">
+    <div class="card mb-2 item-escopo-form">
+      <div class="card-body">{{ formset.empty_form.as_p }}</div>
+    </div>
+  </template>
+
+  <script>
+    (function () {
+      const addBtn = document.getElementById("add-item-btn");
+      const container = document.getElementById("itens-escopo");
+      const totalFormsInput = document.getElementById("id_itens-TOTAL_FORMS"); // ajustar prefix se necessário
+      const template = document.getElementById("item-escopo-template");
+
+      if (!addBtn || !container || !totalFormsInput || !template) return;
+
+      addBtn.addEventListener("click", function () {
+        const currentIndex = Number(totalFormsInput.value);
+        const html = template.innerHTML.replace(/__prefix__/g, currentIndex);
+        container.insertAdjacentHTML("beforeend", html);
+        totalFormsInput.value = currentIndex + 1;
+      });
+    })();
+  </script>
 
   <button type="submit" class="btn btn-success">Salvar</button>
   <a href="{% url 'lista_escopos' %}" class="btn btn-secondary">Cancelar</a>
