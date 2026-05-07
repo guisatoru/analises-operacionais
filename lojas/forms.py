@@ -94,6 +94,15 @@ class EscopoLojaForm(forms.ModelForm):
             "insalubridade_fixa_percentual",
             "insalubridade_banheirista_percentual",
         ]
+        data_inicio = forms.DateField(
+            input_formats=["%Y-%m-%d", "%d/%m/%Y"],
+            widget=forms.DateInput(attrs={"type": "date"}),
+        )
+        data_fim = forms.DateField(
+            required=False,
+            input_formats=["%Y-%m-%d", "%d/%m/%Y"],
+            widget=forms.DateInput(attrs={"type": "date"}),
+        )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
