@@ -6,30 +6,62 @@
   Novo Escopo
 </a>
 
-<table class="table table-striped">
-  <thead>
-    <tr>
-      <th>Loja</th>
-      <th>Início</th>
-      <th>Fim</th>
-      <th>Ações</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for escopo in escopos %}
-      <tr>
-        <td>{{ escopo.loja.nome_referencia }}</td>
-        <td>{{ escopo.data_inicio|date:"d/m/Y" }}</td>
-        <td>{% if escopo.data_fim %}{{ escopo.data_fim|date:"d/m/Y" }}{% else %}Vigente{% endif %}</td>
-        <td>
-          <a class="btn btn-sm btn-outline-primary" href="{% url 'editar_escopo' escopo.pk %}">
+{% for bloco in escopos_com_estimativa %}
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div>
+          <strong>{{ bloco.escopo.loja.nome_referencia }}</strong><br>
+          <small class="text-muted">
+            Início: {{ bloco.escopo.data_inicio|date:"d/m/Y" }} |
+            Fim: {% if bloco.escopo.data_fim %}{{ bloco.escopo.data_fim|date:"d/m/Y" }}{% else %}Vigente{% endif %}
+          </small>
+        </div>
+        <div>
+          <a class="btn btn-sm btn-outline-primary" href="{% url 'editar_escopo' bloco.escopo.pk %}">
             Editar
           </a>
-        </td>
-      </tr>
-    {% empty %}
-      <tr><td colspan="4">Nenhum escopo encontrado.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-striped table-sm align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Cargo</th>
+              <th>Turno</th>
+              <th>Qtd</th>
+              <th>Insal. Fixa (R$)</th>
+              <th>Insal. Banheirista (R$)</th>
+              <th>Total (R$)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for linha in bloco.itens_com_estimativa %}
+              <tr>
+                <td>{{ linha.item.cargo.nome }}</td>
+                <td>{{ linha.item.get_turno_display }}</td>
+                <td>{{ linha.item.quantidade }}</td>
+
+                {% if linha.detalhamento %}
+                  <td>{{ linha.detalhamento.insalubridade_fixa_total|floatformat:2 }}</td>
+                  <td>{{ linha.detalhamento.insalubridade_banheirista_total|floatformat:2 }}</td>
+                  <td><strong>{{ linha.detalhamento.total|floatformat:2 }}</strong></td>
+                {% else %}
+                  <td colspan="3" class="text-muted">Sem salário cadastrado para UF/ano/cargo.</td>
+                {% endif %}
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="6">Escopo sem itens.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% empty %}
+  <div class="alert alert-light border">Nenhum escopo encontrado.</div>
+{% endfor %}
 {% endblock %}

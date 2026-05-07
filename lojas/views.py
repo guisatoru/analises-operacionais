@@ -113,15 +113,39 @@ def store_delete(request, pk):
 
     return render(request, "lojas/loja_confirm_delete.html", {"loja": store})
 
+
 def escopo_list(request):
     loja_id = request.GET.get("loja")
-    escopos = EscopoLoja.objects.select_related("loja").order_by("-data_inicio")
+    escopos = (
+        EscopoLoja.objects.select_related("loja")
+        .prefetch_related("itens__cargo")
+        .order_by("-data_inicio")
+    )
 
     if loja_id:
         escopos = escopos.filter(loja_id=loja_id)
 
+    escopos_com_estimativa = []
+
+    for escopo in escopos:
+        itens_com_estimativa = []
+        for item in escopo.itens.all():
+            detalhamento = item.get_estimativa_detalhada()
+            itens_com_estimativa.append(
+                {
+                    "item": item,
+                    "detalhamento": detalhamento,
+                }
+            )
+        escopos_com_estimativa.append(
+            {
+                "escopo": escopo,
+                "itens_com_estimativa": itens_com_estimativa,
+            }
+        )
+
     context = {
-        "escopos": escopos,
+        "escopos_com_estimativa": escopos_com_estimativa,
         "loja_id_filtro": loja_id,
     }
     return render(request, "lojas/escopo_list.html", context)

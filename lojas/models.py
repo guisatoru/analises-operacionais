@@ -6,12 +6,34 @@ from django.db.models import UniqueConstraint
 
 
 UF_CHOICES = [
-    ("AC", "AC"), ("AL", "AL"), ("AP", "AP"), ("AM", "AM"), ("BA", "BA"),
-    ("CE", "CE"), ("DF", "DF"), ("ES", "ES"), ("GO", "GO"), ("MA", "MA"),
-    ("MT", "MT"), ("MS", "MS"), ("MG", "MG"), ("PA", "PA"), ("PB", "PB"),
-    ("PR", "PR"), ("PE", "PE"), ("PI", "PI"), ("RJ", "RJ"), ("RN", "RN"),
-    ("RS", "RS"), ("RO", "RO"), ("RR", "RR"), ("SC", "SC"), ("SP", "SP"),
-    ("SE", "SE"), ("TO", "TO"), ("BR", "BR"),
+    ("AC", "AC"),
+    ("AL", "AL"),
+    ("AP", "AP"),
+    ("AM", "AM"),
+    ("BA", "BA"),
+    ("CE", "CE"),
+    ("DF", "DF"),
+    ("ES", "ES"),
+    ("GO", "GO"),
+    ("MA", "MA"),
+    ("MT", "MT"),
+    ("MS", "MS"),
+    ("MG", "MG"),
+    ("PA", "PA"),
+    ("PB", "PB"),
+    ("PR", "PR"),
+    ("PE", "PE"),
+    ("PI", "PI"),
+    ("RJ", "RJ"),
+    ("RN", "RN"),
+    ("RS", "RS"),
+    ("RO", "RO"),
+    ("RR", "RR"),
+    ("SC", "SC"),
+    ("SP", "SP"),
+    ("SE", "SE"),
+    ("TO", "TO"),
+    ("BR", "BR"),
 ]
 
 # Lista de status possíveis para uma loja.
@@ -133,8 +155,6 @@ class Loja(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    
-
     class Meta:
         verbose_name = "Loja"
         verbose_name_plural = "Lojas"
@@ -144,6 +164,7 @@ class Loja(models.Model):
         if self.nome_referencia:
             return self.nome_referencia
         return f"Loja #{self.pk}"
+
 
 class Cargo(models.Model):
     """Função/cargo usado no escopo e na tabela de salários."""
@@ -255,11 +276,15 @@ class EscopoLoja(models.Model):
                     "Já existe um escopo aberto para esta loja. "
                     "Encerre o anterior informando a data fim antes de abrir outro."
                 )
-            if self.insalubridade_fixa_percentual <= 0 or self.insalubridade_fixa_percentual > 100:
-                raise ValidationError(
-                    "A insalubridade fixa deve ser entre 0 e 100."
-                )
-            if self.insalubridade_banheirista_percentual <= 0 or self.insalubridade_banheirista_percentual > 100:
+            if (
+                self.insalubridade_fixa_percentual <= 0
+                or self.insalubridade_fixa_percentual > 100
+            ):
+                raise ValidationError("A insalubridade fixa deve ser entre 0 e 100.")
+            if (
+                self.insalubridade_banheirista_percentual <= 0
+                or self.insalubridade_banheirista_percentual > 100
+            ):
                 raise ValidationError(
                     "A insalubridade banheirista deve ser entre 0 e 100."
                 )
@@ -339,7 +364,9 @@ class ItemEscopo(models.Model):
 
         # 2) Percentual fixo configurado no escopo
         percentual_fixo = self.escopo.insalubridade_fixa_percentual or Decimal("0.00")
-        adicional_fixo_unitario = salario_base_unitario * (percentual_fixo / Decimal("100"))
+        adicional_fixo_unitario = salario_base_unitario * (
+            percentual_fixo / Decimal("100")
+        )
 
         # 3) Verifica se o cargo é banheirista (ajuste se seu nome padrão for diferente)
         nome_cargo = (self.cargo.nome or "").strip().upper()
@@ -348,17 +375,21 @@ class ItemEscopo(models.Model):
         adicional_banheirista_unitario = Decimal("0.00")
 
         if eh_banheirista:
-            percentual_banheirista = self.escopo.insalubridade_banheirista_percentual or Decimal("0.00")
+            percentual_banheirista = (
+                self.escopo.insalubridade_banheirista_percentual or Decimal("0.00")
+            )
 
             # Salário mínimo nacional: mesmo cargo, UF=BR, mesmo ano
             salario_nacional = Salario.objects.filter(
-                cargo_id=self.cargo_id,
+                cargo__nome__iexact="MÍNIMO NACIONAL",
                 uf="BR",
                 ano=ano,
             ).first()
 
             if salario_nacional is not None:
-                valor_banheirista_teorico = salario_nacional.valor * (percentual_banheirista / Decimal("100"))
+                valor_banheirista_teorico = salario_nacional.valor * (
+                    percentual_banheirista / Decimal("100")
+                )
 
                 # Regra da diferença: só paga o que excede a insalubridade fixa
                 diferenca = valor_banheirista_teorico - adicional_fixo_unitario
@@ -366,6 +397,79 @@ class ItemEscopo(models.Model):
                     adicional_banheirista_unitario = diferenca
 
         # Total unitário = base + fixa + diferença banheirista
-        total_unitario = salario_base_unitario + adicional_fixo_unitario + adicional_banheirista_unitario
+        total_unitario = (
+            salario_base_unitario
+            + adicional_fixo_unitario
+            + adicional_banheirista_unitario
+        )
 
         return quantidade * total_unitario
+
+    def get_estimativa_detalhada(self):
+        """
+        Retorna um dicionário com os componentes do cálculo:
+        - base_total
+        - insalubridade_fixa_total
+        - insalubridade_banheirista_total (somente a diferença)
+        - total
+        Retorna None quando não encontra salário regional.
+        """
+        loja = self.escopo.loja
+        uf_loja = (loja.uf or "").strip().upper()
+        if not uf_loja:
+            return None
+
+        ano = self.escopo.data_inicio.year
+
+        salario_regional = Salario.objects.filter(
+            cargo_id=self.cargo_id,
+            uf=uf_loja,
+            ano=ano,
+        ).first()
+        if salario_regional is None:
+            return None
+
+        quantidade = Decimal(self.quantidade)
+        salario_base_unitario = salario_regional.valor
+
+        percentual_fixo = self.escopo.insalubridade_fixa_percentual or Decimal("0.00")
+        insalubridade_fixa_unitaria = salario_base_unitario * (
+            percentual_fixo / Decimal("100")
+        )
+
+        nome_cargo = (self.cargo.nome or "").strip().upper()
+        eh_banheirista = nome_cargo == "BANHEIRISTA"
+
+        insalubridade_banheirista_unitaria = Decimal("0.00")
+
+        if eh_banheirista:
+            percentual_banheirista = (
+                self.escopo.insalubridade_banheirista_percentual or Decimal("0.00")
+            )
+            salario_nacional = Salario.objects.filter(
+                cargo__nome__iexact="MÍNIMO NACIONAL",
+                uf="BR",
+                ano=ano,
+            ).first()
+
+            if salario_nacional is not None:
+                valor_banheirista_teorico = salario_nacional.valor * (
+                    percentual_banheirista / Decimal("100")
+                )
+                diferenca = valor_banheirista_teorico - insalubridade_fixa_unitaria
+                if diferenca > Decimal("0.00"):
+                    insalubridade_banheirista_unitaria = diferenca
+
+        base_total = quantidade * salario_base_unitario
+        insalubridade_fixa_total = quantidade * insalubridade_fixa_unitaria
+        insalubridade_banheirista_total = (
+            quantidade * insalubridade_banheirista_unitaria
+        )
+        total = base_total + insalubridade_fixa_total + insalubridade_banheirista_total
+
+        return {
+            "base_total": base_total,
+            "insalubridade_fixa_total": insalubridade_fixa_total,
+            "insalubridade_banheirista_total": insalubridade_banheirista_total,
+            "total": total,
+        }
