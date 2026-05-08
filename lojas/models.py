@@ -216,6 +216,9 @@ TURNO_CHOICES = [
     ("NOTURNO", "Noturno"),
 ]
 
+# Percentual legal usual do adicional noturno sobre o salário base da função (não salário mínimo).
+PERCENTUAL_ADICIONAL_NOTURNO = Decimal("20.00")
+
 MESES_CHOICES = [
     (1, "Janeiro"),
     (2, "Fevereiro"),
@@ -364,10 +367,21 @@ class ItemEscopoMensal(models.Model):
         base_total = quantidade * salario_base_unitario
         insal_fixa_total = quantidade * insal_fixa_unit
         insal_ban_total = quantidade * insal_banheirista_unit
-        total = base_total + insal_fixa_total + insal_ban_total
+
+        # Adicional noturno: igual à insalubridade fixa no sentido de usar salário base do cargo;
+        # aplica apenas quando o item do escopo está em turno noturno (20% fixo).
+        adic_noturno_unit = Decimal("0.00")
+        if self.turno == "NOTURNO":
+            adic_noturno_unit = salario_base_unitario * (
+                PERCENTUAL_ADICIONAL_NOTURNO / Decimal("100")
+            )
+        adic_noturno_total = quantidade * adic_noturno_unit
+
+        total = base_total + insal_fixa_total + insal_ban_total + adic_noturno_total
         return {
             "base_total": base_total,
             "insalubridade_fixa_total": insal_fixa_total,
             "insalubridade_banheirista_total": insal_ban_total,
+            "adicional_noturno_total": adic_noturno_total,
             "total": total,
         }

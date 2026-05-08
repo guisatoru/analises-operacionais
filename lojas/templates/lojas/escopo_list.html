@@ -30,8 +30,10 @@
               <th>Cargo</th>
               <th>Turno</th>
               <th>Qtd</th>
+              <th>Salário base (R$)</th>
               <th>Insal. Fixa (R$)</th>
               <th>Insal. Banheirista (R$)</th>
+              <th>Adic. Noturno (R$)</th>
               <th>Total (R$)</th>
             </tr>
           </thead>
@@ -43,16 +45,18 @@
                 <td>{{ linha.item.quantidade }}</td>
 
                 {% if linha.detalhamento %}
+                  <td>{{ linha.detalhamento.base_total|floatformat:2 }}</td>
                   <td>{{ linha.detalhamento.insalubridade_fixa_total|floatformat:2 }}</td>
                   <td>{{ linha.detalhamento.insalubridade_banheirista_total|floatformat:2 }}</td>
+                  <td>{{ linha.detalhamento.adicional_noturno_total|floatformat:2 }}</td>
                   <td><strong>{{ linha.detalhamento.total|floatformat:2 }}</strong></td>
                 {% else %}
-                  <td colspan="3" class="text-muted">Sem salário cadastrado para UF/ano/cargo.</td>
+                  <td colspan="5" class="text-muted">Sem salário cadastrado para UF/ano/cargo.</td>
                 {% endif %}
               </tr>
             {% empty %}
               <tr>
-                <td colspan="6">Escopo sem itens.</td>
+                <td colspan="8">Escopo sem itens.</td>
               </tr>
             {% endfor %}
           </tbody>
