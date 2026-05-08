@@ -265,26 +265,24 @@ class EscopoLoja(models.Model):
             )
 
         # 2) Validação dos percentuais (permite 0 e 100)
-        if (
-            self.insalubridade_fixa_percentual is not None
-            and (
-                self.insalubridade_fixa_percentual < Decimal("0.00")
-                or self.insalubridade_fixa_percentual > Decimal("100.00")
-            )
+        if self.insalubridade_fixa_percentual is not None and (
+            self.insalubridade_fixa_percentual < Decimal("0.00")
+            or self.insalubridade_fixa_percentual > Decimal("100.00")
         ):
             raise ValidationError(
-                {"insalubridade_fixa_percentual": "A insalubridade fixa deve estar entre 0 e 100."}
+                {
+                    "insalubridade_fixa_percentual": "A insalubridade fixa deve estar entre 0 e 100."
+                }
             )
 
-        if (
-            self.insalubridade_banheirista_percentual is not None
-            and (
-                self.insalubridade_banheirista_percentual < Decimal("0.00")
-                or self.insalubridade_banheirista_percentual > Decimal("100.00")
-            )
+        if self.insalubridade_banheirista_percentual is not None and (
+            self.insalubridade_banheirista_percentual < Decimal("0.00")
+            or self.insalubridade_banheirista_percentual > Decimal("100.00")
         ):
             raise ValidationError(
-                {"insalubridade_banheirista_percentual": "A insalubridade banheirista deve estar entre 0 e 100."}
+                {
+                    "insalubridade_banheirista_percentual": "A insalubridade banheirista deve estar entre 0 e 100."
+                }
             )
 
         # 3) Regra de escopo aberto
@@ -301,9 +299,7 @@ class EscopoLoja(models.Model):
             if escopo_aberto:
                 # Se não temos data_inicio, não dá para comparar ano com segurança
                 if not self.data_inicio:
-                    raise ValidationError(
-                        "Já existe um escopo aberto para esta loja."
-                    )
+                    raise ValidationError("Já existe um escopo aberto para esta loja.")
 
                 ano_novo = self.data_inicio.year
                 ano_aberto = escopo_aberto.data_inicio.year
@@ -497,5 +493,162 @@ class ItemEscopo(models.Model):
             "base_total": base_total,
             "insalubridade_fixa_total": insalubridade_fixa_total,
             "insalubridade_banheirista_total": insalubridade_banheirista_total,
+            "total": total,
+        }
+
+
+MESES_CHOICES = [
+    (1, "Janeiro"),
+    (2, "Fevereiro"),
+    (3, "Março"),
+    (4, "Abril"),
+    (5, "Maio"),
+    (6, "Junho"),
+    (7, "Julho"),
+    (8, "Agosto"),
+    (9, "Setembro"),
+    (10, "Outubro"),
+    (11, "Novembro"),
+    (12, "Dezembro"),
+]
+
+
+class EscopoMensal(models.Model):
+    """
+    Escopo por competência mensal.
+    Regra: uma loja só pode ter um escopo por ano/mês.
+    """
+
+    loja = models.ForeignKey(
+        "Loja",
+        on_delete=models.CASCADE,
+        related_name="escopos_mensais",
+        verbose_name="Loja",
+    )
+    ano = models.PositiveIntegerField("Ano")
+    mes = models.PositiveSmallIntegerField("Mês", choices=MESES_CHOICES)
+    insalubridade_fixa_percentual = models.DecimalField(
+        "Insalubridade fixa (%)",
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    insalubridade_banheirista_percentual = models.DecimalField(
+        "Insalubridade banheirista (%)",
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Escopo mensal"
+        verbose_name_plural = "Escopos mensais"
+        ordering = ["-ano", "-mes", "loja"]
+        constraints = [
+            UniqueConstraint(
+                fields=["loja", "ano", "mes"],
+                name="unique_escopo_mensal_loja_ano_mes",
+            )
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.mes < 1 or self.mes > 12:
+            raise ValidationError({"mes": "Mês deve estar entre 1 e 12."})
+        if self.insalubridade_fixa_percentual < Decimal(
+            "0.00"
+        ) or self.insalubridade_fixa_percentual > Decimal("100.00"):
+            raise ValidationError(
+                {
+                    "insalubridade_fixa_percentual": "A insalubridade fixa deve estar entre 0 e 100."
+                }
+            )
+        if self.insalubridade_banheirista_percentual < Decimal(
+            "0.00"
+        ) or self.insalubridade_banheirista_percentual > Decimal("100.00"):
+            raise ValidationError(
+                {
+                    "insalubridade_banheirista_percentual": "A insalubridade banheirista deve estar entre 0 e 100."
+                }
+            )
+
+    def __str__(self):
+        return f"{self.loja} - {self.mes:02d}/{self.ano}"
+
+
+class ItemEscopoMensal(models.Model):
+    escopo_mensal = models.ForeignKey(
+        EscopoMensal,
+        on_delete=models.CASCADE,
+        related_name="itens",
+        verbose_name="Escopo mensal",
+    )
+    cargo = models.ForeignKey(
+        "Cargo",
+        on_delete=models.PROTECT,
+        related_name="itens_escopo_mensal",
+        verbose_name="Cargo",
+    )
+    turno = models.CharField("Turno", max_length=10, choices=TURNO_CHOICES)
+    quantidade = models.PositiveIntegerField("Quantidade", default=1)
+
+    class Meta:
+        verbose_name = "Item do escopo mensal"
+        verbose_name_plural = "Itens do escopo mensal"
+        ordering = ["escopo_mensal", "cargo", "turno"]
+        constraints = [
+            UniqueConstraint(
+                fields=["escopo_mensal", "cargo", "turno"],
+                name="unique_item_escopo_mensal",
+            )
+        ]
+
+    def get_estimativa_detalhada(self):
+        # Mesma lógica que você já usa, mas com ano do escopo mensal.
+        uf_loja = (self.escopo_mensal.loja.uf or "").strip().upper()
+        if not uf_loja:
+            return None
+        ano = self.escopo_mensal.ano
+        salario_regional = Salario.objects.filter(
+            cargo_id=self.cargo_id,
+            uf=uf_loja,
+            ano=ano,
+        ).first()
+        if salario_regional is None:
+            return None
+        quantidade = Decimal(self.quantidade)
+        salario_base_unitario = salario_regional.valor
+        percentual_fixo = self.escopo_mensal.insalubridade_fixa_percentual or Decimal(
+            "0.00"
+        )
+        insal_fixa_unit = salario_base_unitario * (percentual_fixo / Decimal("100"))
+        nome_cargo = (self.cargo.nome or "").strip().upper()
+        eh_banheirista = nome_cargo == "BANHEIRISTA"
+        insal_banheirista_unit = Decimal("0.00")
+        if eh_banheirista:
+            percentual_ban = (
+                self.escopo_mensal.insalubridade_banheirista_percentual
+                or Decimal("0.00")
+            )
+            salario_nacional = Salario.objects.filter(
+                cargo__nome__iexact="MÍNIMO NACIONAL",
+                uf="BR",
+                ano=ano,
+            ).first()
+            if salario_nacional:
+                teorico = salario_nacional.valor * (percentual_ban / Decimal("100"))
+                diferenca = teorico - insal_fixa_unit
+                if diferenca > Decimal("0.00"):
+                    insal_banheirista_unit = diferenca
+        base_total = quantidade * salario_base_unitario
+        insal_fixa_total = quantidade * insal_fixa_unit
+        insal_ban_total = quantidade * insal_banheirista_unit
+        total = base_total + insal_fixa_total + insal_ban_total
+        return {
+            "base_total": base_total,
+            "insalubridade_fixa_total": insal_fixa_total,
+            "insalubridade_banheirista_total": insal_ban_total,
             "total": total,
         }

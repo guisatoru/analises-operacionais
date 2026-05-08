@@ -3,8 +3,8 @@ from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from datetime import date
 
-from .forms import LojaForm, LojaUpdateForm, EscopoLojaForm, ItemEscopoFormSet
-from .models import STATUS_CHOICES, Loja, EscopoLoja
+from .forms import LojaForm, LojaUpdateForm, EscopoMensalForm, ItemEscopoMensalFormSet
+from .models import STATUS_CHOICES, Loja, EscopoMensal, ItemEscopoMensal
 
 
 def store_list(request):
@@ -115,19 +115,84 @@ def store_delete(request, pk):
     return render(request, "lojas/loja_confirm_delete.html", {"loja": store})
 
 
-def escopo_list(request):
-    loja_id = request.GET.get("loja")
-    escopos = (
-        EscopoLoja.objects.select_related("loja")
-        .prefetch_related("itens__cargo")
-        .order_by("-data_inicio")
-    )
+def _competencia_anterior(ano, mes):
+    """
+    Retorna (ano, mes) da competência anterior.
+    Ex.: 2026/1 -> 2025/12
+    """
+    if mes == 1:
+        return ano - 1, 12
+    return ano, mes - 1
 
+
+def _replicar_do_mes_anterior_se_existir(escopo_mensal):
+    """
+    Regra de negócio:
+    quando abrir um novo mês e não houver itens preenchidos ainda,
+    copiamos o mês anterior para acelerar operação.
+    """
+    ano_anterior, mes_anterior = _competencia_anterior(
+        escopo_mensal.ano,
+        escopo_mensal.mes,
+    )
+    escopo_anterior = (
+        EscopoMensal.objects.filter(
+            loja=escopo_mensal.loja,
+            ano=ano_anterior,
+            mes=mes_anterior,
+        )
+        .prefetch_related("itens")
+        .first()
+    )
+    if not escopo_anterior:
+        return False
+    # Copia percentuais do mês anterior
+    escopo_mensal.insalubridade_fixa_percentual = (
+        escopo_anterior.insalubridade_fixa_percentual
+    )
+    escopo_mensal.insalubridade_banheirista_percentual = (
+        escopo_anterior.insalubridade_banheirista_percentual
+    )
+    escopo_mensal.save(
+        update_fields=[
+            "insalubridade_fixa_percentual",
+            "insalubridade_banheirista_percentual",
+        ]
+    )
+    itens_para_criar = []
+    for item_anterior in escopo_anterior.itens.all():
+        itens_para_criar.append(
+            ItemEscopoMensal(
+                escopo_mensal=escopo_mensal,
+                cargo=item_anterior.cargo,
+                turno=item_anterior.turno,
+                quantidade=item_anterior.quantidade,
+            )
+        )
+    if itens_para_criar:
+        ItemEscopoMensal.objects.bulk_create(itens_para_criar)
+    return True
+
+
+def escopo_list(request):
+    """
+    Lista escopos mensais com estimativa por item.
+    """
+    loja_id = request.GET.get("loja")
+    ano_filtro = request.GET.get("ano")
+    mes_filtro = request.GET.get("mes")
+    escopos = (
+        EscopoMensal.objects.select_related("loja")
+        .prefetch_related("itens__cargo")
+        .order_by("-ano", "-mes", "loja__nome_referencia")
+    )
     if loja_id:
         escopos = escopos.filter(loja_id=loja_id)
-
+    if ano_filtro:
+        escopos = escopos.filter(ano=ano_filtro)
+    if mes_filtro:
+        escopos = escopos.filter(mes=mes_filtro)
     escopos_com_estimativa = []
-
     for escopo in escopos:
         itens_com_estimativa = []
         for item in escopo.itens.all():
@@ -144,87 +209,83 @@ def escopo_list(request):
                 "itens_com_estimativa": itens_com_estimativa,
             }
         )
-
     context = {
         "escopos_com_estimativa": escopos_com_estimativa,
         "loja_id_filtro": loja_id,
+        "ano_filtro": ano_filtro,
+        "mes_filtro": mes_filtro,
     }
     return render(request, "lojas/escopo_list.html", context)
 
 
 def escopo_create(request):
+    """
+    Cria escopo mensal.
+    Se a competência já existir, bloqueia duplicação.
+    """
     if request.method == "POST":
-        form = EscopoLojaForm(request.POST)
-        formset = ItemEscopoFormSet(request.POST)
-
+        form = EscopoMensalForm(request.POST)
+        formset = ItemEscopoMensalFormSet(request.POST)
         if form.is_valid():
-            escopo = form.save(commit=False)
-
-            # Procura escopo aberto da mesma loja (se existir).
-            escopo_aberto = (
-                EscopoLoja.objects.filter(loja=escopo.loja, data_fim__isnull=True)
-                .order_by("-data_inicio")
-                .first()
-            )
-
-            escopo_fechado_automaticamente = False
-
-            if escopo_aberto:
-                ano_antigo = escopo_aberto.data_inicio.year
-                ano_novo = escopo.data_inicio.year
-
-                # Só fecha automaticamente se o novo escopo for de ano posterior.
-                if ano_novo > ano_antigo:
-                    escopo_aberto.data_fim = date(ano_antigo, 12, 31)
-                    escopo_aberto.save(update_fields=["data_fim"])
-                    escopo_fechado_automaticamente = True
-
-            # Recria o formset com a instância do escopo (ainda não salva).
-            formset = ItemEscopoFormSet(request.POST, instance=escopo)
-
+            escopo_mensal = form.save(commit=False)
+            # Recria o formset ligado na instância em memória
+            formset = ItemEscopoMensalFormSet(request.POST, instance=escopo_mensal)
             if formset.is_valid():
-                escopo.save()
-                formset.instance = escopo
-                formset.save()
-
-                if escopo_fechado_automaticamente:
-                    messages.info(
-                        request,
-                        "Escopo anterior encerrado automaticamente por virada de ano.",
+                try:
+                    escopo_mensal.save()
+                except IntegrityError:
+                    form.add_error(
+                        None,
+                        "Já existe escopo para esta loja no ano/mês informado.",
                     )
-
-                messages.success(request, "Escopo criado com sucesso.")
-                return redirect("lista_escopos")
+                else:
+                    formset.instance = escopo_mensal
+                    formset.save()
+                    messages.success(request, "Escopo mensal criado com sucesso.")
+                    return redirect("lista_escopos")
     else:
         loja_id = request.GET.get("loja")
-        initial = {"loja": loja_id} if loja_id else None
-        form = EscopoLojaForm(initial=initial)
-        formset = ItemEscopoFormSet()
-
+        hoje = date.today()
+        initial = {
+            "loja": loja_id if loja_id else None,
+            "ano": hoje.year,
+            "mes": hoje.month,
+        }
+        form = EscopoMensalForm(initial=initial)
+        formset = ItemEscopoMensalFormSet()
     return render(
         request,
         "lojas/escopo_form.html",
-        {"form": form, "formset": formset, "titulo": "Novo Escopo"},
+        {
+            "form": form,
+            "formset": formset,
+            "titulo": "Novo Escopo Mensal",
+        },
     )
 
 
 def escopo_update(request, pk):
-    escopo = get_object_or_404(EscopoLoja, pk=pk)
-
+    """
+    Edita escopo mensal existente.
+    """
+    escopo_mensal = get_object_or_404(EscopoMensal, pk=pk)
     if request.method == "POST":
-        form = EscopoLojaForm(request.POST, instance=escopo)
-        formset = ItemEscopoFormSet(request.POST, instance=escopo)
+        form = EscopoMensalForm(request.POST, instance=escopo_mensal)
+        formset = ItemEscopoMensalFormSet(request.POST, instance=escopo_mensal)
         if form.is_valid() and formset.is_valid():
             form.save()
             formset.save()
-            messages.success(request, "Escopo atualizado com sucesso.")
+            messages.success(request, "Escopo mensal atualizado com sucesso.")
             return redirect("lista_escopos")
     else:
-        form = EscopoLojaForm(instance=escopo)
-        formset = ItemEscopoFormSet(instance=escopo)
-
+        form = EscopoMensalForm(instance=escopo_mensal)
+        formset = ItemEscopoMensalFormSet(instance=escopo_mensal)
     return render(
         request,
         "lojas/escopo_form.html",
-        {"form": form, "formset": formset, "titulo": f"Editar Escopo #{escopo.pk}"},
+        {
+            "form": form,
+            "formset": formset,
+            "titulo": f"Editar Escopo Mensal #{escopo_mensal.pk}",
+        },
     )

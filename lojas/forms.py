@@ -1,8 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 
-from .models import Loja, EscopoLoja, ItemEscopo
-
+from .models import Loja, EscopoMensal, ItemEscopoMensal
 
 # Keep Bootstrap classes in one helper to avoid
 # repeating style code in every form class.
@@ -84,28 +83,26 @@ class LojaUpdateForm(forms.ModelForm):
         apply_bootstrap_class(self)
 
 
-class EscopoLojaForm(forms.ModelForm):
+class EscopoMensalForm(forms.ModelForm):
+    """
+    Formulário do cabeçalho do escopo mensal.
+    Aqui definimos loja, ano, mês e percentuais usados no cálculo.
+    """
+
     class Meta:
-        model = EscopoLoja
+        model = EscopoMensal
         fields = [
             "loja",
-            "data_inicio",
-            "data_fim",
+            "ano",
+            "mes",
             "insalubridade_fixa_percentual",
             "insalubridade_banheirista_percentual",
         ]
-        data_inicio = forms.DateField(
-            input_formats=["%Y-%m-%d", "%d/%m/%Y"],
-            widget=forms.DateInput(attrs={"type": "date"}),
-        )
-        data_fim = forms.DateField(
-            required=False,
-            input_formats=["%Y-%m-%d", "%d/%m/%Y"],
-            widget=forms.DateInput(attrs={"type": "date"}),
-        )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Comentário de negócio:
+        # Placeholder ajuda quem edita a lembrar que o valor é percentual.
         self.fields["insalubridade_fixa_percentual"].widget.attrs[
             "placeholder"
         ] = "Ex.: 20.00"
@@ -115,9 +112,13 @@ class EscopoLojaForm(forms.ModelForm):
         apply_bootstrap_class(self)
 
 
-class ItemEscopoForm(forms.ModelForm):
+class ItemEscopoMensalForm(forms.ModelForm):
+    """
+    Cada linha representa um cargo/turno com quantidade para a competência.
+    """
+
     class Meta:
-        model = ItemEscopo
+        model = ItemEscopoMensal
         fields = ["cargo", "turno", "quantidade"]
 
     def __init__(self, *args, **kwargs):
@@ -125,10 +126,10 @@ class ItemEscopoForm(forms.ModelForm):
         apply_bootstrap_class(self)
 
 
-ItemEscopoFormSet = inlineformset_factory(
-    EscopoLoja,
-    ItemEscopo,
-    form=ItemEscopoForm,
+ItemEscopoMensalFormSet = inlineformset_factory(
+    EscopoMensal,
+    ItemEscopoMensal,
+    form=ItemEscopoMensalForm,
     extra=1,
     can_delete=True,
 )

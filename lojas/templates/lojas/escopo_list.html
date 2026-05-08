@@ -13,8 +13,7 @@
         <div>
           <strong>{{ bloco.escopo.loja.nome_referencia }}</strong><br>
           <small class="text-muted">
-            Início: {{ bloco.escopo.data_inicio|date:"d/m/Y" }} |
-            Fim: {% if bloco.escopo.data_fim %}{{ bloco.escopo.data_fim|date:"d/m/Y" }}{% else %}Vigente{% endif %}
+            Competência: {{ bloco.escopo.mes|stringformat:"02d" }}/{{ bloco.escopo.ano }}
           </small>
         </div>
         <div>
