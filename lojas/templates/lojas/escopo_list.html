@@ -60,6 +60,12 @@
               </tr>
             {% endfor %}
           </tbody>
+          <tfoot>
+            <tr class="table-secondary">
+              <td colspan="7" class="text-end"><strong>Total da estimativa (R$)</strong></td>
+              <td><strong>{{ bloco.total_estimativa_escopo|floatformat:2 }}</strong></td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>

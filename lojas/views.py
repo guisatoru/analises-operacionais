@@ -1,4 +1,5 @@
 from django.contrib import messages
+from decimal import Decimal
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from datetime import date
@@ -203,10 +204,16 @@ def escopo_list(request):
                     "detalhamento": detalhamento,
                 }
             )
+        # Soma dos totais da estimativa (só linhas que têm detalhamento/salário).
+        total_estimativa_escopo = Decimal("0")
+        for linha in itens_com_estimativa:
+            if linha["detalhamento"]:
+                total_estimativa_escopo += linha["detalhamento"]["total"]
         escopos_com_estimativa.append(
             {
                 "escopo": escopo,
                 "itens_com_estimativa": itens_com_estimativa,
+                "total_estimativa_escopo": total_estimativa_escopo,
             }
         )
     context = {
