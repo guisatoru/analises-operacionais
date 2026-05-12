@@ -21,6 +21,8 @@ from .stores import (
     store_update,
 )
 
+from .folha_duplicadas import folha_duplicadas_list
+
 __all__ = [
     "competencia_anterior",
     "escopo_create",
@@ -36,4 +38,5 @@ __all__ = [
     "store_detail",
     "store_list",
     "store_update",
+    "folha_duplicadas_list",
 ]

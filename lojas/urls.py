@@ -14,4 +14,7 @@ urlpatterns = [
     path("escopos/<int:pk>/editar/", views.escopo_update, name="editar_escopo"),
     path("escopos/<int:pk>/excluir/", views.escopo_delete, name="excluir_escopo"),
     path("folhas/importar/", views.folha_import, name="importar_folha"),
+    path(
+        "folhas/duplicadas/", views.folha_duplicadas_list, name="lista_folha_duplicadas"
+    ),
 ]
