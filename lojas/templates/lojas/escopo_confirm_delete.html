@@ -1,0 +1,28 @@
+{% extends "lojas/base.html" %}
+
+{% block titulo %}Excluir escopo{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <h2 class="mb-3">Excluir escopo mensal</h2>
+        <p>
+            Tem certeza que deseja excluir o escopo de
+            <strong>{{ escopo.loja.nome_referencia }}</strong>
+            referente à competência
+            <strong>{{ escopo.mes|stringformat:"02d" }}/{{ escopo.ano }}</strong>?
+        </p>
+        <p class="text-muted small mb-0">
+            Todos os cargos, turnos e quantidades deste mês serão apagados. Esta ação não pode ser desfeita.
+        </p>
+
+        <form method="post" class="mt-4">
+            {% csrf_token %}
+            <div class="d-flex gap-2">
+                <a href="{% url 'lista_escopos' %}{% if escopo.loja_id %}?loja={{ escopo.loja_id }}{% endif %}" class="btn btn-outline-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-danger">Confirmar exclusão</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

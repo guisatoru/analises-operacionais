@@ -1,8 +1,11 @@
-from django.contrib import messages
-from decimal import Decimal
-from django.core.paginator import Paginator
-from django.shortcuts import get_object_or_404, redirect, render
 from datetime import date
+from decimal import Decimal
+
+from django.contrib import messages
+from django.core.paginator import Paginator
+from django.db import IntegrityError
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
 from .forms import LojaForm, LojaUpdateForm, EscopoMensalForm, ItemEscopoMensalFormSet
 from .models import STATUS_CHOICES, Loja, EscopoMensal, ItemEscopoMensal
@@ -185,7 +188,7 @@ def escopo_list(request):
     escopos = (
         EscopoMensal.objects.select_related("loja")
         .prefetch_related("itens__cargo")
-        .order_by("-ano", "-mes", "loja__nome_referencia")
+        .order_by("loja__nome_referencia", "-ano", "-mes")
     )
     if loja_id:
         escopos = escopos.filter(loja_id=loja_id)
@@ -296,3 +299,24 @@ def escopo_update(request, pk):
             "titulo": f"Editar Escopo Mensal #{escopo_mensal.pk}",
         },
     )
+
+
+def escopo_delete(request, pk):
+    """
+    Remove um escopo mensal (itens somem em cascata) após confirmação.
+    """
+    escopo = get_object_or_404(
+        EscopoMensal.objects.select_related("loja"),
+        pk=pk,
+    )
+    if request.method == "POST":
+        loja_id = escopo.loja_id
+        label = f"{escopo.loja.nome_referencia} — {escopo.mes:02d}/{escopo.ano}"
+        escopo.delete()
+        messages.success(request, f"Escopo mensal excluído: {label}.")
+        url = reverse("lista_escopos")
+        if loja_id:
+            return redirect(f"{url}?loja={loja_id}")
+        return redirect(url)
+
+    return render(request, "lojas/escopo_confirm_delete.html", {"escopo": escopo})
