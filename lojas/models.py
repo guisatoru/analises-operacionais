@@ -45,6 +45,14 @@ STATUS_CHOICES = [
     ("INATIVA", "Inativa"),
 ]
 
+# Tipos de verba vindos da folha — amplie a lista se aparecerem outros valores na planilha.
+TIPO_VERBA_CHOICES = [
+    ("PROVENTO", "Provento"),
+    ("BASE DESCONTO", "Base Desconto"),
+    ("BASE PROVENTO", "Base Provento"),
+    ("DESCONTO", "Desconto"),
+]
+
 
 class Loja(models.Model):
     """Representa uma loja cadastrada no sistema."""
@@ -419,6 +427,38 @@ class ItemEscopoMensal(models.Model):
             "adicional_noturno_total": adic_noturno_total,
             "total": total,
         }
+
+
+class Verba(models.Model):
+    """
+    Cadastro de verbas da folha: usado para cruzar código com regras de cálculo
+    (categoria e se entra na contagem).
+    """
+
+    # Código como texto para não perder zeros à esquerda nem misturar com inteiros do Excel.
+    codigo_verba = models.CharField("Código da verba", max_length=20, unique=True)
+    descricao = models.CharField("Descrição", max_length=255)
+    tipo_codigo = models.CharField(
+        "Tipo do código",
+        max_length=20,
+        choices=TIPO_VERBA_CHOICES,
+    )
+    # Categoria analítica (vem da segunda planilha); texto livre até padronizar no RH.
+    categoria = models.CharField("Categoria", max_length=120, blank=True)
+    # Se False, os relatórios/cálculos devem ignorar esta verba na contagem.
+    considerar_na_contagem = models.BooleanField(
+        "Considerar na contagem",
+        default=False,
+    )
+
+    class Meta:
+        verbose_name = "Verba"
+        verbose_name_plural = "Verbas"
+        ordering = ["codigo_verba"]
+
+    def __str__(self):
+        return f"{self.codigo_verba} — {self.descricao}"
+
 
 def montar_caches_salario_para_itens(itens):
     """

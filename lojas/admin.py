@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import reverse
 from django.utils.html import format_html
 
-from .models import Cargo, EscopoMensal, ItemEscopoMensal, Loja, Salario
+from .models import Cargo, EscopoMensal, ItemEscopoMensal, Loja, Salario, Verba
 from .forms import EscopoMensalForm
 
 
@@ -110,3 +110,17 @@ class EscopoMensalAdmin(admin.ModelAdmin):
     list_filter = ("loja", "ano", "mes")
     autocomplete_fields = ("loja",)
     inlines = [ItemEscopoMensalInline]
+
+
+@admin.register(Verba)
+class VerbaAdmin(admin.ModelAdmin):
+    list_display = (
+        "codigo_verba",
+        "descricao",
+        "tipo_codigo",
+        "categoria",
+        "considerar_na_contagem",
+    )
+    list_filter = ("tipo_codigo", "considerar_na_contagem", "categoria")
+    search_fields = ("codigo_verba", "descricao", "categoria")
+    ordering = ("codigo_verba",)
