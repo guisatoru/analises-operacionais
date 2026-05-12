@@ -6,7 +6,7 @@ from decimal import Decimal, ROUND_HALF_UP
 import pandas as pd
 from django.db import transaction
 
-from lojas.models import LinhaFolha, Loja, Verba
+from lojas.models import LinhaFolha, LinhaFolhaDuplicada, Loja, Verba
 
 from .folha_constants import CC_OPERACIONAL, CODIGO_VERBA_LOCALIZACAO
 
@@ -238,6 +238,27 @@ def _linha_para_detalhe_duplicada(d, motivo):
     }
 
 
+def _dict_para_linha_folha_duplicada(d, motivo_codigo):
+    """
+    motivo_codigo: 'REPETIDA_NO_ARQUIVO' ou 'JA_EXISTIA_NO_BANCO'
+    (mesmos valores de MOTIVO_DUPLICATA_FOLHA_CHOICES).
+    """
+    return LinhaFolhaDuplicada(
+        motivo=motivo_codigo,
+        matricula=d["matricula"],
+        verba_id=d["verba_id"],
+        codigo_verba=d["codigo_verba"],
+        valor=d["valor"],
+        dt_arq=d["dt_arq"],
+        dt_pagamento=d["dt_pagamento"],
+        centro_custo=d["centro_custo"],
+        centro_custo_real=d["centro_custo_real"],
+        loja_id=d["loja_id"],
+        categoria=d["categoria"],
+        arquivo_origem=d["arquivo_origem"],
+    )
+
+
 def _linha_para_detalhe_sem_loja(d):
     return {
         "matricula": d["matricula"],
@@ -274,10 +295,14 @@ def importar_folha_de_texto(conteudo_utf8, arquivo_origem, dry_run=False):
     unicos = []
     duplicadas_no_arquivo = 0
     detalhes_duplicadas = []
+    para_gravar_duplicadas = []
     for d in dados:
         k = _chave_unica(d)
         if k in visto:
             duplicadas_no_arquivo += 1
+            para_gravar_duplicadas.append(
+                _dict_para_linha_folha_duplicada(d, "REPETIDA_NO_ARQUIVO")
+            )
             if len(detalhes_duplicadas) < LIMITE_DETALHES_DUPLICADAS:
                 detalhes_duplicadas.append(
                     _linha_para_detalhe_duplicada(d, "repetida_no_mesmo_arquivo")
@@ -310,11 +335,14 @@ def importar_folha_de_texto(conteudo_utf8, arquivo_origem, dry_run=False):
         k = _chave_unica(d)
         if k in existentes:
             ignoradas_duplicadas += 1
+            para_gravar_duplicadas.append(
+                _dict_para_linha_folha_duplicada(d, "JA_EXISTIA_NO_BANCO")
+            )
+            continue
             if len(detalhes_duplicadas) < LIMITE_DETALHES_DUPLICADAS:
                 detalhes_duplicadas.append(
                     _linha_para_detalhe_duplicada(d, "ja_existia_no_banco")
                 )
-            continue
         if d["loja_id"] is None and len(detalhes_sem_loja) < LIMITE_DETALHES_SEM_LOJA:
             detalhes_sem_loja.append(_linha_para_detalhe_sem_loja(d))
         para_gravar.append(
@@ -354,5 +382,10 @@ def importar_folha_de_texto(conteudo_utf8, arquivo_origem, dry_run=False):
 
     with transaction.atomic():
         LinhaFolha.objects.bulk_create(para_gravar, batch_size=500)
+        if para_gravar_duplicadas:
+            LinhaFolhaDuplicada.objects.bulk_create(
+                para_gravar_duplicadas,
+                batch_size=500,
+            )
 
-    return resumo
+    return resumo 
