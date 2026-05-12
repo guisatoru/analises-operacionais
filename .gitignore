@@ -16,6 +16,7 @@ env/
 # Banco SQLite (caso seja usado em testes)
 *.sqlite3
 *.sqlite3-journal
+*.json
 
 # Django
 *.log
