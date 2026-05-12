@@ -9,6 +9,8 @@ from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
+from django.views.decorators.http import require_POST
+
 from ..forms import EscopoMensalForm, ItemEscopoMensalFormSet
 from ..models import (
     MESES_CHOICES,
@@ -16,7 +18,7 @@ from ..models import (
     Loja,
     montar_caches_salario_para_itens,
 )
-from .common import parse_int_param
+from .common import parse_int_param, escopo_duplicar_proximo_mes_para_todas_as_lojas
 
 # Quantos escopos (cards) por página — cada card carrega itens e estimativas.
 ESCOPOS_POR_PAGINA = 10
@@ -188,3 +190,17 @@ def escopo_delete(request, pk):
         return redirect(url)
 
     return render(request, "lojas/escopo_confirm_delete.html", {"escopo": escopo})
+
+
+@require_POST
+def escopo_duplicar_proximo_mes(request):
+    """
+    Duplica, de uma vez, o último mês global de escopos para o mês seguinte,
+    para todas as lojas que têm escopo nesse mês.
+    """
+    resumo = escopo_duplicar_proximo_mes_para_todas_as_lojas()
+    if resumo["ok"]:
+        messages.success(request, resumo["mensagem"])
+    else:
+        messages.warning(request, resumo["mensagem"])
+    return redirect("lista_escopos")

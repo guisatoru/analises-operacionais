@@ -2,7 +2,8 @@
 Funções auxiliares compartilhadas entre views (competência, query string, etc.).
 """
 
-from ..models import EscopoMensal, ItemEscopoMensal
+from django.db import transaction
+from ..models import EscopoMensal, ItemEscopoMensal, percentuais_insalubridade_padrao_para_loja
 
 
 def competencia_anterior(ano, mes):
@@ -79,3 +80,74 @@ def parse_int_param(value, min_value=None, max_value=None):
     if max_value is not None and n > max_value:
         return None
     return n
+
+
+def competencia_seguinte(ano, mes):
+    """Mês seguinte à competência (ano, mês)."""
+    if mes == 12:
+        return ano + 1, 1
+    return ano, mes + 1
+
+
+def escopo_obter_ultima_competencia_global():
+    """
+    Último (ano, mês) que existe em algum escopo (ordenação ano/mês desc).
+    Retorna None se não houver nenhum escopo.
+    """
+    ultimo = EscopoMensal.objects.order_by("-ano", "-mes").first()
+    if ultimo is None:
+        return None
+    return ultimo.ano, ultimo.mes
+
+
+def escopo_duplicar_proximo_mes_para_todas_as_lojas():
+    """
+    Para cada loja que tem escopo no último mês global, cria o escopo do mês seguinte
+    e copia itens/percentuais via replicar_do_mes_anterior_se_existir.
+    Retorna dict com contadores para mensagens na view.
+    """
+    origem = escopo_obter_ultima_competencia_global()
+    if origem is None:
+        return {
+            "ok": False,
+            "mensagem": "Não há nenhum escopo cadastrado.",
+            "criados": 0,
+            "pulados_ja_existia_destino": 0,
+            "origem": None,
+            "destino": None,
+        }
+    ano_o, mes_o = origem
+    ano_d, mes_d = competencia_seguinte(ano_o, mes_o)
+    escopos_origem = EscopoMensal.objects.filter(ano=ano_o, mes=mes_o).select_related(
+        "loja"
+    )
+    criados = 0
+    pulados_ja_existia_destino = 0
+    with transaction.atomic():
+        for esc_orig in escopos_origem:
+            loja = esc_orig.loja
+            if EscopoMensal.objects.filter(loja=loja, ano=ano_d, mes=mes_d).exists():
+                pulados_ja_existia_destino += 1
+                continue
+            pct_fixa, pct_ban = percentuais_insalubridade_padrao_para_loja(loja)
+            novo = EscopoMensal.objects.create(
+                loja=loja,
+                ano=ano_d,
+                mes=mes_d,
+                insalubridade_fixa_percentual=pct_fixa,
+                insalubridade_banheirista_percentual=pct_ban,
+            )
+            # Copia do mês anterior ao destino (= origem que já sabemos existir para esta loja)
+            replicar_do_mes_anterior_se_existir(novo)
+            criados += 1
+    return {
+        "ok": True,
+        "mensagem": (
+            f"Origem {mes_o:02d}/{ano_o} → destino {mes_d:02d}/{ano_d}. "
+            f"Criados: {criados}. Já existiam no destino: {pulados_ja_existia_destino}."
+        ),
+        "criados": criados,
+        "pulados_ja_existia_destino": pulados_ja_existia_destino,
+        "origem": (ano_o, mes_o),
+        "destino": (ano_d, mes_d),
+    }

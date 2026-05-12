@@ -91,7 +91,9 @@ def _carregar_historico_localizacao(matriculas):
     return dict(por_matricula)
 
 
-def _centro_custo_real_por_historico(matricula, dt_arq, dt_pagamento, centro_atual, historico):
+def _centro_custo_real_por_historico(
+    matricula, dt_arq, dt_pagamento, centro_atual, historico
+):
     """
     Se não for CC operacional, o real é o próprio centro (já 12 dígitos).
     Se for operacional, busca o último 001 no histórico estritamente anterior
@@ -114,6 +116,81 @@ def _centro_custo_real_por_historico(matricula, dt_arq, dt_pagamento, centro_atu
     return candidato
 
 
+def _mapa_cc_001_arquivo_por_matricula(merged, normalizar_centro_custo):
+    """
+    Para cada matrícula, escolhe o centro de custo da verba 001 no próprio CSV
+    quando esse centro não é o operacional. Se houver mais de uma 001 no arquivo,
+    usa a linha com data de pagamento mais recente (empate: data ARQ mais recente).
+
+    Por que existe: o histórico do banco só existe após o bulk_create; no mesmo
+    arquivo podem vir várias competências e a 001 “boa” precisa resolver o CC
+    real antes de consultar o histórico persistido.
+    """
+    por_matricula = defaultdict(list)
+
+    for _, row in merged.iterrows():
+        matricula = row["_matricula"]
+        if not matricula:
+            continue
+
+        codigo_v = normalizar_codigo_verba(row["CODIGO VERBA"])
+        if codigo_v != CODIGO_VERBA_LOCALIZACAO:
+            continue
+
+        dt_arq = row["DT.ARQ."]
+        dt_pag = row["DT.PAGAMENTO"]
+        if pd.isna(dt_arq) or pd.isna(dt_pag):
+            continue
+        if hasattr(dt_arq, "date"):
+            dt_arq = dt_arq.date()
+        if hasattr(dt_pag, "date"):
+            dt_pag = dt_pag.date()
+
+        centro = str(row["CENTRO CUSTO"]).strip()
+        if not centro:
+            continue
+        cc = normalizar_centro_custo(centro)
+        if not cc or cc == CC_OPERACIONAL:
+            continue
+
+        por_matricula[matricula].append((dt_pag, dt_arq, cc))
+
+    resultado = {}
+    for matricula, candidatos in por_matricula.items():
+        # Maior data de pagamento; em empate, maior DT.ARQ.
+        _melhor_dt_pag, _melhor_dt_arq, melhor_cc = max(
+            candidatos, key=lambda t: (t[0], t[1])
+        )
+        resultado[matricula] = melhor_cc
+
+    return resultado
+
+
+def _centro_custo_real_resolvido(
+    matricula,
+    dt_arq,
+    dt_pagamento,
+    centro_atual,
+    historico,
+    cc_001_por_matricula_arquivo,
+):
+    """
+    Ordem: (1) se não é operacional, o real é o próprio centro;
+    (2) se é operacional, usa 001 no mesmo arquivo (mapa) se houver;
+    (3) senão, histórico no banco (_centro_custo_real_por_historico).
+    """
+    if centro_atual != CC_OPERACIONAL:
+        return centro_atual
+
+    cc_arquivo = cc_001_por_matricula_arquivo.get(matricula)
+    if cc_arquivo:
+        return cc_arquivo
+
+    return _centro_custo_real_por_historico(
+        matricula, dt_arq, dt_pagamento, centro_atual, historico
+    )
+
+
 def processar_csv_para_linhas(conteudo_utf8, arquivo_origem):
     """
     Lê CSV, aplica regras e devolve lista de dicts prontos para LinhaFolha
@@ -132,9 +209,7 @@ def processar_csv_para_linhas(conteudo_utf8, arquivo_origem):
     }
     faltando = colunas_obrigatorias - set(folha.columns.str.upper())
     if faltando:
-        raise ValueError(
-            "CSV sem colunas obrigatórias: " + ", ".join(sorted(faltando))
-        )
+        raise ValueError("CSV sem colunas obrigatórias: " + ", ".join(sorted(faltando)))
 
     folha = tratar_folha(folha)
     folha = preparar_folha_processada(folha)
@@ -157,6 +232,9 @@ def processar_csv_para_linhas(conteudo_utf8, arquivo_origem):
     matriculas = merged["_matricula"].unique().tolist()
     historico = _carregar_historico_localizacao(matriculas)
     mapa_loja = _mapa_loja_por_centro()
+    cc_001_por_matricula_arquivo = _mapa_cc_001_arquivo_por_matricula(
+        merged, normalizar_centro_custo
+    )
 
     linhas = []
     for _, row in merged.iterrows():
@@ -179,8 +257,13 @@ def processar_csv_para_linhas(conteudo_utf8, arquivo_origem):
         if not centro:
             continue
 
-        cc_real = _centro_custo_real_por_historico(
-            matricula, dt_arq, dt_pag, centro, historico
+        cc_real = _centro_custo_real_resolvido(
+            matricula,
+            dt_arq,
+            dt_pag,
+            centro,
+            historico,
+            cc_001_por_matricula_arquivo,
         )
         cc_real = normalizar_centro_custo(cc_real)
 
@@ -388,4 +471,4 @@ def importar_folha_de_texto(conteudo_utf8, arquivo_origem, dry_run=False):
                 batch_size=500,
             )
 
-    return resumo 
+    return resumo

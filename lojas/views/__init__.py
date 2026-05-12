@@ -8,6 +8,7 @@ from .common import (
 from .escopos import (
     escopo_create,
     escopo_delete,
+    escopo_duplicar_proximo_mes,
     escopo_list,
     escopo_update,
 )
@@ -41,4 +42,5 @@ __all__ = [
     "store_list",
     "store_update",
     "folha_duplicadas_list",
+    "escopo_duplicar_proximo_mes",
 ]

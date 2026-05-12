@@ -39,8 +39,23 @@
                 {% endif %}
             </div>
 
-            <button type="submit" class="btn btn-primary">Importar</button>
+            <button type="submit" class="btn btn-primary" id="btn-importar-folha">Importar</button>
         </form>
+        <script>
+            (function () {
+                var form = document.querySelector("form[enctype=\"multipart/form-data\"]");
+                if (!form) {
+                    return;
+                }
+                form.addEventListener("submit", function () {
+                    var btn = document.getElementById("btn-importar-folha");
+                    if (btn && !btn.disabled) {
+                        btn.disabled = true;
+                        btn.textContent = "Importando…";
+                    }
+                });
+            })();
+        </script>
     </div>
 </div>
 

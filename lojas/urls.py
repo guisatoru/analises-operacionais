@@ -11,6 +11,11 @@ urlpatterns = [
     path("lojas/<int:pk>/excluir/", views.store_delete, name="excluir_loja"),
     path("escopos/", views.escopo_list, name="lista_escopos"),
     path("escopos/novo/", views.escopo_create, name="novo_escopo"),
+    path(
+        "escopos/duplicar-proximo-mes/",
+        views.escopo_duplicar_proximo_mes,
+        name="escopo_duplicar_proximo_mes",
+    ),
     path("escopos/<int:pk>/editar/", views.escopo_update, name="editar_escopo"),
     path("escopos/<int:pk>/excluir/", views.escopo_delete, name="excluir_escopo"),
     path("folhas/importar/", views.folha_import, name="importar_folha"),

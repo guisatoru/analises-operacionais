@@ -41,6 +41,14 @@
   Novo Escopo
 </a>
 
+<form method="post" action="{% url 'escopo_duplicar_proximo_mes' %}" class="d-inline mb-3"
+      onsubmit="return confirm('Duplicar o ÚLTIMO mês de escopo cadastrado para o MÊS SEGUINTE em todas as lojas que têm esse mês? Lojas que já tiverem o mês destino serão ignoradas.');">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-outline-secondary">
+    Duplicar último mês → próximo (todas as lojas)
+  </button>
+</form>
+
 {% for bloco in escopos_com_estimativa %}
   <div class="card mb-3">
     <div class="card-body">
