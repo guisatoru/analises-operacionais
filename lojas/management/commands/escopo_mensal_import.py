@@ -7,7 +7,13 @@ from datetime import datetime
 import pandas as pd
 from django.core.management.base import BaseCommand
 
-from lojas.models import Cargo, EscopoMensal, ItemEscopoMensal, Loja
+from lojas.models import (
+    Cargo,
+    EscopoMensal,
+    ItemEscopoMensal,
+    Loja,
+    percentuais_insalubridade_padrao_para_loja,
+)
 
 
 class Command(BaseCommand):
@@ -208,6 +214,17 @@ class Command(BaseCommand):
             )
             if created_escopo:
                 criados_escopos += 1
+                loja_obj = Loja.objects.filter(pk=loja_id).first()
+                fixa, ban = percentuais_insalubridade_padrao_para_loja(loja_obj)
+                escopo.insalubridade_fixa_percentual = fixa
+                escopo.insalubridade_banheirista_percentual = ban
+                escopo.save(
+                    update_fields=[
+                        "insalubridade_fixa_percentual",
+                        "insalubridade_banheirista_percentual",
+                        "updated_at",
+                    ]
+                )
 
             _, created_item = ItemEscopoMensal.objects.update_or_create(
                 escopo_mensal=escopo,

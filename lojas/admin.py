@@ -3,6 +3,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 
 from .models import Cargo, EscopoMensal, ItemEscopoMensal, Loja, Salario
+from .forms import EscopoMensalForm
 
 
 @admin.register(Loja)
@@ -104,6 +105,7 @@ class ItemEscopoMensalInline(admin.TabularInline):
 
 @admin.register(EscopoMensal)
 class EscopoMensalAdmin(admin.ModelAdmin):
+    form = EscopoMensalForm
     list_display = ("loja", "ano", "mes")
     list_filter = ("loja", "ano", "mes")
     autocomplete_fields = ("loja",)

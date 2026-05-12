@@ -1,7 +1,13 @@
 from django import forms
 from django.forms import inlineformset_factory
 
-from .models import Loja, EscopoMensal, ItemEscopoMensal
+from .models import (
+    EscopoMensal,
+    ItemEscopoMensal,
+    Loja,
+    percentuais_insalubridade_padrao_para_loja,
+)
+
 
 # Keep Bootstrap classes in one helper to avoid
 # repeating style code in every form class.
@@ -110,6 +116,15 @@ class EscopoMensalForm(forms.ModelForm):
             "placeholder"
         ] = "Ex.: 40.00"
         apply_bootstrap_class(self)
+        # Novo escopo (GET): preenche percentuais sugeridos conforme UF da loja e regra banheirista.
+        if not self.is_bound and not self.instance.pk:
+            loja = None
+            loja_pk = self.initial.get("loja")
+            if loja_pk:
+                loja = Loja.objects.filter(pk=loja_pk).first()
+            fixa_padrao, ban_padrao = percentuais_insalubridade_padrao_para_loja(loja)
+            self.initial.setdefault("insalubridade_fixa_percentual", fixa_padrao)
+            self.initial.setdefault("insalubridade_banheirista_percentual", ban_padrao)
 
 
 class ItemEscopoMensalForm(forms.ModelForm):

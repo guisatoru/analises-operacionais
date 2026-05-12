@@ -234,6 +234,25 @@ MESES_CHOICES = [
     (12, "Dezembro"),
 ]
 
+# Padrões de insalubridade ao criar um escopo novo (podem ser alterados por escopo na tela).
+INSALUBRIDADE_BANHEIRISTA_PADRAO = Decimal("40.00")
+INSALUBRIDADE_FIXA_PADRAO_RS_SC = Decimal("20.00")
+
+def percentuais_insalubridade_padrao_para_loja(loja):
+    """
+    Retorna (insalubridade_fixa_percentual, insalubridade_banheirista_percentual)
+    sugeridos para um escopo novo, conforme a UF da loja.
+    - Banheirista: 40% em todo o cadastro (regra operacional atual).
+    - Fixa: 20% quando a loja é RS ou SC; caso contrário 0%.
+    """
+    banheirista = INSALUBRIDADE_BANHEIRISTA_PADRAO
+    if loja is None:
+        return Decimal("0.00"), banheirista
+    uf = (loja.uf or "").strip().upper()
+    if uf in ("RS", "SC"):
+        return INSALUBRIDADE_FIXA_PADRAO_RS_SC, banheirista
+    return Decimal("0.00"), banheirista
+
 
 class EscopoMensal(models.Model):
     """
@@ -259,7 +278,7 @@ class EscopoMensal(models.Model):
         "Insalubridade banheirista (%)",
         max_digits=5,
         decimal_places=2,
-        default=Decimal("0.00"),
+        default=INSALUBRIDADE_BANHEIRISTA_PADRAO,
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
