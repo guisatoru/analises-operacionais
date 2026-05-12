@@ -17,4 +17,5 @@ urlpatterns = [
     path(
         "folhas/duplicadas/", views.folha_duplicadas_list, name="lista_folha_duplicadas"
     ),
+    path("comparativo/", views.comparativo_loja, name="comparativo_loja"),
 ]

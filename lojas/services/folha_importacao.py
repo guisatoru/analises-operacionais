@@ -338,11 +338,11 @@ def importar_folha_de_texto(conteudo_utf8, arquivo_origem, dry_run=False):
             para_gravar_duplicadas.append(
                 _dict_para_linha_folha_duplicada(d, "JA_EXISTIA_NO_BANCO")
             )
-            continue
             if len(detalhes_duplicadas) < LIMITE_DETALHES_DUPLICADAS:
                 detalhes_duplicadas.append(
                     _linha_para_detalhe_duplicada(d, "ja_existia_no_banco")
                 )
+            continue
         if d["loja_id"] is None and len(detalhes_sem_loja) < LIMITE_DETALHES_SEM_LOJA:
             detalhes_sem_loja.append(_linha_para_detalhe_sem_loja(d))
         para_gravar.append(

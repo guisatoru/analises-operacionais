@@ -21,9 +21,11 @@ from .stores import (
     store_update,
 )
 
+from .comparativo import comparativo_loja
 from .folha_duplicadas import folha_duplicadas_list
 
 __all__ = [
+    "comparativo_loja",
     "competencia_anterior",
     "escopo_create",
     "escopo_delete",
