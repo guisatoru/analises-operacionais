@@ -460,6 +460,65 @@ class Verba(models.Model):
         return f"{self.codigo_verba} — {self.descricao}"
 
 
+class LinhaFolha(models.Model):
+    """
+    Uma linha da folha já filtrada (provento + considerar) para comparativo com escopo.
+    O centro de custo e o centro real estão sempre com 12 dígitos.
+    """
+
+    matricula = models.CharField("Matrícula", max_length=64)
+    verba = models.ForeignKey(
+        Verba,
+        on_delete=models.PROTECT,
+        related_name="linhas_folha",
+        verbose_name="Verba",
+    )
+    codigo_verba = models.CharField(
+        "Código da verba (cópia)",
+        max_length=20,
+        help_text="Redundante para auditoria; a fonte da regra é o FK verba.",
+    )
+    valor = models.DecimalField("Valor", max_digits=14, decimal_places=2)
+    dt_arq = models.DateField("Data ARQ (competência)")
+    dt_pagamento = models.DateField("Data pagamento")
+    centro_custo = models.CharField("Centro de custo (folha)", max_length=12)
+    centro_custo_real = models.CharField(
+        "Centro de custo real",
+        max_length=12,
+        help_text="Após regra do CC operacional, usando histórico de verba 001 no banco.",
+    )
+    loja = models.ForeignKey(
+        Loja,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="linhas_folha",
+        verbose_name="Loja",
+    )
+    categoria = models.CharField("Categoria", max_length=120, blank=True)
+    arquivo_origem = models.CharField("Arquivo de origem", max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Linha de folha"
+        verbose_name_plural = "Linhas de folha"
+        ordering = ["-dt_arq", "matricula", "codigo_verba"]
+        constraints = [
+            UniqueConstraint(
+                fields=["matricula", "verba", "valor", "dt_arq", "centro_custo"],
+                name="unique_linha_folha_chave_negocio",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["dt_arq", "loja"]),
+            models.Index(fields=["matricula", "dt_arq"]),
+            models.Index(fields=["codigo_verba", "matricula", "dt_arq"]),
+        ]
+
+    def __str__(self):
+        return f"{self.matricula} / {self.codigo_verba} / {self.dt_arq}"
+
+
 def montar_caches_salario_para_itens(itens):
     """
     Carrega Salario em lote para a listagem de escopos.

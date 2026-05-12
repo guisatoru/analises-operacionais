@@ -11,6 +11,7 @@ from .escopos import (
     escopo_list,
     escopo_update,
 )
+from .folha_import import folha_import
 from .home import home
 from .stores import (
     store_create,
@@ -26,6 +27,7 @@ __all__ = [
     "escopo_delete",
     "escopo_list",
     "escopo_update",
+    "folha_import",
     "home",
     "parse_int_param",
     "replicar_do_mes_anterior_se_existir",

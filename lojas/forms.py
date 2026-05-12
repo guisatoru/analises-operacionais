@@ -141,6 +141,27 @@ class ItemEscopoMensalForm(forms.ModelForm):
         apply_bootstrap_class(self)
 
 
+class FolhaImportForm(forms.Form):
+    """Upload de um único CSV de folha (export TOTVS)."""
+
+    arquivo = forms.FileField(
+        label="Arquivo CSV",
+        help_text="Um arquivo por importação. Encoding UTF-8.",
+        widget=forms.ClearableFileInput(
+            attrs={"accept": ".csv,text/csv", "class": "form-control"}
+        ),
+    )
+
+    def clean_arquivo(self):
+        f = self.cleaned_data.get("arquivo")
+        if not f:
+            return f
+        nome = (f.name or "").lower()
+        if not nome.endswith(".csv"):
+            raise forms.ValidationError("Envie um arquivo com extensão .csv.")
+        return f
+
+
 ItemEscopoMensalFormSet = inlineformset_factory(
     EscopoMensal,
     ItemEscopoMensal,

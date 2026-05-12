@@ -1,8 +1,17 @@
 from django.contrib import admin
+from django.contrib.admin import EmptyFieldListFilter
 from django.urls import reverse
 from django.utils.html import format_html
 
-from .models import Cargo, EscopoMensal, ItemEscopoMensal, Loja, Salario, Verba
+from .models import (
+    Cargo,
+    EscopoMensal,
+    ItemEscopoMensal,
+    LinhaFolha,
+    Loja,
+    Salario,
+    Verba,
+)
 from .forms import EscopoMensalForm
 
 
@@ -124,3 +133,27 @@ class VerbaAdmin(admin.ModelAdmin):
     list_filter = ("tipo_codigo", "considerar_na_contagem", "categoria")
     search_fields = ("codigo_verba", "descricao", "categoria")
     ordering = ("codigo_verba",)
+
+
+@admin.register(LinhaFolha)
+class LinhaFolhaAdmin(admin.ModelAdmin):
+    list_display = (
+        "matricula",
+        "codigo_verba",
+        "valor",
+        "dt_arq",
+        "dt_pagamento",
+        "centro_custo_real",
+        "loja",
+        "arquivo_origem",
+        "created_at",
+    )
+    list_filter = (
+        "dt_arq",
+        "codigo_verba",
+        ("loja", EmptyFieldListFilter),
+    )
+    search_fields = ("matricula", "codigo_verba", "arquivo_origem", "centro_custo", "centro_custo_real")
+    readonly_fields = ("created_at",)
+    date_hierarchy = "dt_arq"
+    ordering = ("-dt_arq", "matricula")
