@@ -1,6 +1,40 @@
 {% extends "lojas/base.html" %}
 {% block content %}
 <h1>Escopos</h1>
+<form method="get" class="row g-2 align-items-end mb-3">
+  <div class="col-md-3">
+    <label class="form-label mb-0" for="filtro-loja">Loja</label>
+    <select name="loja" id="filtro-loja" class="form-select">
+      <option value="">Todas</option>
+      {% for l in lojas_para_filtro %}
+        <option value="{{ l.pk }}" {% if loja_id_filtro == l.pk|stringformat:"s" %}selected{% endif %}>
+          {{ l.nome_referencia }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-2">
+    <label class="form-label mb-0" for="filtro-ano">Ano</label>
+    <select name="ano" id="filtro-ano" class="form-select">
+      <option value="">Todos</option>
+      {% for a in anos_disponiveis %}
+        <option value="{{ a }}" {% if ano_filtro == a %}selected{% endif %}>{{ a }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-2">
+    <label class="form-label mb-0" for="filtro-mes">Mês</label>
+    <select name="mes" id="filtro-mes" class="form-select">
+      <option value="">Todos</option>
+      {% for num, nome in meses_choices %}
+        <option value="{{ num }}" {% if mes_filtro == num %}selected{% endif %}>{{ nome }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-auto">
+    <button type="submit" class="btn btn-secondary">Filtrar</button>
+  </div>
+</form>
 
 <a class="btn btn-primary mb-3" href="{% url 'novo_escopo' %}{% if loja_id_filtro %}?loja={{ loja_id_filtro }}{% endif %}">
   Novo Escopo

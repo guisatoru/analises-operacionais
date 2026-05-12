@@ -8,7 +8,14 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
 from .forms import LojaForm, LojaUpdateForm, EscopoMensalForm, ItemEscopoMensalFormSet
-from .models import STATUS_CHOICES, Loja, EscopoMensal, ItemEscopoMensal
+from .models import (
+    MESES_CHOICES,
+    STATUS_CHOICES,
+    EscopoMensal,
+    ItemEscopoMensal,
+    Loja,
+    montar_caches_salario_para_itens,
+)
 
 
 def store_list(request):
@@ -178,36 +185,60 @@ def _replicar_do_mes_anterior_se_existir(escopo_mensal):
     return True
 
 
+def _parse_int_param(value, min_value=None, max_value=None):
+    """Lê inteiro da query string; retorna None se inválido ou vazio."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    if text == "":
+        return None
+    try:
+        n = int(text)
+    except ValueError:
+        return None
+    if min_value is not None and n < min_value:
+        return None
+    if max_value is not None and n > max_value:
+        return None
+    return n
+
+
 def escopo_list(request):
     """
     Lista escopos mensais com estimativa por item.
+    Salários são carregados em lote para evitar centenas de queries.
     """
-    loja_id = request.GET.get("loja")
-    ano_filtro = request.GET.get("ano")
-    mes_filtro = request.GET.get("mes")
+    loja_id_raw = (request.GET.get("loja") or "").strip()
+    loja_id_int = int(loja_id_raw) if loja_id_raw.isdigit() else None
+
+    ano_filtro = _parse_int_param(request.GET.get("ano"), 2000, 2100)
+    mes_filtro = _parse_int_param(request.GET.get("mes"), 1, 12)
+
     escopos = (
         EscopoMensal.objects.select_related("loja")
         .prefetch_related("itens__cargo")
         .order_by("loja__nome_referencia", "-ano", "-mes")
     )
-    if loja_id:
-        escopos = escopos.filter(loja_id=loja_id)
-    if ano_filtro:
+    if loja_id_int is not None:
+        escopos = escopos.filter(loja_id=loja_id_int)
+    if ano_filtro is not None:
         escopos = escopos.filter(ano=ano_filtro)
-    if mes_filtro:
+    if mes_filtro is not None:
         escopos = escopos.filter(mes=mes_filtro)
+
+    escopos_list = list(escopos)
+    itens_flat = [item for esc in escopos_list for item in esc.itens.all()]
+    cache_regional, cache_minimo = montar_caches_salario_para_itens(itens_flat)
+
     escopos_com_estimativa = []
-    for escopo in escopos:
+    for escopo in escopos_list:
         itens_com_estimativa = []
         for item in escopo.itens.all():
-            detalhamento = item.get_estimativa_detalhada()
-            itens_com_estimativa.append(
-                {
-                    "item": item,
-                    "detalhamento": detalhamento,
-                }
+            detalhamento = item.get_estimativa_detalhada(
+                cache_salarios_regional=cache_regional,
+                cache_salario_minimo_br_por_ano=cache_minimo,
             )
-        # Soma dos totais da estimativa (só linhas que têm detalhamento/salário).
+            itens_com_estimativa.append({"item": item, "detalhamento": detalhamento})
         total_estimativa_escopo = Decimal("0")
         for linha in itens_com_estimativa:
             if linha["detalhamento"]:
@@ -219,11 +250,23 @@ def escopo_list(request):
                 "total_estimativa_escopo": total_estimativa_escopo,
             }
         )
+
+    anos_base = EscopoMensal.objects.all()
+    if loja_id_int is not None:
+        anos_base = anos_base.filter(loja_id=loja_id_int)
+    anos_disponiveis = sorted(
+        set(anos_base.values_list("ano", flat=True)),
+        reverse=True,
+    )
+
     context = {
         "escopos_com_estimativa": escopos_com_estimativa,
-        "loja_id_filtro": loja_id,
+        "loja_id_filtro": loja_id_raw,
         "ano_filtro": ano_filtro,
         "mes_filtro": mes_filtro,
+        "meses_choices": MESES_CHOICES,
+        "anos_disponiveis": anos_disponiveis,
+        "lojas_para_filtro": Loja.objects.order_by("nome_referencia"),
     }
     return render(request, "lojas/escopo_list.html", context)
 

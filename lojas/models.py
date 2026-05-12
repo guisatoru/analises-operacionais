@@ -1,8 +1,10 @@
 from decimal import Decimal
+from functools import reduce
+from operator import or_
 
-from django.db import models
 from django.core.exceptions import ValidationError
-from django.db.models import UniqueConstraint
+from django.db import models
+from django.db.models import Q, UniqueConstraint
 
 
 UF_CHOICES = [
@@ -238,6 +240,7 @@ MESES_CHOICES = [
 INSALUBRIDADE_BANHEIRISTA_PADRAO = Decimal("40.00")
 INSALUBRIDADE_FIXA_PADRAO_RS_SC = Decimal("20.00")
 
+
 def percentuais_insalubridade_padrao_para_loja(loja):
     """
     Retorna (insalubridade_fixa_percentual, insalubridade_banheirista_percentual)
@@ -346,17 +349,28 @@ class ItemEscopoMensal(models.Model):
             )
         ]
 
-    def get_estimativa_detalhada(self):
-        # Mesma lógica que você já usa, mas com ano do escopo mensal.
+    def get_estimativa_detalhada(
+        self,
+        cache_salarios_regional=None,
+        cache_salario_minimo_br_por_ano=None,
+    ):
+        """
+        Estimativa de custo do item. Se os caches forem passados (listagem em lote),
+        não há uma query SQL por linha — monte os caches com montar_caches_salario_para_itens.
+        """
         uf_loja = (self.escopo_mensal.loja.uf or "").strip().upper()
         if not uf_loja:
             return None
         ano = self.escopo_mensal.ano
-        salario_regional = Salario.objects.filter(
-            cargo_id=self.cargo_id,
-            uf=uf_loja,
-            ano=ano,
-        ).first()
+        chave_regional = (self.cargo_id, uf_loja, ano)
+        if cache_salarios_regional is not None:
+            salario_regional = cache_salarios_regional.get(chave_regional)
+        else:
+            salario_regional = Salario.objects.filter(
+                cargo_id=self.cargo_id,
+                uf=uf_loja,
+                ano=ano,
+            ).first()
         if salario_regional is None:
             return None
         quantidade = Decimal(self.quantidade)
@@ -373,11 +387,14 @@ class ItemEscopoMensal(models.Model):
                 self.escopo_mensal.insalubridade_banheirista_percentual
                 or Decimal("0.00")
             )
-            salario_nacional = Salario.objects.filter(
-                cargo__nome__iexact="MÍNIMO NACIONAL",
-                uf="BR",
-                ano=ano,
-            ).first()
+            if cache_salario_minimo_br_por_ano is not None:
+                salario_nacional = cache_salario_minimo_br_por_ano.get(ano)
+            else:
+                salario_nacional = Salario.objects.filter(
+                    cargo__nome__iexact="MÍNIMO NACIONAL",
+                    uf="BR",
+                    ano=ano,
+                ).first()
             if salario_nacional:
                 teorico = salario_nacional.valor * (percentual_ban / Decimal("100"))
                 diferenca = teorico - insal_fixa_unit
@@ -387,8 +404,6 @@ class ItemEscopoMensal(models.Model):
         insal_fixa_total = quantidade * insal_fixa_unit
         insal_ban_total = quantidade * insal_banheirista_unit
 
-        # Adicional noturno: igual à insalubridade fixa no sentido de usar salário base do cargo;
-        # aplica apenas quando o item do escopo está em turno noturno (20% fixo).
         adic_noturno_unit = Decimal("0.00")
         if self.turno == "NOTURNO":
             adic_noturno_unit = salario_base_unitario * (
@@ -404,3 +419,42 @@ class ItemEscopoMensal(models.Model):
             "adicional_noturno_total": adic_noturno_total,
             "total": total,
         }
+
+def montar_caches_salario_para_itens(itens):
+    """
+    Carrega Salario em lote para a listagem de escopos.
+    Retorna (cache_regional, cache_minimo_br_por_ano).
+    """
+    chaves_regional = set()
+    anos = set()
+    for item in itens:
+        escopo = item.escopo_mensal
+        loja = escopo.loja
+        uf = (loja.uf or "").strip().upper()
+        if not uf:
+            continue
+        chaves_regional.add((item.cargo_id, uf, escopo.ano))
+        anos.add(escopo.ano)
+
+    cache_regional = {}
+    if chaves_regional:
+        q_combined = reduce(
+            or_,
+            (
+                Q(cargo_id=cargo_id, uf=uf, ano=ano)
+                for cargo_id, uf, ano in chaves_regional
+            ),
+        )
+        for sal in Salario.objects.filter(q_combined).select_related("cargo"):
+            cache_regional[(sal.cargo_id, sal.uf, sal.ano)] = sal
+
+    cache_minimo_br = {}
+    if anos:
+        for sal in Salario.objects.filter(
+            cargo__nome__iexact="MÍNIMO NACIONAL",
+            uf="BR",
+            ano__in=anos,
+        ).select_related("cargo"):
+            cache_minimo_br[sal.ano] = sal
+
+    return cache_regional, cache_minimo_br
