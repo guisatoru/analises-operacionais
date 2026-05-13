@@ -1,11 +1,14 @@
 # lojas/management/commands/escopo_mensal_import.py
 # Importa itens de escopo mensal a partir de planilha Excel.
-# Otimizado: mapas loja/cargo em memória; dry-run sem imprimir todas as linhas.
+# - Agrega linhas duplicadas (mesma loja, competência, cargo, turno): soma QTD.
+# - Grava com bulk_create/bulk_update (poucas queries).
+# - --substituir-itens: apaga itens das competências do arquivo e recria só a planilha.
 
 from datetime import datetime
 
 import pandas as pd
 from django.core.management.base import BaseCommand
+from django.db import transaction
 
 from lojas.models import (
     Cargo,
@@ -29,7 +32,16 @@ class Command(BaseCommand):
         parser.add_argument(
             "--verbose",
             action="store_true",
-            help="No dry-run, imprime até 50 linhas de exemplo",
+            help="No dry-run, imprime até 50 linhas de exemplo (já agregadas)",
+        )
+        parser.add_argument(
+            "--substituir-itens",
+            action="store_true",
+            help=(
+                "Apaga todos os itens de escopo das competências (loja/mês/ano) que "
+                "aparecem neste arquivo e insere apenas o que veio na planilha (após somar "
+                "duplicatas). Útil para reimportar sem misturar com cargos que saíram da planilha."
+            ),
         )
 
     def _norm_key(self, texto):
@@ -103,10 +115,57 @@ class Command(BaseCommand):
                 d[chave] = pk
         return d
 
+    def _garantir_escopos_mensais(self, chaves_competencia, lojas_por_id):
+        """
+        Garante um EscopoMensal por (loja_id, mes, ano) presente em chaves_competencia.
+        Retorna dict (loja_id, mes, ano) -> instância EscopoMensal (com pk).
+        """
+        lojas_ids = {c[0] for c in chaves_competencia}
+        meses = {c[1] for c in chaves_competencia}
+        anos = {c[2] for c in chaves_competencia}
+
+        # Uma query ampla; filtramos em memória para não montar OR gigante.
+        candidatos = EscopoMensal.objects.filter(
+            loja_id__in=lojas_ids,
+            mes__in=meses,
+            ano__in=anos,
+        )
+        escopos_por_chave = {}
+        for escopo in candidatos:
+            t = (escopo.loja_id, escopo.mes, escopo.ano)
+            if t in chaves_competencia:
+                escopos_por_chave[t] = escopo
+
+        faltando = chaves_competencia - set(escopos_por_chave.keys())
+        novos = []
+        for loja_id, mes, ano in faltando:
+            loja_obj = lojas_por_id.get(loja_id)
+            fixa, ban = percentuais_insalubridade_padrao_para_loja(loja_obj)
+            novos.append(
+                EscopoMensal(
+                    loja_id=loja_id,
+                    mes=mes,
+                    ano=ano,
+                    insalubridade_fixa_percentual=fixa,
+                    insalubridade_banheirista_percentual=ban,
+                )
+            )
+
+        criados = 0
+        if novos:
+            EscopoMensal.objects.bulk_create(novos, batch_size=500)
+            criados = len(novos)
+            for escopo in novos:
+                t = (escopo.loja_id, escopo.mes, escopo.ano)
+                escopos_por_chave[t] = escopo
+
+        return escopos_por_chave, criados
+
     def handle(self, *args, **options):
         caminho = options["arquivo"]
         dry_run = options["dry_run"]
         verbose = options["verbose"]
+        substituir_itens = options["substituir_itens"]
 
         self.stdout.write("Carregando lojas e cargos em memória...")
         lojas_por_chave = self._carregar_mapa_lojas()
@@ -120,13 +179,9 @@ class Command(BaseCommand):
         self.stdout.write("Lendo planilha...")
         df = pd.read_excel(caminho, dtype=str)
 
-        criados_escopos = 0
-        itens_criados = 0
-        itens_atualizados = 0
         ignoradas = 0
-        ok_dry = 0
+        ok_linhas = 0
 
-        # Nomes de coluna iguais ao Excel
         col_loja = "NOME REFERENCIA"
         col_cargo = "ESCOPO.FUNÇÃO"
         col_data = "DATA"
@@ -140,7 +195,6 @@ class Command(BaseCommand):
                 )
                 return
 
-        # zip sobre Series evita iterrows (mais rápido em planilhas grandes)
         series_loja = df[col_loja]
         series_cargo = df[col_cargo]
         series_data = df[col_data]
@@ -153,16 +207,16 @@ class Command(BaseCommand):
         lojas_nao_encontradas = {}
         cargos_nao_encontrados = {}
 
-        for i, nome_loja, nome_cargo, data_val, turno_val, qtd_val in zip(
-            range(len(df)),
+        # Acumula linhas válidas; depois o pandas soma QTD nas chaves repetidas.
+        linhas_ok = []
+
+        for nome_loja, nome_cargo, data_val, turno_val, qtd_val in zip(
             series_loja,
             series_cargo,
             series_data,
             series_turno,
             series_qtd,
         ):
-            linha_num = i + 2
-
             nome_loja = self._clean_text(nome_loja)
             nome_cargo = self._clean_text(nome_cargo)
             mes, ano = self._parse_data_mes_ano(data_val)
@@ -198,50 +252,24 @@ class Command(BaseCommand):
                 ignoradas += 1
                 continue
 
-            if dry_run:
-                ok_dry += 1
-                if verbose and linhas_exemplo < max_exemplo:
-                    self.stdout.write(
-                        f"[dry-run] {nome_loja} | {mes:02d}/{ano} | {nome_cargo} | {turno} | qtd={qtd}"
-                    )
-                    linhas_exemplo += 1
-                continue
-
-            escopo, created_escopo = EscopoMensal.objects.get_or_create(
-                loja_id=loja_id,
-                ano=ano,
-                mes=mes,
+            linhas_ok.append(
+                {
+                    "nome_loja": nome_loja,
+                    "nome_cargo": nome_cargo,
+                    "loja_id": loja_id,
+                    "cargo_id": cargo_id,
+                    "mes": mes,
+                    "ano": ano,
+                    "turno": turno,
+                    "qtd": qtd,
+                }
             )
-            if created_escopo:
-                criados_escopos += 1
-                loja_obj = Loja.objects.filter(pk=loja_id).first()
-                fixa, ban = percentuais_insalubridade_padrao_para_loja(loja_obj)
-                escopo.insalubridade_fixa_percentual = fixa
-                escopo.insalubridade_banheirista_percentual = ban
-                escopo.save(
-                    update_fields=[
-                        "insalubridade_fixa_percentual",
-                        "insalubridade_banheirista_percentual",
-                        "updated_at",
-                    ]
-                )
+            ok_linhas += 1
 
-            _, created_item = ItemEscopoMensal.objects.update_or_create(
-                escopo_mensal=escopo,
-                cargo_id=cargo_id,
-                turno=turno,
-                defaults={"quantidade": qtd},
-            )
-            if created_item:
-                itens_criados += 1
-            else:
-                itens_atualizados += 1
-
-        if dry_run:
+        if not linhas_ok:
             self.stdout.write(
-                self.style.SUCCESS(
-                    f"Dry-run: linhas válidas (loja+cargo+data+turno+qtd): {ok_dry} | "
-                    f"ignoradas (dados inválidos ou sem match): {ignoradas}"
+                self.style.WARNING(
+                    "Nenhuma linha válida para importar (após validação)."
                 )
             )
             if lojas_nao_encontradas:
@@ -256,17 +284,145 @@ class Command(BaseCommand):
                 )
                 for nome, qtd in list(cargos_nao_encontrados.items())[:30]:
                     self.stdout.write(f"  - {nome!r} ({qtd} linha(s))")
-            if not verbose and ok_dry:
+            return
+
+        dg = pd.DataFrame(linhas_ok)
+        df_agg = (
+            dg.groupby(["loja_id", "mes", "ano", "cargo_id", "turno"], as_index=False)[
+                "qtd"
+            ]
+            .sum()
+            .astype({"qtd": int})
+        )
+        chaves_unicas = len(df_agg)
+
+        if dry_run:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Dry-run: linhas válidas na planilha: {ok_linhas} | "
+                    f"combinações únicas (após somar duplicatas): {chaves_unicas} | "
+                    f"ignoradas: {ignoradas}"
+                )
+            )
+            if verbose and linhas_exemplo < max_exemplo:
+                mapa_loja = dg.drop_duplicates("loja_id").set_index("loja_id")[
+                    "nome_loja"
+                ]
+                mapa_cargo = dg.drop_duplicates("cargo_id").set_index("cargo_id")[
+                    "nome_cargo"
+                ]
+                for row in df_agg.itertuples(index=False):
+                    loja_id, mes, ano, cargo_id, turno, qtd = row
+                    nome_loja = mapa_loja[loja_id]
+                    nome_cargo = mapa_cargo[cargo_id]
+                    self.stdout.write(
+                        f"[dry-run] {nome_loja} | {mes:02d}/{ano} | {nome_cargo} | {turno} | qtd={qtd}"
+                    )
+                    linhas_exemplo += 1
+                    if linhas_exemplo >= max_exemplo:
+                        break
+            if lojas_nao_encontradas:
+                self.stdout.write(
+                    self.style.WARNING("Lojas não encontradas (amostra):")
+                )
+                for nome, qtd in list(lojas_nao_encontradas.items())[:30]:
+                    self.stdout.write(f"  - {nome!r} ({qtd} linha(s))")
+            if cargos_nao_encontrados:
+                self.stdout.write(
+                    self.style.WARNING("Cargos não encontrados (amostra):")
+                )
+                for nome, qtd in list(cargos_nao_encontrados.items())[:30]:
+                    self.stdout.write(f"  - {nome!r} ({qtd} linha(s))")
+            if not verbose and ok_linhas:
                 self.stdout.write(
                     "Dica: use --verbose para ver até 50 linhas de exemplo no dry-run."
                 )
             self.stdout.write(self.style.WARNING("Dry-run: nada foi salvo no banco."))
             return
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Concluído. Escopos mensais novos: {criados_escopos} | "
-                f"Itens criados: {itens_criados} | Itens atualizados: {itens_atualizados} | "
-                f"Linhas ignoradas: {ignoradas}"
+        chaves_competencia = set(zip(df_agg["loja_id"], df_agg["mes"], df_agg["ano"]))
+        lojas_ids_usadas = {c[0] for c in chaves_competencia}
+        lojas_por_id = Loja.objects.in_bulk(lojas_ids_usadas)
+
+        itens_apagados = 0
+        criados_escopos = 0
+        itens_criados = 0
+        itens_atualizados = 0
+
+        with transaction.atomic():
+            escopos_por_chave, criados_escopos = self._garantir_escopos_mensais(
+                chaves_competencia, lojas_por_id
             )
+            ids_escopos = [e.pk for e in escopos_por_chave.values()]
+
+            if substituir_itens:
+                apagados, _ = ItemEscopoMensal.objects.filter(
+                    escopo_mensal_id__in=ids_escopos
+                ).delete()
+                itens_apagados = apagados
+
+                novos_itens = []
+                for row in df_agg.itertuples(index=False):
+                    loja_id, mes, ano, cargo_id, turno, qtd = row
+                    escopo = escopos_por_chave[(loja_id, mes, ano)]
+                    novos_itens.append(
+                        ItemEscopoMensal(
+                            escopo_mensal_id=escopo.pk,
+                            cargo_id=cargo_id,
+                            turno=turno,
+                            quantidade=qtd,
+                        )
+                    )
+                ItemEscopoMensal.objects.bulk_create(novos_itens, batch_size=1000)
+                itens_criados = len(novos_itens)
+            else:
+                existentes = ItemEscopoMensal.objects.filter(
+                    escopo_mensal_id__in=ids_escopos
+                )
+                mapa_itens = {}
+                for item in existentes:
+                    mapa_itens[(item.escopo_mensal_id, item.cargo_id, item.turno)] = (
+                        item
+                    )
+
+                para_criar = []
+                para_atualizar = []
+
+                for row in df_agg.itertuples(index=False):
+                    loja_id, mes, ano, cargo_id, turno, qtd = row
+                    escopo_id = escopos_por_chave[(loja_id, mes, ano)].pk
+                    chave_item = (escopo_id, cargo_id, turno)
+                    if chave_item in mapa_itens:
+                        obj = mapa_itens[chave_item]
+                        if obj.quantidade != qtd:
+                            obj.quantidade = qtd
+                            para_atualizar.append(obj)
+                    else:
+                        para_criar.append(
+                            ItemEscopoMensal(
+                                escopo_mensal_id=escopo_id,
+                                cargo_id=cargo_id,
+                                turno=turno,
+                                quantidade=qtd,
+                            )
+                        )
+
+                if para_criar:
+                    ItemEscopoMensal.objects.bulk_create(para_criar, batch_size=1000)
+                    itens_criados = len(para_criar)
+                if para_atualizar:
+                    ItemEscopoMensal.objects.bulk_update(
+                        para_atualizar, ["quantidade"], batch_size=1000
+                    )
+                    itens_atualizados = len(para_atualizar)
+
+        msg = (
+            f"Concluído. Linhas na planilha (válidas): {ok_linhas} | "
+            f"Chaves únicas gravadas: {chaves_unicas} | "
+            f"Escopos mensais novos: {criados_escopos} | "
+            f"Itens criados: {itens_criados} | Itens atualizados: {itens_atualizados} | "
+            f"Linhas ignoradas: {ignoradas}"
         )
+        if substituir_itens:
+            msg += f" | Itens apagados antes (substituição): {itens_apagados}"
+        self.stdout.write(self.style.SUCCESS(msg))
