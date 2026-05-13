@@ -4,7 +4,7 @@ from operator import or_
 
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Q, UniqueConstraint
+from django.db.models import Q, Sum, UniqueConstraint
 
 
 UF_CHOICES = [
@@ -254,6 +254,16 @@ INSALUBRIDADE_BASE_CHOICES = [
     (INSALUBRIDADE_BASE_MINIMO_NACIONAL, "Salário mínimo nacional (BR)"),
 ]
 
+INSALUBRIDADE_FIXA_RECEBEDORES_TODOS = "TODOS"
+INSALUBRIDADE_FIXA_RECEBEDORES_PERSONALIZADO = "PERSONALIZADO"
+INSALUBRIDADE_FIXA_RECEBEDORES_CHOICES = [
+    (
+        INSALUBRIDADE_FIXA_RECEBEDORES_TODOS,
+        "Todos os colaboradores do escopo (soma das quantidades)",
+    ),
+    (INSALUBRIDADE_FIXA_RECEBEDORES_PERSONALIZADO, "Quantidade personalizada"),
+]
+
 
 def percentuais_insalubridade_padrao_para_loja(loja):
     """
@@ -306,6 +316,19 @@ class ConfiguracaoInsalubridadeLoja(models.Model):
         "Calcular diferença de banheirista (teórico − fixa)",
         default=True,
     )
+    # Quantas pessoas recebem a insalubridade fixa no cálculo do escopo (usa soma das Qtds do escopo como teto).
+    insalubridade_fixa_recebedores_modo = models.CharField(
+        "Recebedores da insalubridade fixa",
+        max_length=24,
+        choices=INSALUBRIDADE_FIXA_RECEBEDORES_CHOICES,
+        default=INSALUBRIDADE_FIXA_RECEBEDORES_TODOS,
+    )
+    insalubridade_fixa_recebedores_quantidade = models.PositiveIntegerField(
+        "Quantidade de pessoas (insalubridade fixa)",
+        null=True,
+        blank=True,
+        help_text="Obrigatório se o modo for personalizado; a soma das quantidades do escopo mensal é o teto.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -335,6 +358,26 @@ class ConfiguracaoInsalubridadeLoja(models.Model):
                     )
                 }
             )
+        if self.insalubridade_fixa_recebedores_modo == (
+            INSALUBRIDADE_FIXA_RECEBEDORES_PERSONALIZADO
+        ):
+            q = self.insalubridade_fixa_recebedores_quantidade
+            if q is None:
+                raise ValidationError(
+                    {
+                        "insalubridade_fixa_recebedores_quantidade": (
+                            "Informe quantas pessoas recebem a insalubridade fixa."
+                        )
+                    }
+                )
+            if q < 1:
+                raise ValidationError(
+                    {
+                        "insalubridade_fixa_recebedores_quantidade": (
+                            "A quantidade deve ser pelo menos 1."
+                        )
+                    }
+                )
 
     def __str__(self):
         return f"Insalubridade — {self.loja}"
@@ -350,6 +393,8 @@ def obter_ou_criar_config_insalubridade_loja(loja):
             "insalubridade_fixa_base": INSALUBRIDADE_BASE_SALARIO_CARGO,
             "insalubridade_banheirista_base": INSALUBRIDADE_BASE_MINIMO_NACIONAL,
             "calcular_diferenca_banheirista": True,
+            "insalubridade_fixa_recebedores_modo": INSALUBRIDADE_FIXA_RECEBEDORES_TODOS,
+            "insalubridade_fixa_recebedores_quantidade": None,
         },
     )
     return cfg
@@ -392,6 +437,28 @@ class EscopoMensal(models.Model):
         return f"{self.loja} - {self.mes:02d}/{self.ano}"
 
 
+def escala_insalubridade_fixa_para_escopo(escopo_mensal):
+    """
+    Fator aplicado sobre (quantidade × valor unitário da fixa) em cada item.
+    Parâmetros vêm da configuração de insalubridade da loja; a soma das Qtds vem deste escopo.
+    TODOS → 1. PERSONALIZADO → min(H / soma_quantidades, 1).
+    """
+    cfg = obter_ou_criar_config_insalubridade_loja(escopo_mensal.loja)
+    agregado = escopo_mensal.itens.aggregate(s=Sum("quantidade"))
+    total_pessoas = agregado["s"] or 0
+    if total_pessoas == 0:
+        return Decimal("0")
+    if cfg.insalubridade_fixa_recebedores_modo != INSALUBRIDADE_FIXA_RECEBEDORES_PERSONALIZADO:
+        return Decimal("1")
+    h = cfg.insalubridade_fixa_recebedores_quantidade
+    if h is None or h < 1:
+        return Decimal("0")
+    razao = Decimal(h) / Decimal(total_pessoas)
+    if razao > Decimal("1"):
+        return Decimal("1")
+    return razao
+
+
 class ItemEscopoMensal(models.Model):
     escopo_mensal = models.ForeignKey(
         EscopoMensal,
@@ -423,10 +490,12 @@ class ItemEscopoMensal(models.Model):
         self,
         cache_salarios_regional=None,
         cache_salario_minimo_br_por_ano=None,
+        escala_insalubridade_fixa=Decimal("1"),
     ):
         """
         Estimativa de custo do item. Se os caches forem passados (listagem em lote),
         não há uma query SQL por linha — monte os caches com montar_caches_salario_para_itens.
+        escala_insalubridade_fixa: use escala_insalubridade_fixa_para_escopo(escopo_mensal) com a config da loja.
         """
         uf_loja = (self.escopo_mensal.loja.uf or "").strip().upper()
         if not uf_loja:
@@ -488,7 +557,7 @@ class ItemEscopoMensal(models.Model):
             else:
                 insal_banheirista_unit = teorico
         base_total = quantidade * salario_base_unitario
-        insal_fixa_total = quantidade * insal_fixa_unit
+        insal_fixa_total = quantidade * insal_fixa_unit * escala_insalubridade_fixa
         insal_ban_total = quantidade * insal_banheirista_unit
 
         adic_noturno_unit = Decimal("0.00")

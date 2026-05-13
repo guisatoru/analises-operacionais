@@ -16,6 +16,7 @@ from ..models import (
     MESES_CHOICES,
     EscopoMensal,
     Loja,
+    escala_insalubridade_fixa_para_escopo,
     montar_caches_salario_para_itens,
 )
 from .common import parse_int_param, escopo_duplicar_proximo_mes_para_todas_as_lojas
@@ -56,11 +57,13 @@ def escopo_list(request):
 
     escopos_com_estimativa = []
     for escopo in escopos_list:
+        escala_fixa = escala_insalubridade_fixa_para_escopo(escopo)
         itens_com_estimativa = []
         for item in escopo.itens.all():
             detalhamento = item.get_estimativa_detalhada(
                 cache_salarios_regional=cache_regional,
                 cache_salario_minimo_br_por_ano=cache_minimo,
+                escala_insalubridade_fixa=escala_fixa,
             )
             itens_com_estimativa.append({"item": item, "detalhamento": detalhamento})
         total_estimativa_escopo = Decimal("0")

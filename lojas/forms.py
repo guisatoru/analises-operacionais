@@ -123,6 +123,8 @@ class ConfiguracaoInsalubridadeLojaForm(forms.ModelForm):
         fields = [
             "insalubridade_fixa_percentual",
             "insalubridade_fixa_base",
+            "insalubridade_fixa_recebedores_modo",
+            "insalubridade_fixa_recebedores_quantidade",
             "insalubridade_banheirista_percentual",
             "insalubridade_banheirista_base",
             "calcular_diferenca_banheirista",

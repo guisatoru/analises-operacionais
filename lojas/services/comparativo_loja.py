@@ -3,7 +3,7 @@
 
 from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from django.db.models import Q, Sum
 from django.db.models.functions import ExtractMonth, ExtractYear
@@ -13,6 +13,7 @@ from lojas.models import (
     ItemEscopoMensal,
     LinhaFolha,
     Loja,
+    escala_insalubridade_fixa_para_escopo,
     montar_caches_salario_para_itens,
 )
 
@@ -169,6 +170,7 @@ def montar_resultado_comparativo(
     # --- Escopo: todos os itens dos escopos mensais da loja nesses meses
     itens_todos: List[ItemEscopoMensal] = []
     meses_sem_escopo: List[Tuple[int, int]] = []
+    escala_por_escopo_id: Dict[int, Decimal] = {}
 
     for ano, mes in competencias:
         escopo = (
@@ -179,6 +181,7 @@ def montar_resultado_comparativo(
         if escopo is None:
             meses_sem_escopo.append((ano, mes))
             continue
+        escala_por_escopo_id[escopo.pk] = escala_insalubridade_fixa_para_escopo(escopo)
         itens_todos.extend(list(escopo.itens.all()))
 
     resultado.escopo_meses_sem_registro = meses_sem_escopo
@@ -189,7 +192,12 @@ def montar_resultado_comparativo(
     cache_regional, cache_minimo_br = montar_caches_salario_para_itens(itens_todos)
 
     for item in itens_todos:
-        det = item.get_estimativa_detalhada(cache_regional, cache_minimo_br)
+        escala = escala_por_escopo_id.get(item.escopo_mensal_id, Decimal("1"))
+        det = item.get_estimativa_detalhada(
+            cache_regional,
+            cache_minimo_br,
+            escala_insalubridade_fixa=escala,
+        )
         if det is None:
             resultado.escopo_itens_sem_estimativa += 1
             continue
