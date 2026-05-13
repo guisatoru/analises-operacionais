@@ -2,10 +2,10 @@ from django import forms
 from django.forms import inlineformset_factory
 
 from .models import (
+    ConfiguracaoInsalubridadeLoja,
     EscopoMensal,
     ItemEscopoMensal,
     Loja,
-    percentuais_insalubridade_padrao_para_loja,
 )
 
 
@@ -90,41 +90,15 @@ class LojaUpdateForm(forms.ModelForm):
 
 
 class EscopoMensalForm(forms.ModelForm):
-    """
-    Formulário do cabeçalho do escopo mensal.
-    Aqui definimos loja, ano, mês e percentuais usados no cálculo.
-    """
+    """Cabeçalho do escopo: loja, ano e mês. Insalubridade fica na configuração da loja."""
 
     class Meta:
         model = EscopoMensal
-        fields = [
-            "loja",
-            "ano",
-            "mes",
-            "insalubridade_fixa_percentual",
-            "insalubridade_banheirista_percentual",
-        ]
+        fields = ["loja", "ano", "mes"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Comentário de negócio:
-        # Placeholder ajuda quem edita a lembrar que o valor é percentual.
-        self.fields["insalubridade_fixa_percentual"].widget.attrs[
-            "placeholder"
-        ] = "Ex.: 20.00"
-        self.fields["insalubridade_banheirista_percentual"].widget.attrs[
-            "placeholder"
-        ] = "Ex.: 40.00"
         apply_bootstrap_class(self)
-        # Novo escopo (GET): preenche percentuais sugeridos conforme UF da loja e regra banheirista.
-        if not self.is_bound and not self.instance.pk:
-            loja = None
-            loja_pk = self.initial.get("loja")
-            if loja_pk:
-                loja = Loja.objects.filter(pk=loja_pk).first()
-            fixa_padrao, ban_padrao = percentuais_insalubridade_padrao_para_loja(loja)
-            self.initial.setdefault("insalubridade_fixa_percentual", fixa_padrao)
-            self.initial.setdefault("insalubridade_banheirista_percentual", ban_padrao)
 
 
 class ItemEscopoMensalForm(forms.ModelForm):
@@ -135,6 +109,24 @@ class ItemEscopoMensalForm(forms.ModelForm):
     class Meta:
         model = ItemEscopoMensal
         fields = ["cargo", "turno", "quantidade"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        apply_bootstrap_class(self)
+
+
+class ConfiguracaoInsalubridadeLojaForm(forms.ModelForm):
+    """Tela de insalubridade por loja (convênção)."""
+
+    class Meta:
+        model = ConfiguracaoInsalubridadeLoja
+        fields = [
+            "insalubridade_fixa_percentual",
+            "insalubridade_fixa_base",
+            "insalubridade_banheirista_percentual",
+            "insalubridade_banheirista_base",
+            "calcular_diferenca_banheirista",
+        ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

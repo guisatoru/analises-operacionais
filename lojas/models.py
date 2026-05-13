@@ -244,15 +244,21 @@ MESES_CHOICES = [
     (12, "Dezembro"),
 ]
 
-# Padrões de insalubridade ao criar um escopo novo (podem ser alterados por escopo na tela).
+# Padrões ao criar configuração nova da loja (convênção).
 INSALUBRIDADE_BANHEIRISTA_PADRAO = Decimal("40.00")
 INSALUBRIDADE_FIXA_PADRAO_RS_SC = Decimal("20.00")
+INSALUBRIDADE_BASE_SALARIO_CARGO = "SALARIO_BASE"
+INSALUBRIDADE_BASE_MINIMO_NACIONAL = "MINIMO_NACIONAL"
+INSALUBRIDADE_BASE_CHOICES = [
+    (INSALUBRIDADE_BASE_SALARIO_CARGO, "Salário base do cargo (competência)"),
+    (INSALUBRIDADE_BASE_MINIMO_NACIONAL, "Salário mínimo nacional (BR)"),
+]
 
 
 def percentuais_insalubridade_padrao_para_loja(loja):
     """
     Retorna (insalubridade_fixa_percentual, insalubridade_banheirista_percentual)
-    sugeridos para um escopo novo, conforme a UF da loja.
+    sugeridos para uma configuração nova da loja, conforme a UF.
     - Banheirista: 40% em todo o cadastro (regra operacional atual).
     - Fixa: 20% quando a loja é RS ou SC; caso contrário 0%.
     """
@@ -263,6 +269,90 @@ def percentuais_insalubridade_padrao_para_loja(loja):
     if uf in ("RS", "SC"):
         return INSALUBRIDADE_FIXA_PADRAO_RS_SC, banheirista
     return Decimal("0.00"), banheirista
+
+
+class ConfiguracaoInsalubridadeLoja(models.Model):
+    loja = models.OneToOneField(
+        "Loja",
+        on_delete=models.CASCADE,
+        related_name="config_insalubridade",
+        verbose_name="Loja",
+    )
+    insalubridade_fixa_percentual = models.DecimalField(
+        "Insalubridade fixa (%)",
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    insalubridade_fixa_base = models.CharField(
+        "Base da insalubridade fixa",
+        max_length=32,
+        choices=INSALUBRIDADE_BASE_CHOICES,
+        default=INSALUBRIDADE_BASE_SALARIO_CARGO,
+    )
+    insalubridade_banheirista_percentual = models.DecimalField(
+        "Insalubridade banheirista (%)",
+        max_digits=5,
+        decimal_places=2,
+        default=INSALUBRIDADE_BANHEIRISTA_PADRAO,
+    )
+    insalubridade_banheirista_base = models.CharField(
+        "Base da insalubridade banheirista",
+        max_length=32,
+        choices=INSALUBRIDADE_BASE_CHOICES,
+        default=INSALUBRIDADE_BASE_MINIMO_NACIONAL,
+    )
+    calcular_diferenca_banheirista = models.BooleanField(
+        "Calcular diferença de banheirista (teórico − fixa)",
+        default=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Configuração de insalubridade da loja"
+        verbose_name_plural = "Configurações de insalubridade das lojas"
+
+    def clean(self):
+        super().clean()
+        if self.insalubridade_fixa_percentual < Decimal(
+            "0.00"
+        ) or self.insalubridade_fixa_percentual > Decimal("100.00"):
+            raise ValidationError(
+                {
+                    "insalubridade_fixa_percentual": (
+                        "A insalubridade fixa deve estar entre 0 e 100."
+                    )
+                }
+            )
+        if self.insalubridade_banheirista_percentual < Decimal(
+            "0.00"
+        ) or self.insalubridade_banheirista_percentual > Decimal("100.00"):
+            raise ValidationError(
+                {
+                    "insalubridade_banheirista_percentual": (
+                        "A insalubridade banheirista deve estar entre 0 e 100."
+                    )
+                }
+            )
+
+    def __str__(self):
+        return f"Insalubridade — {self.loja}"
+
+
+def obter_ou_criar_config_insalubridade_loja(loja):
+    fixa_padrao, ban_padrao = percentuais_insalubridade_padrao_para_loja(loja)
+    cfg, _ = ConfiguracaoInsalubridadeLoja.objects.get_or_create(
+        loja=loja,
+        defaults={
+            "insalubridade_fixa_percentual": fixa_padrao,
+            "insalubridade_banheirista_percentual": ban_padrao,
+            "insalubridade_fixa_base": INSALUBRIDADE_BASE_SALARIO_CARGO,
+            "insalubridade_banheirista_base": INSALUBRIDADE_BASE_MINIMO_NACIONAL,
+            "calcular_diferenca_banheirista": True,
+        },
+    )
+    return cfg
 
 
 class EscopoMensal(models.Model):
@@ -279,18 +369,6 @@ class EscopoMensal(models.Model):
     )
     ano = models.PositiveIntegerField("Ano")
     mes = models.PositiveSmallIntegerField("Mês", choices=MESES_CHOICES)
-    insalubridade_fixa_percentual = models.DecimalField(
-        "Insalubridade fixa (%)",
-        max_digits=5,
-        decimal_places=2,
-        default=Decimal("0.00"),
-    )
-    insalubridade_banheirista_percentual = models.DecimalField(
-        "Insalubridade banheirista (%)",
-        max_digits=5,
-        decimal_places=2,
-        default=INSALUBRIDADE_BANHEIRISTA_PADRAO,
-    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -309,22 +387,6 @@ class EscopoMensal(models.Model):
         super().clean()
         if self.mes < 1 or self.mes > 12:
             raise ValidationError({"mes": "Mês deve estar entre 1 e 12."})
-        if self.insalubridade_fixa_percentual < Decimal(
-            "0.00"
-        ) or self.insalubridade_fixa_percentual > Decimal("100.00"):
-            raise ValidationError(
-                {
-                    "insalubridade_fixa_percentual": "A insalubridade fixa deve estar entre 0 e 100."
-                }
-            )
-        if self.insalubridade_banheirista_percentual < Decimal(
-            "0.00"
-        ) or self.insalubridade_banheirista_percentual > Decimal("100.00"):
-            raise ValidationError(
-                {
-                    "insalubridade_banheirista_percentual": "A insalubridade banheirista deve estar entre 0 e 100."
-                }
-            )
 
     def __str__(self):
         return f"{self.loja} - {self.mes:02d}/{self.ano}"
@@ -383,31 +445,48 @@ class ItemEscopoMensal(models.Model):
             return None
         quantidade = Decimal(self.quantidade)
         salario_base_unitario = salario_regional.valor
-        percentual_fixo = self.escopo_mensal.insalubridade_fixa_percentual or Decimal(
-            "0.00"
-        )
-        insal_fixa_unit = salario_base_unitario * (percentual_fixo / Decimal("100"))
+        loja = self.escopo_mensal.loja
+        cfg = obter_ou_criar_config_insalubridade_loja(loja)
+
+        def _salario_minimo_br(ano_ref):
+            if cache_salario_minimo_br_por_ano is not None:
+                return cache_salario_minimo_br_por_ano.get(ano_ref)
+            return Salario.objects.filter(
+                cargo__nome__iexact="MÍNIMO NACIONAL",
+                uf="BR",
+                ano=ano_ref,
+            ).first()
+
+        sal_min = _salario_minimo_br(ano)
+        valor_minimo = sal_min.valor if sal_min else None
+
+        pct_fixa = cfg.insalubridade_fixa_percentual or Decimal("0.00")
+        if cfg.insalubridade_fixa_base == INSALUBRIDADE_BASE_SALARIO_CARGO:
+            insal_fixa_unit = salario_base_unitario * (pct_fixa / Decimal("100"))
+        else:
+            if valor_minimo is None:
+                insal_fixa_unit = Decimal("0.00")
+            else:
+                insal_fixa_unit = valor_minimo * (pct_fixa / Decimal("100"))
+
         nome_cargo = (self.cargo.nome or "").strip().upper()
         eh_banheirista = nome_cargo == "BANHEIRISTA"
         insal_banheirista_unit = Decimal("0.00")
         if eh_banheirista:
-            percentual_ban = (
-                self.escopo_mensal.insalubridade_banheirista_percentual
-                or Decimal("0.00")
-            )
-            if cache_salario_minimo_br_por_ano is not None:
-                salario_nacional = cache_salario_minimo_br_por_ano.get(ano)
+            pct_ban = cfg.insalubridade_banheirista_percentual or Decimal("0.00")
+            if cfg.insalubridade_banheirista_base == INSALUBRIDADE_BASE_SALARIO_CARGO:
+                teorico = salario_base_unitario * (pct_ban / Decimal("100"))
             else:
-                salario_nacional = Salario.objects.filter(
-                    cargo__nome__iexact="MÍNIMO NACIONAL",
-                    uf="BR",
-                    ano=ano,
-                ).first()
-            if salario_nacional:
-                teorico = salario_nacional.valor * (percentual_ban / Decimal("100"))
+                if valor_minimo is None:
+                    teorico = Decimal("0.00")
+                else:
+                    teorico = valor_minimo * (pct_ban / Decimal("100"))
+            if cfg.calcular_diferenca_banheirista:
                 diferenca = teorico - insal_fixa_unit
                 if diferenca > Decimal("0.00"):
                     insal_banheirista_unit = diferenca
+            else:
+                insal_banheirista_unit = teorico
         base_total = quantidade * salario_base_unitario
         insal_fixa_total = quantidade * insal_fixa_unit
         insal_ban_total = quantidade * insal_banheirista_unit
@@ -458,6 +537,7 @@ class Verba(models.Model):
 
     def __str__(self):
         return f"{self.codigo_verba} — {self.descricao}"
+
 
 class LinhaFolha(models.Model):
     """
@@ -516,6 +596,7 @@ class LinhaFolha(models.Model):
 
     def __str__(self):
         return f"{self.matricula} / {self.codigo_verba} / {self.dt_arq}"
+
 
 MOTIVO_DUPLICATA_FOLHA_CHOICES = [
     ("REPETIDA_NO_ARQUIVO", "Repetida no mesmo arquivo"),

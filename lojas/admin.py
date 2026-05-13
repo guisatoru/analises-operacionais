@@ -5,6 +5,7 @@ from django.utils.html import format_html
 
 from .models import (
     Cargo,
+    ConfiguracaoInsalubridadeLoja,
     EscopoMensal,
     ItemEscopoMensal,
     LinhaFolha,
@@ -16,8 +17,18 @@ from .models import (
 from .forms import EscopoMensalForm
 
 
+class ConfiguracaoInsalubridadeLojaInline(admin.StackedInline):
+    """Um bloco por loja: parâmetros de insalubridade da convenção."""
+
+    model = ConfiguracaoInsalubridadeLoja
+    can_delete = False
+    max_num = 1
+    extra = 1
+
+
 @admin.register(Loja)
 class LojaAdmin(admin.ModelAdmin):
+    inlines = [ConfiguracaoInsalubridadeLojaInline]
     list_display = (
         "ver_escopos_mensais",
         "nome_referencia",

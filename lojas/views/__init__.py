@@ -14,6 +14,7 @@ from .escopos import (
 )
 from .folha_import import folha_import
 from .home import home
+from .loja_insalubridade import loja_config_insalubridade
 from .stores import (
     store_create,
     store_delete,
@@ -43,4 +44,5 @@ __all__ = [
     "store_update",
     "folha_duplicadas_list",
     "escopo_duplicar_proximo_mes",
+    "loja_config_insalubridade",
 ]

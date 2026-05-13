@@ -9,6 +9,11 @@ urlpatterns = [
     path("lojas/<int:pk>/", views.store_detail, name="detalhe_loja"),
     path("lojas/<int:pk>/editar/", views.store_update, name="editar_loja"),
     path("lojas/<int:pk>/excluir/", views.store_delete, name="excluir_loja"),
+    path(
+        "lojas/<int:pk>/insalubridade/",
+        views.loja_config_insalubridade,
+        name="loja_config_insalubridade",
+    ),
     path("escopos/", views.escopo_list, name="lista_escopos"),
     path("escopos/novo/", views.escopo_create, name="novo_escopo"),
     path(

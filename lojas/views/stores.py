@@ -5,7 +5,7 @@ from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 
 from ..forms import LojaForm, LojaUpdateForm
-from ..models import Loja, STATUS_CHOICES
+from ..models import Loja, STATUS_CHOICES, obter_ou_criar_config_insalubridade_loja
 
 
 def store_list(request):
@@ -58,6 +58,8 @@ def store_create(request):
         form = LojaForm(request.POST)
         if form.is_valid():
             store = form.save()
+            # Registro de insalubridade por loja (valores padrão por UF); editável na tela dedicada.
+            obter_ou_criar_config_insalubridade_loja(store)
             messages.success(
                 request,
                 "Loja cadastrada com sucesso.",

@@ -3,7 +3,7 @@ Funções auxiliares compartilhadas entre views (competência, query string, etc
 """
 
 from django.db import transaction
-from ..models import EscopoMensal, ItemEscopoMensal, percentuais_insalubridade_padrao_para_loja
+from ..models import EscopoMensal, ItemEscopoMensal
 
 
 def competencia_anterior(ano, mes):
@@ -37,18 +37,7 @@ def replicar_do_mes_anterior_se_existir(escopo_mensal):
     )
     if not escopo_anterior:
         return False
-    escopo_mensal.insalubridade_fixa_percentual = (
-        escopo_anterior.insalubridade_fixa_percentual
-    )
-    escopo_mensal.insalubridade_banheirista_percentual = (
-        escopo_anterior.insalubridade_banheirista_percentual
-    )
-    escopo_mensal.save(
-        update_fields=[
-            "insalubridade_fixa_percentual",
-            "insalubridade_banheirista_percentual",
-        ]
-    )
+
     itens_para_criar = []
     for item_anterior in escopo_anterior.itens.all():
         itens_para_criar.append(
@@ -103,7 +92,8 @@ def escopo_obter_ultima_competencia_global():
 def escopo_duplicar_proximo_mes_para_todas_as_lojas():
     """
     Para cada loja que tem escopo no último mês global, cria o escopo do mês seguinte
-    e copia itens/percentuais via replicar_do_mes_anterior_se_existir.
+    e copia os itens do mês anterior via replicar_do_mes_anterior_se_existir.
+    Insalubridade segue na configuração da loja (não no escopo mensal).
     Retorna dict com contadores para mensagens na view.
     """
     origem = escopo_obter_ultima_competencia_global()
@@ -129,13 +119,10 @@ def escopo_duplicar_proximo_mes_para_todas_as_lojas():
             if EscopoMensal.objects.filter(loja=loja, ano=ano_d, mes=mes_d).exists():
                 pulados_ja_existia_destino += 1
                 continue
-            pct_fixa, pct_ban = percentuais_insalubridade_padrao_para_loja(loja)
             novo = EscopoMensal.objects.create(
                 loja=loja,
                 ano=ano_d,
                 mes=mes_d,
-                insalubridade_fixa_percentual=pct_fixa,
-                insalubridade_banheirista_percentual=pct_ban,
             )
             # Copia do mês anterior ao destino (= origem que já sabemos existir para esta loja)
             replicar_do_mes_anterior_se_existir(novo)

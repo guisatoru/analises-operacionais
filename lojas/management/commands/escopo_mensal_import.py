@@ -15,7 +15,7 @@ from lojas.models import (
     EscopoMensal,
     ItemEscopoMensal,
     Loja,
-    percentuais_insalubridade_padrao_para_loja,
+    obter_ou_criar_config_insalubridade_loja,
 )
 
 
@@ -139,15 +139,11 @@ class Command(BaseCommand):
         faltando = chaves_competencia - set(escopos_por_chave.keys())
         novos = []
         for loja_id, mes, ano in faltando:
-            loja_obj = lojas_por_id.get(loja_id)
-            fixa, ban = percentuais_insalubridade_padrao_para_loja(loja_obj)
             novos.append(
                 EscopoMensal(
                     loja_id=loja_id,
                     mes=mes,
                     ano=ano,
-                    insalubridade_fixa_percentual=fixa,
-                    insalubridade_banheirista_percentual=ban,
                 )
             )
 
@@ -158,6 +154,12 @@ class Command(BaseCommand):
             for escopo in novos:
                 t = (escopo.loja_id, escopo.mes, escopo.ano)
                 escopos_por_chave[t] = escopo
+
+        # Garante cadastro de insalubridade por loja (convênção) para todas as lojas tocadas.
+        for lid in lojas_ids:
+            loja_obj = lojas_por_id.get(lid)
+            if loja_obj:
+                obter_ou_criar_config_insalubridade_loja(loja_obj)
 
         return escopos_por_chave, criados
 
