@@ -16,6 +16,31 @@ from lojas.models import (
     montar_caches_salario_para_itens,
 )
 
+# ---------------------------------------------------------------------------
+# Categorias da planilha de verbas (coluna "Categoria Inovação" / campo categoria).
+# Ajuste as tuplas se no Excel os textos forem diferentes (ex.: sem acento).
+# Por que tuplas: permite mais de um rótulo aceito para a mesma rubrica.
+# ---------------------------------------------------------------------------
+CAT_FOLHA_SALARIO = ("SALÁRIO",)
+CAT_FOLHA_INSALUBRIDADE = ("INSALUBRIDADE",)
+CAT_FOLHA_ADICIONAL_NOTURNO = ("ADICIONAL NOTURNO",)
+
+
+def _q_categoria_um_dos(rotulos):
+    """Monta um Q com OR de categoria__iexact para cada rótulo não vazio."""
+    q = Q()
+    for r in rotulos:
+        t = (r or "").strip()
+        if t:
+            q |= Q(categoria__iexact=t)
+    return q
+
+
+def _somar_valor_folha_com_filtro(qs, filtro_extra):
+    """Soma o campo valor no queryset já restrito a loja + competências."""
+    agg = qs.filter(filtro_extra).aggregate(s=Sum("valor"))
+    return agg["s"] or Decimal("0.00")
+
 
 def competencias_distintas_para_loja(loja_id: int) -> List[Tuple[int, int]]:
     """
@@ -85,6 +110,19 @@ class ResultadoComparativoLoja:
     folha_total: Decimal = Decimal("0.00")
     folha_linhas_count: int = 0
 
+    # Folha por categoria (apenas para a tabela de comparativo; o total geral é folha_total)
+    folha_salario_categoria_total: Decimal = Decimal("0.00")
+    folha_insalubridade_categoria_total: Decimal = Decimal("0.00")
+    folha_adicional_noturno_categoria_total: Decimal = Decimal("0.00")
+
+    @property
+    def escopo_insalubridade_total(self) -> Decimal:
+        """Soma das duas insalubridades do escopo (fixa + banheirista), para exibir na tabela."""
+        return (
+            self.escopo_insalubridade_fixa_total
+            + self.escopo_insalubridade_banheirista_total
+        )
+
     @property
     def diferenca_folha_menos_escopo(self) -> Decimal:
         return self.folha_total - self.escopo_total
@@ -116,6 +154,17 @@ def montar_resultado_comparativo(
     folha_total = folha_qs.aggregate(s=Sum("valor"))["s"] or Decimal("0.00")
     resultado.folha_total = folha_total
     resultado.folha_linhas_count = folha_qs.count()
+
+    # Por categoria: só linhas cuja categoria bate com o cadastro de verbas (import).
+    resultado.folha_salario_categoria_total = _somar_valor_folha_com_filtro(
+        folha_qs, _q_categoria_um_dos(CAT_FOLHA_SALARIO)
+    )
+    resultado.folha_insalubridade_categoria_total = _somar_valor_folha_com_filtro(
+        folha_qs, _q_categoria_um_dos(CAT_FOLHA_INSALUBRIDADE)
+    )
+    resultado.folha_adicional_noturno_categoria_total = _somar_valor_folha_com_filtro(
+        folha_qs, _q_categoria_um_dos(CAT_FOLHA_ADICIONAL_NOTURNO)
+    )
 
     # --- Escopo: todos os itens dos escopos mensais da loja nesses meses
     itens_todos: List[ItemEscopoMensal] = []
