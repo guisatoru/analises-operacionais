@@ -1,29 +1,79 @@
+{% load static %}
+
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block titulo %}Cadastro de Lojas{% endblock %}</title>
-    {% block extrahead %}{% endblock %}
+
+    <title>
+        {% block titulo %}
+        Sistema
+        {% endblock %}
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{% static 'lojas/css/style.css' %}"
+    >
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
 </head>
+
 <body>
-    <header>
-        <p><a href="{% url 'inicio' %}">Análises Operacionais</a></p>
-        {% include "lojas/partials/sidebar_nav.html" %}
-    </header>
 
-    <main>
-        {% if messages %}
-            {% for mensagem in messages %}
-                <div role="status" data-message-tags="{{ mensagem.tags|default:'' }}">{{ mensagem }}</div>
-            {% endfor %}
-        {% endif %}
+    <div class="layout">
 
-        {% block content %}{% endblock %}
-    </main>
+        <aside class="sidebar">
 
-    <footer>
-        <p>Sistema interno de cadastro de lojas</p>
-    </footer>
+            <div class="sidebar-logo">
+                <h2>Análises Operacionais</h2>
+            </div>
+
+            <nav class="sidebar-menu">
+
+                <a href="{% url 'inicio' %}">
+                    Início
+                </a>
+
+                <a href="{% url 'lista_lojas' %}">
+                    Lojas
+                </a>
+
+                <a href="{% url 'lista_escopos' %}">
+                    Escopos
+                </a>
+
+                <a href="{% url 'importar_folha' %}">
+                    Importar folha
+                </a>
+
+                <a href="{% url 'lista_folha_duplicadas' %}">
+                    Duplicadas folha
+                </a>
+
+                <a href="{% url 'comparativo_loja' %}">
+                    Comparativo
+                </a>
+
+            </nav>
+
+        </aside>
+
+        <main class="main-content">
+
+            {% block content %}
+            {% endblock %}
+
+        </main>
+
+    </div>
+
 </body>
+
 </html>

@@ -3,36 +3,48 @@
 {% block titulo %}Início{% endblock %}
 
 {% block content %}
-<header>
-    <h1>Início</h1>
-    <p>Escolha uma área do sistema.</p>
-</header>
+<div class="page-header">
+    <div>
+        <span class="page-eyebrow">Dashboard</span>
+        <h1>Início</h1>
+        <p>Escolha uma área do sistema para consultar, importar ou analisar informações operacionais.</p>
+    </div>
+</div>
 
-<section aria-label="Atalhos do sistema">
-    <article>
+<section class="dashboard-grid" aria-label="Atalhos do sistema">
+    <article class="dashboard-card">
+        <div class="card-icon">🏬</div>
         <h2>Lojas</h2>
         <p>Lista, filtros, cadastro e edição de lojas.</p>
-        <p><a href="{% url 'lista_lojas' %}">Abrir</a></p>
+        <a class="card-button" href="{% url 'lista_lojas' %}">Abrir módulo</a>
     </article>
-    <article>
+
+    <article class="dashboard-card">
+        <div class="card-icon">📅</div>
         <h2>Escopos mensais</h2>
         <p>Visualização, filtros e manutenção dos escopos.</p>
-        <p><a href="{% url 'lista_escopos' %}">Abrir</a></p>
+        <a class="card-button" href="{% url 'lista_escopos' %}">Abrir módulo</a>
     </article>
-    <article>
+
+    <article class="dashboard-card">
+        <div class="card-icon">📊</div>
         <h2>Comparativo</h2>
-        <p>Folha × estimativa de escopo por loja e competências (DT ARQ).</p>
-        <p><a href="{% url 'comparativo_loja' %}">Abrir</a></p>
+        <p>Folha × estimativa de escopo por loja e competências.</p>
+        <a class="card-button" href="{% url 'comparativo_loja' %}">Abrir módulo</a>
     </article>
-    <article>
+
+    <article class="dashboard-card">
+        <div class="card-icon">⬆️</div>
         <h2>Importação de folhas</h2>
-        <p>Upload de CSV da folha (TOTVS), uma competência por arquivo.</p>
-        <p><a href="{% url 'importar_folha' %}">Abrir</a></p>
+        <p>Upload de CSV da folha TOTVS, uma competência por arquivo.</p>
+        <a class="card-button" href="{% url 'importar_folha' %}">Abrir módulo</a>
     </article>
-    <article>
+
+    <article class="dashboard-card">
+        <div class="card-icon">⚠️</div>
         <h2>Pagamentos duplicados</h2>
-        <p>Listagem de pagamentos duplicados.</p>
-        <p><a href="{% url 'lista_folha_duplicadas' %}">Abrir</a></p>
+        <p>Listagem e conferência de possíveis pagamentos duplicados.</p>
+        <a class="card-button" href="{% url 'lista_folha_duplicadas' %}">Abrir módulo</a>
     </article>
 </section>
 {% endblock %}
