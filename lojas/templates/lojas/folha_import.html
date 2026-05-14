@@ -3,91 +3,81 @@
 {% block titulo %}{{ titulo }}{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <a href="{% url 'inicio' %}" class="text-decoration-none">&larr; Voltar ao início</a>
-        <h2 class="mb-0 mt-1">{{ titulo }}</h2>
-        <p class="text-muted small mb-0">
-            Envie um CSV por vez. Competência no sistema usa a coluna <strong>DT.ARQ.</strong>
-            (não apenas o mês de pagamento). Centros de custo são normalizados para 12 dígitos.
-        </p>
-    </div>
-</div>
+<header>
+    <p><a href="{% url 'inicio' %}">&larr; Voltar ao início</a></p>
+    <h1>{{ titulo }}</h1>
+    <p>
+        Envie um CSV por vez. Competência no sistema usa a coluna <strong>DT.ARQ.</strong>
+        (não apenas o mês de pagamento). Centros de custo são normalizados para 12 dígitos.
+    </p>
+</header>
 
 {% if form.non_field_errors %}
-    <div class="alert alert-danger">
+    <div role="alert">
         {{ form.non_field_errors }}
     </div>
 {% endif %}
 
-<div class="card shadow-sm">
-    <div class="card-body">
-        <form method="post" enctype="multipart/form-data" novalidate>
-            {% csrf_token %}
+<form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
 
-            <div class="mb-3">
-                <label for="{{ form.arquivo.id_for_label }}" class="form-label">
-                    {{ form.arquivo.label }}
-                    <span class="text-danger">*</span>
-                </label>
-                {{ form.arquivo }}
-                {% if form.arquivo.help_text %}
-                    <div class="form-text">{{ form.arquivo.help_text }}</div>
-                {% endif %}
-                {% if form.arquivo.errors %}
-                    <div class="invalid-feedback d-block">{{ form.arquivo.errors.0 }}</div>
-                {% endif %}
-            </div>
+    <p>
+        <label for="{{ form.arquivo.id_for_label }}">{{ form.arquivo.label }} <span aria-label="obrigatório">*</span></label><br>
+        {{ form.arquivo }}
+        {% if form.arquivo.help_text %}
+            <small>{{ form.arquivo.help_text }}</small>
+        {% endif %}
+        {% if form.arquivo.errors %}
+            <span role="alert">{{ form.arquivo.errors.0 }}</span>
+        {% endif %}
+    </p>
 
-            <button type="submit" class="btn btn-primary" id="btn-importar-folha">Importar</button>
-        </form>
-        <script>
-            (function () {
-                var form = document.querySelector("form[enctype=\"multipart/form-data\"]");
-                if (!form) {
-                    return;
-                }
-                form.addEventListener("submit", function () {
-                    var btn = document.getElementById("btn-importar-folha");
-                    if (btn && !btn.disabled) {
-                        btn.disabled = true;
-                        btn.textContent = "Importando…";
-                    }
-                });
-            })();
-        </script>
-    </div>
-</div>
+    <p><button type="submit" id="btn-importar-folha">Importar</button></p>
+</form>
+
+<script>
+    (function () {
+        var form = document.querySelector("form[enctype=\"multipart/form-data\"]");
+        if (!form) {
+            return;
+        }
+        form.addEventListener("submit", function () {
+            var btn = document.getElementById("btn-importar-folha");
+            if (btn && !btn.disabled) {
+                btn.disabled = true;
+                btn.textContent = "Importando…";
+            }
+        });
+    })();
+</script>
 
 {% if resumo_importacao %}
-<div class="card shadow-sm mt-4">
-    <div class="card-header fw-semibold">Detalhe do último import</div>
-    <div class="card-body">
-        <p class="small text-muted mb-3">
-            Duplicadas: mesma chave (matrícula, verba, valor, data ARQ, centro de custo da linha) já no arquivo ou já gravada no banco.
-            Sem loja: o <strong>centro de custo real</strong> (12 dígitos) não bate com nenhuma loja cadastrada — cadastre ou ajuste o CC na loja.
-        </p>
+<article>
+    <h2>Detalhe do último import</h2>
+    <p>
+        Duplicadas: mesma chave (matrícula, verba, valor, data ARQ, centro de custo da linha) já no arquivo ou já gravada no banco.
+        Sem loja: o <strong>centro de custo real</strong> (12 dígitos) não bate com nenhuma loja cadastrada — cadastre ou ajuste o CC na loja.
+    </p>
 
-        {% if resumo_importacao.detalhes_duplicadas %}
-        <h6 class="mt-2">Ignoradas como duplicadas (até {{ resumo_importacao.detalhes_duplicadas|length }} mostradas)</h6>
+    {% if resumo_importacao.detalhes_duplicadas %}
+        <h3>Ignoradas como duplicadas (até {{ resumo_importacao.detalhes_duplicadas|length }} mostradas)</h3>
         {% if resumo_importacao.detalhes_duplicadas_truncado %}
-        <p class="small text-warning">Lista truncada: existem mais duplicadas do que as exibidas. Ajuste o CSV ou use o admin para conferir linhas já gravadas.</p>
+            <p role="status">Lista truncada: existem mais duplicadas do que as exibidas. Ajuste o CSV ou use o admin para conferir linhas já gravadas.</p>
         {% endif %}
-        <div class="table-responsive">
-            <table class="table table-sm table-bordered align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Motivo</th>
-                        <th>Matrícula</th>
-                        <th>Verba</th>
-                        <th>Valor</th>
-                        <th>DT ARQ</th>
-                        <th>DT pagamento</th>
-                        <th>Centro custo (linha)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for linha in resumo_importacao.detalhes_duplicadas %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Motivo</th>
+                    <th>Matrícula</th>
+                    <th>Verba</th>
+                    <th>Valor</th>
+                    <th>DT ARQ</th>
+                    <th>DT pagamento</th>
+                    <th>Centro custo (linha)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for linha in resumo_importacao.detalhes_duplicadas %}
                     <tr>
                         <td>
                             {% if linha.motivo == "repetida_no_mesmo_arquivo" %}Repetida no CSV{% elif linha.motivo == "ja_existia_no_banco" %}Já existia no banco{% else %}{{ linha.motivo }}{% endif %}
@@ -99,34 +89,32 @@
                         <td>{{ linha.dt_pagamento }}</td>
                         <td><code>{{ linha.centro_custo }}</code></td>
                     </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% elif resumo_importacao.ignoradas_duplicadas %}
-        <p class="small text-muted">Há {{ resumo_importacao.ignoradas_duplicadas }} duplicada(s), mas nenhum detalhe foi guardado (limite interno). Consulte no Django Admin as linhas de folha já gravadas para a mesma competência.</p>
-        {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    {% elif resumo_importacao.ignoradas_duplicadas %}
+        <p>Há {{ resumo_importacao.ignoradas_duplicadas }} duplicada(s), mas nenhum detalhe foi guardado (limite interno). Consulte no Django Admin as linhas de folha já gravadas para a mesma competência.</p>
+    {% endif %}
 
-        {% if resumo_importacao.detalhes_sem_loja %}
-        <h6 class="mt-4">Sem loja para o CC real (até {{ resumo_importacao.detalhes_sem_loja|length }} mostradas)</h6>
+    {% if resumo_importacao.detalhes_sem_loja %}
+        <h3>Sem loja para o CC real (até {{ resumo_importacao.detalhes_sem_loja|length }} mostradas)</h3>
         {% if resumo_importacao.detalhes_sem_loja_truncado %}
-        <p class="small text-warning">Lista truncada: há mais linhas sem loja do que as exibidas.</p>
+            <p role="status">Lista truncada: há mais linhas sem loja do que as exibidas.</p>
         {% endif %}
-        <div class="table-responsive">
-            <table class="table table-sm table-bordered align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Matrícula</th>
-                        <th>Verba</th>
-                        <th>Valor</th>
-                        <th>DT ARQ</th>
-                        <th>DT pagamento</th>
-                        <th>CC folha</th>
-                        <th>CC real (12 dígitos)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for linha in resumo_importacao.detalhes_sem_loja %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Matrícula</th>
+                    <th>Verba</th>
+                    <th>Valor</th>
+                    <th>DT ARQ</th>
+                    <th>DT pagamento</th>
+                    <th>CC folha</th>
+                    <th>CC real (12 dígitos)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for linha in resumo_importacao.detalhes_sem_loja %}
                     <tr>
                         <td>{{ linha.matricula }}</td>
                         <td>{{ linha.codigo_verba }}</td>
@@ -136,20 +124,18 @@
                         <td><code>{{ linha.centro_custo }}</code></td>
                         <td><code>{{ linha.centro_custo_real }}</code></td>
                     </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% elif resumo_importacao.sem_loja %}
-        <p class="small text-muted">Há {{ resumo_importacao.sem_loja }} linha(s) sem loja, mas o detalhe não coube no resumo. Filtre no Admin por <em>loja vazia</em> e data ARQ.</p>
-        {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    {% elif resumo_importacao.sem_loja %}
+        <p>Há {{ resumo_importacao.sem_loja }} linha(s) sem loja, mas o detalhe não coube no resumo. Filtre no Admin por <em>loja vazia</em> e data ARQ.</p>
+    {% endif %}
 
-        <p class="small mb-0">
-            <a href="{% url 'admin:lojas_linhafolha_changelist' %}">Abrir todas as linhas de folha no Admin</a>
-            (filtros por data ARQ, matrícula, loja vazia).
-            <a href="{% url 'admin:lojas_linhafolhaduplicada_changelist' %}">Ver histórico de duplicadas</a>
-        </p>
-    </div>
-</div>
+    <p>
+        <a href="{% url 'admin:lojas_linhafolha_changelist' %}">Abrir todas as linhas de folha no Admin</a>
+        (filtros por data ARQ, matrícula, loja vazia).
+        <a href="{% url 'admin:lojas_linhafolhaduplicada_changelist' %}">Ver histórico de duplicadas</a>
+    </p>
+</article>
 {% endif %}
 {% endblock %}

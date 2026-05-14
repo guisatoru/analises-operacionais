@@ -3,129 +3,97 @@
 {% block titulo %}Lojas{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h2 class="mb-0">Lojas cadastradas</h2>
-        <small class="text-muted">{{ total }} loja(s) encontrada(s)</small>
-    </div>
-    <a href="{% url 'nova_loja' %}" class="btn btn-primary">+ Nova Loja</a>
-</div>
+<header>
+    <h1>Lojas cadastradas</h1>
+    <p>{{ total }} loja(s) encontrada(s)</p>
+    <p><a href="{% url 'nova_loja' %}">+ Nova Loja</a></p>
+</header>
 
-<div class="card mb-3">
-    <div class="card-body">
-        <form method="get" class="row g-2">
-            <div class="col-md-3">
-                <label class="form-label small mb-1">Buscar por nome referência</label>
-                <input type="text" name="busca" value="{{ busca }}" class="form-control" placeholder="Ex.: SP-CENTRO">
-            </div>
-            <div class="col-md-2">
-                <label class="form-label small mb-1">Centro de Custo</label>
-                <input type="text" name="centro_de_custo" value="{{ centro_custo }}" class="form-control">
-            </div>
-            <div class="col-md-2">
-                <label class="form-label small mb-1">Cliente</label>
-                <input type="text" name="cliente" value="{{ cliente }}" class="form-control">
-            </div>
-            <div class="col-md-2">
-                <label class="form-label small mb-1">Quadro</label>
-                <input type="text" name="quadro" value="{{ quadro }}" class="form-control">
-            </div>
-            <div class="col-md-2">
-                <label class="form-label small mb-1">Status</label>
-                <select name="status" class="form-select">
-                    <option value="">Todos</option>
-                    {% for valor, texto in status_choices %}
-                        <option value="{{ valor }}" {% if status == valor %}selected{% endif %}>{{ texto }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-1 d-flex align-items-end">
-                <div class="d-grid w-100 gap-1">
-                    <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
-                    <a href="{% url 'lista_lojas' %}" class="btn btn-outline-secondary btn-sm">Limpar</a>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div class="card">
-    <div class="table-responsive">
-        <table class="table table-hover table-clickable mb-0 align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th>Ações</th>
-                    <th>Nome Referência</th>
-                    <th>Centro de Custo</th>
-                    <th>Cliente</th>
-                    <th>Quadro</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for loja in lojas %}
-                    <tr onclick="window.location='{% url 'detalhe_loja' loja.pk %}'">
-                        <td>
-                            <a class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation();" href="{% url 'lista_escopos' %}?loja={{ loja.id }}">
-                                Escopos
-                            </a>
-                            <a class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation();" href="{% url 'novo_escopo' %}?loja={{ loja.id }}">
-                                Novo Escopo
-                            </a>
-                        </td>
-                        <td><strong>{{ loja.nome_referencia }}</strong></td>
-                        <td>{{ loja.centro_de_custo }}</td>
-                        <td>{{ loja.cliente|default:"—" }}</td>
-                        <td>{{ loja.quadro }}</td>
-                        <td>
-                            {% if loja.status == "ATIVA" %}
-                                <span class="badge bg-success">{{ loja.get_status_display }}</span>
-                            {% elif loja.status == "INATIVA" %}
-                                <span class="badge bg-secondary">{{ loja.get_status_display }}</span>
-                            {% else %}
-                                <span class="badge bg-light text-dark">{{ loja.get_status_display }}</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                {% empty %}
-                    <tr>
-                        <td colspan="6" class="text-center text-muted py-4">
-                            Nenhuma loja encontrada com os filtros atuais.
-                        </td>
-                    </tr>
+<section aria-label="Filtros">
+    <form method="get">
+        <p>
+            <label for="id-busca">Buscar por nome referência</label><br>
+            <input type="text" name="busca" id="id-busca" value="{{ busca }}" placeholder="Ex.: SP-CENTRO">
+        </p>
+        <p>
+            <label for="id-centro">Centro de Custo</label><br>
+            <input type="text" name="centro_de_custo" id="id-centro" value="{{ centro_custo }}">
+        </p>
+        <p>
+            <label for="id-cliente">Cliente</label><br>
+            <input type="text" name="cliente" id="id-cliente" value="{{ cliente }}">
+        </p>
+        <p>
+            <label for="id-quadro">Quadro</label><br>
+            <input type="text" name="quadro" id="id-quadro" value="{{ quadro }}">
+        </p>
+        <p>
+            <label for="id-status">Status</label><br>
+            <select name="status" id="id-status">
+                <option value="">Todos</option>
+                {% for valor, texto in status_choices %}
+                    <option value="{{ valor }}" {% if status == valor %}selected{% endif %}>{{ texto }}</option>
                 {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
+            </select>
+        </p>
+        <p>
+            <button type="submit">Filtrar</button>
+            <a href="{% url 'lista_lojas' %}">Limpar</a>
+        </p>
+    </form>
+</section>
+
+<section aria-label="Lista de lojas">
+    <table>
+        <thead>
+            <tr>
+                <th>Ações</th>
+                <th>Nome Referência</th>
+                <th>Centro de Custo</th>
+                <th>Cliente</th>
+                <th>Quadro</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for loja in lojas %}
+                <tr onclick="window.location='{% url 'detalhe_loja' loja.pk %}'">
+                    <td>
+                        <a onclick="event.stopPropagation();" href="{% url 'lista_escopos' %}?loja={{ loja.id }}">Escopos</a>
+                        <a onclick="event.stopPropagation();" href="{% url 'novo_escopo' %}?loja={{ loja.id }}">Novo Escopo</a>
+                    </td>
+                    <td><strong>{{ loja.nome_referencia }}</strong></td>
+                    <td>{{ loja.centro_de_custo }}</td>
+                    <td>{{ loja.cliente|default:"—" }}</td>
+                    <td>{{ loja.quadro }}</td>
+                    <td>{{ loja.get_status_display }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="6">Nenhuma loja encontrada com os filtros atuais.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
 
 {% if lojas.paginator.num_pages > 1 %}
-<nav class="mt-3">
-    <ul class="pagination justify-content-center">
+<nav aria-label="Paginação">
+    <ul>
         {% if lojas.has_previous %}
-            <li class="page-item">
-                <a class="page-link"
-                   href="?page={{ lojas.previous_page_number }}{% if busca %}&busca={{ busca }}{% endif %}{% if centro_custo %}&centro_de_custo={{ centro_custo }}{% endif %}{% if cliente %}&cliente={{ cliente }}{% endif %}{% if quadro %}&quadro={{ quadro }}{% endif %}{% if status %}&status={{ status }}{% endif %}">
-                    Anterior
-                </a>
+            <li>
+                <a href="?page={{ lojas.previous_page_number }}{% if busca %}&busca={{ busca }}{% endif %}{% if centro_custo %}&centro_de_custo={{ centro_custo }}{% endif %}{% if cliente %}&cliente={{ cliente }}{% endif %}{% if quadro %}&quadro={{ quadro }}{% endif %}{% if status %}&status={{ status }}{% endif %}">Anterior</a>
             </li>
         {% else %}
-            <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+            <li><span>Anterior</span></li>
         {% endif %}
-
-        <li class="page-item disabled">
-            <span class="page-link">Página {{ lojas.number }} de {{ lojas.paginator.num_pages }}</span>
-        </li>
-
+        <li><span>Página {{ lojas.number }} de {{ lojas.paginator.num_pages }}</span></li>
         {% if lojas.has_next %}
-            <li class="page-item">
-                <a class="page-link"
-                   href="?page={{ lojas.next_page_number }}{% if busca %}&busca={{ busca }}{% endif %}{% if centro_custo %}&centro_de_custo={{ centro_custo }}{% endif %}{% if cliente %}&cliente={{ cliente }}{% endif %}{% if quadro %}&quadro={{ quadro }}{% endif %}{% if status %}&status={{ status }}{% endif %}">
-                    Próxima
-                </a>
+            <li>
+                <a href="?page={{ lojas.next_page_number }}{% if busca %}&busca={{ busca }}{% endif %}{% if centro_custo %}&centro_de_custo={{ centro_custo }}{% endif %}{% if cliente %}&cliente={{ cliente }}{% endif %}{% if quadro %}&quadro={{ quadro }}{% endif %}{% if status %}&status={{ status }}{% endif %}">Próxima</a>
             </li>
         {% else %}
-            <li class="page-item disabled"><span class="page-link">Próxima</span></li>
+            <li><span>Próxima</span></li>
         {% endif %}
     </ul>
 </nav>

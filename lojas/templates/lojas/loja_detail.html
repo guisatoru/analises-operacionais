@@ -3,127 +3,80 @@
 {% block titulo %}{{ loja.nome_referencia }}{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <a href="{% url 'lista_lojas' %}" class="text-decoration-none">&larr; Voltar para a lista</a>
-        <h2 class="mb-0 mt-1">{{ loja.nome_referencia }}</h2>
-        <small class="text-muted">Centro de custo: {{ loja.centro_de_custo }}</small>
-    </div>
-    <div>
-        <a href="{% url 'editar_loja' loja.pk %}" class="btn btn-primary">Editar</a>
-        <a href="{% url 'loja_config_insalubridade' loja.pk %}" class="btn btn-outline-primary">Insalubridade</a>
-        <a href="{% url 'excluir_loja' loja.pk %}" class="btn btn-outline-danger">Excluir</a>
-    </div>
-</div>
+<header>
+    <p><a href="{% url 'lista_lojas' %}">&larr; Voltar para a lista</a></p>
+    <h1>{{ loja.nome_referencia }}</h1>
+    <p>Centro de custo: {{ loja.centro_de_custo }}</p>
+    <nav aria-label="Ações da loja">
+        <a href="{% url 'editar_loja' loja.pk %}">Editar</a>
+        <a href="{% url 'loja_config_insalubridade' loja.pk %}">Insalubridade</a>
+        <a href="{% url 'excluir_loja' loja.pk %}">Excluir</a>
+    </nav>
+</header>
 
-<div class="row g-3">
+<section aria-label="Identificação">
+    <h2>Identificação</h2>
+    <dl>
+        <dt>Nome Referência</dt>
+        <dd>{{ loja.nome_referencia }}</dd>
+        <dt>Centro de Custo</dt>
+        <dd>{{ loja.centro_de_custo }}</dd>
+        <dt>Quadro</dt>
+        <dd>{{ loja.quadro }}</dd>
+        <dt>Status</dt>
+        <dd>{{ loja.get_status_display }}</dd>
+        <dt>Cliente</dt>
+        <dd>{{ loja.cliente|default:"—" }}</dd>
+        <dt>CNPJ</dt>
+        <dd>{{ loja.cnpj|default:"—" }}</dd>
+        <dt>Cód. Loja</dt>
+        <dd>{{ loja.codigo_loja|default:"—" }}</dd>
+    </dl>
+</section>
 
-    <div class="col-md-6">
-        <div class="card card-section">
-            <div class="card-body">
-                <h5>Identificação</h5>
-                <dl class="row mb-0">
-                    <dt class="col-sm-5">Nome Referência</dt>
-                    <dd class="col-sm-7">{{ loja.nome_referencia }}</dd>
+<section aria-label="Endereço">
+    <h2>Endereço</h2>
+    <dl>
+        <dt>CEP</dt>
+        <dd>{{ loja.cep|default:"—" }}</dd>
+        <dt>Rua</dt>
+        <dd>{{ loja.rua|default:"—" }}</dd>
+        <dt>Bairro</dt>
+        <dd>{{ loja.bairro|default:"—" }}</dd>
+        <dt>Município</dt>
+        <dd>{{ loja.municipio|default:"—" }}</dd>
+        <dt>UF</dt>
+        <dd>{{ loja.uf|default:"—" }}</dd>
+        <dt>Sub-Região</dt>
+        <dd>{{ loja.sub_regiao|default:"—" }}</dd>
+    </dl>
+</section>
 
-                    <dt class="col-sm-5">Centro de Custo</dt>
-                    <dd class="col-sm-7">{{ loja.centro_de_custo }}</dd>
+<section aria-label="Nomes em outros sistemas">
+    <h2>Nomes em outros sistemas</h2>
+    <dl>
+        <dt>GeoVictoria</dt>
+        <dd>{{ loja.nome_geovictoria|default:"—" }}</dd>
+        <dt>Gestão</dt>
+        <dd>{{ loja.nome_gestao|default:"—" }}</dd>
+        <dt>TOTVS</dt>
+        <dd>{{ loja.nome_totvs|default:"—" }}</dd>
+        <dt>Financeiro</dt>
+        <dd>{{ loja.nome_financeiro|default:"—" }}</dd>
+        <dt>FindMe</dt>
+        <dd>{{ loja.nome_findme|default:"—" }}</dd>
+        <dt>Métricas</dt>
+        <dd>{{ loja.nome_metricas|default:"—" }}</dd>
+    </dl>
+</section>
 
-                    <dt class="col-sm-5">Quadro</dt>
-                    <dd class="col-sm-7">{{ loja.quadro }}</dd>
-
-                    <dt class="col-sm-5">Status</dt>
-                    <dd class="col-sm-7">
-                        {% if loja.status == "ATIVA" %}
-                            <span class="badge bg-success">{{ loja.get_status_display }}</span>
-                        {% elif loja.status == "INATIVA" %}
-                            <span class="badge bg-secondary">{{ loja.get_status_display }}</span>
-                        {% else %}
-                            <span class="badge bg-light text-dark">{{ loja.get_status_display }}</span>
-                        {% endif %}
-                    </dd>
-
-                    <dt class="col-sm-5">Cliente</dt>
-                    <dd class="col-sm-7">{{ loja.cliente|default:"—" }}</dd>
-
-                    <dt class="col-sm-5">CNPJ</dt>
-                    <dd class="col-sm-7">{{ loja.cnpj|default:"—" }}</dd>
-
-                    <dt class="col-sm-5">Cód. Loja</dt>
-                    <dd class="col-sm-7">{{ loja.codigo_loja|default:"—" }}</dd>
-                </dl>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-6">
-        <div class="card card-section">
-            <div class="card-body">
-                <h5>Endereço</h5>
-                <dl class="row mb-0">
-                    <dt class="col-sm-5">CEP</dt>
-                    <dd class="col-sm-7">{{ loja.cep|default:"—" }}</dd>
-
-                    <dt class="col-sm-5">Rua</dt>
-                    <dd class="col-sm-7">{{ loja.rua|default:"—" }}</dd>
-
-                    <dt class="col-sm-5">Bairro</dt>
-                    <dd class="col-sm-7">{{ loja.bairro|default:"—" }}</dd>
-
-                    <dt class="col-sm-5">Município</dt>
-                    <dd class="col-sm-7">{{ loja.municipio|default:"—" }}</dd>
-
-                    <dt class="col-sm-5">UF</dt>
-                    <dd class="col-sm-7">{{ loja.uf|default:"—" }}</dd>
-
-                    <dt class="col-sm-5">Sub-Região</dt>
-                    <dd class="col-sm-7">{{ loja.sub_regiao|default:"—" }}</dd>
-                </dl>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-6">
-        <div class="card card-section">
-            <div class="card-body">
-                <h5>Nomes em outros sistemas</h5>
-                <dl class="row mb-0">
-                    <dt class="col-sm-5">GeoVictoria</dt>
-                    <dd class="col-sm-7">{{ loja.nome_geovictoria|default:"—" }}</dd>
-
-                    <dt class="col-sm-5">Gestão</dt>
-                    <dd class="col-sm-7">{{ loja.nome_gestao|default:"—" }}</dd>
-
-                    <dt class="col-sm-5">TOTVS</dt>
-                    <dd class="col-sm-7">{{ loja.nome_totvs|default:"—" }}</dd>
-
-                    <dt class="col-sm-5">Financeiro</dt>
-                    <dd class="col-sm-7">{{ loja.nome_financeiro|default:"—" }}</dd>
-
-                    <dt class="col-sm-5">FindMe</dt>
-                    <dd class="col-sm-7">{{ loja.nome_findme|default:"—" }}</dd>
-
-                    <dt class="col-sm-5">Métricas</dt>
-                    <dd class="col-sm-7">{{ loja.nome_metricas|default:"—" }}</dd>
-                </dl>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-6">
-        <div class="card card-section">
-            <div class="card-body">
-                <h5>Controle</h5>
-                <dl class="row mb-0">
-                    <dt class="col-sm-5">Cadastrado em</dt>
-                    <dd class="col-sm-7">{{ loja.created_at|date:"d/m/Y H:i" }}</dd>
-
-                    <dt class="col-sm-5">Última atualização</dt>
-                    <dd class="col-sm-7">{{ loja.updated_at|date:"d/m/Y H:i" }}</dd>
-                </dl>
-            </div>
-        </div>
-    </div>
-
-</div>
+<section aria-label="Controle">
+    <h2>Controle</h2>
+    <dl>
+        <dt>Cadastrado em</dt>
+        <dd>{{ loja.created_at|date:"d/m/Y H:i" }}</dd>
+        <dt>Última atualização</dt>
+        <dd>{{ loja.updated_at|date:"d/m/Y H:i" }}</dd>
+    </dl>
+</section>
 {% endblock %}

@@ -3,54 +3,36 @@
 {% block titulo %}Início{% endblock %}
 
 {% block content %}
-<h1 class="mb-2">Início</h1>
-<p class="text-muted mb-4">Escolha uma área do sistema.</p>
+<header>
+    <h1>Início</h1>
+    <p>Escolha uma área do sistema.</p>
+</header>
 
-<div class="row g-3">
-  <div class="col-md-6 col-lg-4">
-    <div class="card h-100 shadow-sm">
-      <div class="card-body d-flex flex-column">
-        <h5 class="card-title">Lojas</h5>
-        <p class="card-text text-muted small">Lista, filtros, cadastro e edição de lojas.</p>
-        <a href="{% url 'lista_lojas' %}" class="btn btn-primary mt-auto">Abrir</a>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6 col-lg-4">
-    <div class="card h-100 shadow-sm">
-      <div class="card-body d-flex flex-column">
-        <h5 class="card-title">Escopos mensais</h5>
-        <p class="card-text text-muted small">Visualização, filtros e manutenção dos escopos.</p>
-        <a href="{% url 'lista_escopos' %}" class="btn btn-primary mt-auto">Abrir</a>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6 col-lg-4">
-    <div class="card h-100 shadow-sm">
-      <div class="card-body d-flex flex-column">
-        <h5 class="card-title">Comparativo</h5>
-        <p class="card-text text-muted small">Folha × estimativa de escopo por loja e competências (DT ARQ).</p>
-        <a href="{% url 'comparativo_loja' %}" class="btn btn-primary mt-auto">Abrir</a>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6 col-lg-4">
-    <div class="card h-100 shadow-sm">
-      <div class="card-body d-flex flex-column">
-        <h5 class="card-title">Importação de folhas</h5>
-        <p class="card-text text-muted small">Upload de CSV da folha (TOTVS), uma competência por arquivo.</p>
-        <a href="{% url 'importar_folha' %}" class="btn btn-primary mt-auto">Abrir</a>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6 col-lg-4">
-    <div class="card h-100 shadow-sm">
-      <div class="card-body d-flex flex-column">
-        <h5 class="card-title">Pagamentos duplicados</h5>
-        <p class="card-text text-muted small">Listagem de pagamentos duplicados (em desenvolvimento).</p>
-        <a href="{% url 'lista_folha_duplicadas' %}" class="btn btn-primary mt-auto">Abrir</a>
-      </div>
-    </div>
-  </div>
-</div>
+<section aria-label="Atalhos do sistema">
+    <article>
+        <h2>Lojas</h2>
+        <p>Lista, filtros, cadastro e edição de lojas.</p>
+        <p><a href="{% url 'lista_lojas' %}">Abrir</a></p>
+    </article>
+    <article>
+        <h2>Escopos mensais</h2>
+        <p>Visualização, filtros e manutenção dos escopos.</p>
+        <p><a href="{% url 'lista_escopos' %}">Abrir</a></p>
+    </article>
+    <article>
+        <h2>Comparativo</h2>
+        <p>Folha × estimativa de escopo por loja e competências (DT ARQ).</p>
+        <p><a href="{% url 'comparativo_loja' %}">Abrir</a></p>
+    </article>
+    <article>
+        <h2>Importação de folhas</h2>
+        <p>Upload de CSV da folha (TOTVS), uma competência por arquivo.</p>
+        <p><a href="{% url 'importar_folha' %}">Abrir</a></p>
+    </article>
+    <article>
+        <h2>Pagamentos duplicados</h2>
+        <p>Listagem de pagamentos duplicados.</p>
+        <p><a href="{% url 'lista_folha_duplicadas' %}">Abrir</a></p>
+    </article>
+</section>
 {% endblock %}

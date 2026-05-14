@@ -3,55 +3,42 @@
 {% block titulo %}{{ titulo }}{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <a href="{% url 'lista_lojas' %}" class="text-decoration-none">&larr; Voltar para a lista</a>
-        <h2 class="mb-0 mt-1">{{ titulo }}</h2>
-        {% if subtitulo %}
-            <small class="text-muted">{{ subtitulo }}</small>
-        {% endif %}
-    </div>
-</div>
+<header>
+    <p><a href="{% url 'lista_lojas' %}">&larr; Voltar para a lista</a></p>
+    <h1>{{ titulo }}</h1>
+    {% if subtitulo %}
+        <p>{{ subtitulo }}</p>
+    {% endif %}
+</header>
 
 {% if form.non_field_errors %}
-    <div class="alert alert-danger">
+    <div role="alert">
         {{ form.non_field_errors }}
     </div>
 {% endif %}
 
-<div class="card">
-    <div class="card-body">
-        <form method="post" novalidate>
-            {% csrf_token %}
+<form method="post" novalidate>
+    {% csrf_token %}
 
-            <div class="row g-3">
-                {% for campo in form %}
-                    <div class="col-md-6">
-                        <label for="{{ campo.id_for_label }}" class="form-label">
-                            {{ campo.label }}
-                            {% if campo.field.required %}
-                                <span class="text-danger">*</span>
-                            {% endif %}
-                        </label>
-                        {{ campo }}
-                        {% if campo.help_text %}
-                            <div class="form-text">{{ campo.help_text }}</div>
-                        {% endif %}
-                        {% if campo.errors %}
-                            <div class="invalid-feedback d-block">
-                                {{ campo.errors|join:" " }}
-                            </div>
-                        {% endif %}
-                    </div>
-                {% endfor %}
-            </div>
+    {% for campo in form %}
+        <p>
+            <label for="{{ campo.id_for_label }}">
+                {{ campo.label }}
+                {% if campo.field.required %}<span aria-label="obrigatório">*</span>{% endif %}
+            </label><br>
+            {{ campo }}
+            {% if campo.help_text %}
+                <small>{{ campo.help_text }}</small>
+            {% endif %}
+            {% if campo.errors %}
+                <span role="alert">{{ campo.errors|join:" " }}</span>
+            {% endif %}
+        </p>
+    {% endfor %}
 
-            <hr class="my-4">
-            <div class="d-flex justify-content-end gap-2">
-                <a href="{% url 'lista_lojas' %}" class="btn btn-outline-secondary">Cancelar</a>
-                <button type="submit" class="btn btn-primary">Salvar</button>
-            </div>
-        </form>
-    </div>
-</div>
+    <p>
+        <a href="{% url 'lista_lojas' %}">Cancelar</a>
+        <button type="submit">Salvar</button>
+    </p>
+</form>
 {% endblock %}

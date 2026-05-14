@@ -9,19 +9,6 @@ from .models import (
 )
 
 
-# Keep Bootstrap classes in one helper to avoid
-# repeating style code in every form class.
-def apply_bootstrap_class(form):
-    for field_name, field in form.fields.items():
-        widget = field.widget
-        if isinstance(widget, forms.Select):
-            widget.attrs["class"] = "form-select"
-        elif isinstance(widget, forms.CheckboxInput):
-            widget.attrs["class"] = "form-check-input"
-        else:
-            widget.attrs["class"] = "form-control"
-
-
 class LojaForm(forms.ModelForm):
     """Formulário do cadastro inicial — mostra todos os campos da loja."""
 
@@ -51,7 +38,6 @@ class LojaForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        apply_bootstrap_class(self)
         self.fields["nome_referencia"].required = True
         self.fields["centro_de_custo"].required = True
         self.fields["quadro"].required = True
@@ -84,10 +70,6 @@ class LojaUpdateForm(forms.ModelForm):
             "sub_regiao",
         ]
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        apply_bootstrap_class(self)
-
 
 class EscopoMensalForm(forms.ModelForm):
     """Cabeçalho do escopo: loja, ano e mês. Insalubridade fica na configuração da loja."""
@@ -95,10 +77,6 @@ class EscopoMensalForm(forms.ModelForm):
     class Meta:
         model = EscopoMensal
         fields = ["loja", "ano", "mes"]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        apply_bootstrap_class(self)
 
 
 class ItemEscopoMensalForm(forms.ModelForm):
@@ -109,10 +87,6 @@ class ItemEscopoMensalForm(forms.ModelForm):
     class Meta:
         model = ItemEscopoMensal
         fields = ["cargo", "turno", "quantidade"]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        apply_bootstrap_class(self)
 
 
 class ConfiguracaoInsalubridadeLojaForm(forms.ModelForm):
@@ -130,10 +104,6 @@ class ConfiguracaoInsalubridadeLojaForm(forms.ModelForm):
             "calcular_diferenca_banheirista",
         ]
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        apply_bootstrap_class(self)
-
 
 class FolhaImportForm(forms.Form):
     """Upload de um único CSV de folha (export TOTVS)."""
@@ -141,9 +111,7 @@ class FolhaImportForm(forms.Form):
     arquivo = forms.FileField(
         label="Arquivo CSV",
         help_text="Um arquivo por importação. Encoding UTF-8.",
-        widget=forms.ClearableFileInput(
-            attrs={"accept": ".csv,text/csv", "class": "form-control"}
-        ),
+        widget=forms.ClearableFileInput(attrs={"accept": ".csv,text/csv"}),
     )
 
     def clean_arquivo(self):

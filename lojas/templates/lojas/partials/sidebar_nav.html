@@ -1,0 +1,24 @@
+{% with current=request.resolver_match.url_name %}
+<nav aria-label="Navegação principal">
+    <ul>
+        <li>
+            <a href="{% url 'inicio' %}"{% if current == 'inicio' %} aria-current="page"{% endif %}>Início</a>
+        </li>
+        <li>
+            <a href="{% url 'lista_lojas' %}"{% if current == 'lista_lojas' or current == 'nova_loja' or current == 'editar_loja' or current == 'excluir_loja' or current == 'detalhe_loja' or current == 'loja_config_insalubridade' %} aria-current="page"{% endif %}>Lojas</a>
+        </li>
+        <li>
+            <a href="{% url 'lista_escopos' %}"{% if current == 'lista_escopos' or current == 'novo_escopo' or current == 'editar_escopo' or current == 'excluir_escopo' or current == 'escopo_duplicar_proximo_mes' %} aria-current="page"{% endif %}>Escopos</a>
+        </li>
+        <li>
+            <a href="{% url 'importar_folha' %}"{% if current == 'importar_folha' %} aria-current="page"{% endif %}>Importar folha</a>
+        </li>
+        <li>
+            <a href="{% url 'lista_folha_duplicadas' %}"{% if current == 'lista_folha_duplicadas' %} aria-current="page"{% endif %}>Duplicadas folha</a>
+        </li>
+        <li>
+            <a href="{% url 'comparativo_loja' %}"{% if current == 'comparativo_loja' %} aria-current="page"{% endif %}>Comparativo</a>
+        </li>
+    </ul>
+</nav>
+{% endwith %}

@@ -3,7 +3,7 @@
 from django.contrib import messages
 from django.shortcuts import redirect, render
 
-from ..forms import FolhaImportForm, apply_bootstrap_class
+from ..forms import FolhaImportForm
 from ..services.folha_importacao import importar_folha_de_texto
 
 
@@ -13,7 +13,6 @@ def folha_import(request):
     """
     if request.method == "POST":
         form = FolhaImportForm(request.POST, request.FILES)
-        apply_bootstrap_class(form)
         if form.is_valid():
             arquivo = form.cleaned_data["arquivo"]
             try:
@@ -72,7 +71,6 @@ def folha_import(request):
                     return redirect("importar_folha")
     else:
         form = FolhaImportForm()
-        apply_bootstrap_class(form)
 
     resumo_importacao = request.session.pop("folha_import_resumo", None)
 

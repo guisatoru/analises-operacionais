@@ -3,22 +3,19 @@
 {% block titulo %}Excluir {{ loja.nome_referencia }}{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="card-body">
-        <h2 class="mb-3">Excluir loja</h2>
+<article>
+    <h1>Excluir loja</h1>
+    <p>
+        Tem certeza que deseja excluir a loja
+        <strong>{{ loja.nome_referencia }}</strong>?
+        Esta ação não pode ser desfeita.
+    </p>
+    <form method="post">
+        {% csrf_token %}
         <p>
-            Tem certeza que deseja excluir a loja
-            <strong>{{ loja.nome_referencia }}</strong>?
-            Esta ação não pode ser desfeita.
+            <a href="{% url 'detalhe_loja' loja.pk %}">Cancelar</a>
+            <button type="submit">Confirmar exclusão</button>
         </p>
-
-        <form method="post">
-            {% csrf_token %}
-            <div class="d-flex gap-2">
-                <a href="{% url 'detalhe_loja' loja.pk %}" class="btn btn-outline-secondary">Cancelar</a>
-                <button type="submit" class="btn btn-danger">Confirmar exclusão</button>
-            </div>
-        </form>
-    </div>
-</div>
+    </form>
+</article>
 {% endblock %}

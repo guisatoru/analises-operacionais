@@ -1,19 +1,23 @@
 {% extends "lojas/base.html" %}
+
+{% block titulo %}{{ titulo }}{% endblock %}
+
 {% block content %}
-<h1>{{ titulo }}</h1>
-<p class="mb-3">
-  <a href="{% url 'detalhe_loja' loja.pk %}" class="text-decoration-none">&larr; Voltar à loja</a>
-</p>
-<p class="text-muted small">
-  Estes parâmetros valem para todos os escopos mensais desta loja. O salário base é o do cargo na competência;
-  o mínimo nacional vem do cadastro de salários (cargo MÍNIMO NACIONAL, UF BR).
-</p>
-<form method="post" class="card">
-  <div class="card-body">
+<header>
+    <h1>{{ titulo }}</h1>
+    <p><a href="{% url 'detalhe_loja' loja.pk %}">&larr; Voltar à loja</a></p>
+    <p>
+        Estes parâmetros valem para todos os escopos mensais desta loja. O salário base é o do cargo na competência;
+        o mínimo nacional vem do cadastro de salários (cargo MÍNIMO NACIONAL, UF BR).
+    </p>
+</header>
+
+<form method="post">
     {% csrf_token %}
     {{ form.as_p }}
-    <button type="submit" class="btn btn-success">Salvar</button>
-    <a href="{% url 'detalhe_loja' loja.pk %}" class="btn btn-secondary">Cancelar</a>
-  </div>
+    <p>
+        <button type="submit">Salvar</button>
+        <a href="{% url 'detalhe_loja' loja.pk %}">Cancelar</a>
+    </p>
 </form>
 {% endblock %}

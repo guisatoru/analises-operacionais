@@ -3,106 +3,75 @@
 {% block titulo %}{{ titulo }}{% endblock %}
 
 {% block content %}
-<div class="mb-3">
-  <a href="{% url 'inicio' %}" class="text-decoration-none">&larr; Início</a>
-  <h2 class="mt-2 mb-0">{{ titulo }}</h2>
-  <p class="text-muted small">
-    Registros que não entram na folha oficial, mas ficam para auditoria (repetidas no arquivo ou já existentes no banco).
-  </p>
-</div>
+<header>
+    <p><a href="{% url 'inicio' %}">&larr; Início</a></p>
+    <h1>{{ titulo }}</h1>
+    <p>
+        Registros que não entram na folha oficial, mas ficam para auditoria (repetidas no arquivo ou já existentes no banco).
+    </p>
+</header>
 
-<div class="row g-3 mb-4">
-  <div class="col-md-4">
-    <div class="card shadow-sm h-100 border-primary-subtle">
-      <div class="card-body">
-        <div class="text-muted small">Valor total (duplicadas)</div>
-        <div class="fs-4 fw-semibold text-primary">R$ {{ valor_total|floatformat:2 }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="card shadow-sm h-100">
-      <div class="card-body">
-        <div class="text-muted small">Quantidade de pagamentos duplicados</div>
-        <div class="fs-4 fw-semibold">{{ quantidade_duplicadas }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="card shadow-sm h-100">
-      <div class="card-body">
-        <div class="text-muted small">Meses distintos (data pagamento)</div>
-        <div class="fs-4 fw-semibold">{{ meses_distintos_pagamento }}</div>
-      </div>
-    </div>
-  </div>
-</div>
+<section aria-label="Resumo">
+    <p>Valor total (duplicadas)</p>
+    <p><strong>R$ {{ valor_total|floatformat:2 }}</strong></p>
+    <p>Quantidade de pagamentos duplicados</p>
+    <p><strong>{{ quantidade_duplicadas }}</strong></p>
+    <p>Meses distintos (data pagamento)</p>
+    <p><strong>{{ meses_distintos_pagamento }}</strong></p>
+</section>
 
-<div class="card shadow-sm">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <span class="fw-semibold">Lista de duplicadas</span>
-    <span class="text-muted small">{{ total }} registro(s)</span>
-  </div>
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-sm table-hover mb-0 align-middle">
-        <thead class="table-light">
-          <tr>
-            <th>Quando gravou</th>
-            <th>Motivo</th>
-            <th>Matrícula</th>
-            <th>Verba</th>
-            <th class="text-end">Valor</th>
-            <th>DT ARQ</th>
-            <th>DT pagamento</th>
-            <th>CC real</th>
-            <th>Arquivo</th>
-          </tr>
+<section aria-label="Lista de duplicadas">
+    <h2>Lista de duplicadas</h2>
+    <p>{{ total }} registro(s)</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Quando gravou</th>
+                <th>Motivo</th>
+                <th>Matrícula</th>
+                <th>Verba</th>
+                <th>Valor</th>
+                <th>DT ARQ</th>
+                <th>DT pagamento</th>
+                <th>CC real</th>
+                <th>Arquivo</th>
+            </tr>
         </thead>
         <tbody>
-          {% for linha in page_obj %}
-          <tr>
-            <td class="text-nowrap small">{{ linha.created_at|date:"d/m/Y H:i" }}</td>
-            <td>
-              {% if linha.motivo == "REPETIDA_NO_ARQUIVO" %}No arquivo{% elif linha.motivo == "JA_EXISTIA_NO_BANCO" %}Já no banco{% else %}{{ linha.get_motivo_display }}{% endif %}
-            </td>
-            <td>{{ linha.matricula }}</td>
-            <td>{{ linha.codigo_verba }}</td>
-            <td class="text-end text-nowrap">R$ {{ linha.valor|floatformat:2 }}</td>
-            <td class="text-nowrap">{{ linha.dt_arq|date:"d/m/Y" }}</td>
-            <td class="text-nowrap">{{ linha.dt_pagamento|date:"d/m/Y" }}</td>
-            <td><code class="small">{{ linha.centro_custo_real }}</code></td>
-            <td class="small text-truncate" style="max-width: 12rem;" title="{{ linha.arquivo_origem }}">{{ linha.arquivo_origem }}</td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="9" class="text-center text-muted py-4">Nenhuma duplicada registrada ainda.</td>
-          </tr>
-          {% endfor %}
+            {% for linha in page_obj %}
+                <tr>
+                    <td>{{ linha.created_at|date:"d/m/Y H:i" }}</td>
+                    <td>
+                        {% if linha.motivo == "REPETIDA_NO_ARQUIVO" %}No arquivo{% elif linha.motivo == "JA_EXISTIA_NO_BANCO" %}Já no banco{% else %}{{ linha.get_motivo_display }}{% endif %}
+                    </td>
+                    <td>{{ linha.matricula }}</td>
+                    <td>{{ linha.codigo_verba }}</td>
+                    <td>R$ {{ linha.valor|floatformat:2 }}</td>
+                    <td>{{ linha.dt_arq|date:"d/m/Y" }}</td>
+                    <td>{{ linha.dt_pagamento|date:"d/m/Y" }}</td>
+                    <td><code>{{ linha.centro_custo_real }}</code></td>
+                    <td title="{{ linha.arquivo_origem }}">{{ linha.arquivo_origem }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="9">Nenhuma duplicada registrada ainda.</td>
+                </tr>
+            {% endfor %}
         </tbody>
-      </table>
-    </div>
-  </div>
-  {% if page_obj.paginator.num_pages > 1 %}
-  <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <span class="text-muted small">
-      Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
-    </span>
-    <nav>
-      <ul class="pagination pagination-sm mb-0">
+    </table>
+</section>
+
+{% if page_obj.paginator.num_pages > 1 %}
+<nav aria-label="Paginação">
+    <p>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</p>
+    <ul>
         {% if page_obj.has_previous %}
-        <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
-        </li>
+            <li><a href="?page={{ page_obj.previous_page_number }}">Anterior</a></li>
         {% endif %}
         {% if page_obj.has_next %}
-        <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.next_page_number }}">Próxima</a>
-        </li>
+            <li><a href="?page={{ page_obj.next_page_number }}">Próxima</a></li>
         {% endif %}
-      </ul>
-    </nav>
-  </div>
-  {% endif %}
-</div>
+    </ul>
+</nav>
+{% endif %}
 {% endblock %}
