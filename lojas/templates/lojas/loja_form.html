@@ -3,42 +3,67 @@
 {% block titulo %}{{ titulo }}{% endblock %}
 
 {% block content %}
-<header>
-    <p><a href="{% url 'lista_lojas' %}">&larr; Voltar para a lista</a></p>
-    <h1>{{ titulo }}</h1>
-    {% if subtitulo %}
-        <p>{{ subtitulo }}</p>
-    {% endif %}
-</header>
+<div class="page-title-row">
+    <div>
+        <a class="back-link" href="{% url 'lista_lojas' %}">
+            <i class="fa-solid fa-arrow-left"></i>
+            Voltar para a lista
+        </a>
+
+        <span class="page-eyebrow">Cadastro operacional</span>
+        <h1>{{ titulo }}</h1>
+
+        {% if subtitulo %}
+            <p>{{ subtitulo }}</p>
+        {% endif %}
+    </div>
+</div>
 
 {% if form.non_field_errors %}
-    <div role="alert">
+    <div class="form-alert" role="alert">
         {{ form.non_field_errors }}
     </div>
 {% endif %}
 
-<form method="post" novalidate>
-    {% csrf_token %}
+<section class="form-card">
+    <form method="post" novalidate class="store-form">
+        {% csrf_token %}
 
-    {% for campo in form %}
-        <p>
-            <label for="{{ campo.id_for_label }}">
-                {{ campo.label }}
-                {% if campo.field.required %}<span aria-label="obrigatório">*</span>{% endif %}
-            </label><br>
-            {{ campo }}
-            {% if campo.help_text %}
-                <small>{{ campo.help_text }}</small>
-            {% endif %}
-            {% if campo.errors %}
-                <span role="alert">{{ campo.errors|join:" " }}</span>
-            {% endif %}
-        </p>
-    {% endfor %}
+        <div class="form-grid">
+            {% for campo in form %}
+                <div class="form-group">
+                    <label for="{{ campo.id_for_label }}">
+                        {{ campo.label }}
+                        {% if campo.field.required %}
+                            <span class="required-mark" aria-label="obrigatório">*</span>
+                        {% endif %}
+                    </label>
 
-    <p>
-        <a href="{% url 'lista_lojas' %}">Cancelar</a>
-        <button type="submit">Salvar</button>
-    </p>
-</form>
+                    {{ campo }}
+
+                    {% if campo.help_text %}
+                        <small class="form-help-text">{{ campo.help_text }}</small>
+                    {% endif %}
+
+                    {% if campo.errors %}
+                        <span class="form-error" role="alert">
+                            {{ campo.errors|join:" " }}
+                        </span>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="form-actions">
+            <a class="secondary-action-button" href="{% url 'lista_lojas' %}">
+                Cancelar
+            </a>
+
+            <button type="submit" class="primary-action-button">
+                <i class="fa-solid fa-floppy-disk"></i>
+                Salvar
+            </button>
+        </div>
+    </form>
+</section>
 {% endblock %}
