@@ -30,7 +30,19 @@
 
         <div class="form-group">
             <label for="id-cliente">Cliente</label>
-            <input type="text" name="cliente" id="id-cliente" value="{{ cliente }}">
+
+            <select name="cliente" id="id-cliente">
+                <option value="">Todos</option>
+
+                {% for cliente_opcao in clientes %}
+                    <option
+                        value="{{ cliente_opcao }}"
+                        {% if cliente == cliente_opcao %}selected{% endif %}
+                    >
+                        {{ cliente_opcao }}
+                    </option>
+                {% endfor %}
+            </select>
         </div>
 
         <div class="form-group">

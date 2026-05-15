@@ -23,7 +23,7 @@ def store_list(request):
     if client_name:
         stores = stores.filter(cliente__icontains=client_name)
     if panel_name:
-        stores = stores.filter(quadro__icontains=panel_name)
+        stores = stores.filter(quadro=panel_name)
     if status_value:
         stores = stores.filter(status=status_value)
     if cost_center:
@@ -33,11 +33,20 @@ def store_list(request):
     page_number = request.GET.get("page")
     current_page = paginator.get_page(page_number)
 
+        # Lista clientes únicos para o filtro suspenso
+    clients = (
+        Loja.objects.exclude(cliente="")
+        .values_list("cliente", flat=True)
+        .distinct()
+        .order_by("cliente")
+    )
+
     context = {
         "lojas": current_page,
         "total": paginator.count,
         "busca": search_text,
         "cliente": client_name,
+        "clientes": clients,
         "quadro": panel_name,
         "status": status_value,
         "centro_custo": cost_center,
