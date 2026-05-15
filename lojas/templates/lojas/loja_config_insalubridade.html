@@ -3,21 +3,133 @@
 {% block titulo %}{{ titulo }}{% endblock %}
 
 {% block content %}
-<header>
-    <h1>{{ titulo }}</h1>
-    <p><a href="{% url 'detalhe_loja' loja.pk %}">&larr; Voltar à loja</a></p>
-    <p>
-        Estes parâmetros valem para todos os escopos mensais desta loja. O salário base é o do cargo na competência;
-        o mínimo nacional vem do cadastro de salários (cargo MÍNIMO NACIONAL, UF BR).
-    </p>
-</header>
+<div class="page-title-row">
+    <div>
+        <a class="back-link" href="{% url 'detalhe_loja' loja.pk %}">
+            <i class="fa-solid fa-arrow-left"></i>
+            Voltar à loja
+        </a>
 
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <p>
-        <button type="submit">Salvar</button>
-        <a href="{% url 'detalhe_loja' loja.pk %}">Cancelar</a>
-    </p>
-</form>
+        <span class="page-eyebrow">Configuração operacional</span>
+
+        <h1>{{ titulo }}</h1>
+
+        <p>
+            Estes parâmetros valem para todos os escopos mensais desta loja.
+        </p>
+    </div>
+</div>
+
+<section class="form-card">
+    <form method="post" class="store-form">
+        {% csrf_token %}
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="{{ form.insalubridade_fixa_percentual.id_for_label }}">
+                    {{ form.insalubridade_fixa_percentual.label }}
+                </label>
+
+                {{ form.insalubridade_fixa_percentual }}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.insalubridade_fixa_base.id_for_label }}">
+                    {{ form.insalubridade_fixa_base.label }}
+                </label>
+
+                {{ form.insalubridade_fixa_base }}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.insalubridade_fixa_recebedores_modo.id_for_label }}">
+                    {{ form.insalubridade_fixa_recebedores_modo.label }}
+                </label>
+
+                {{ form.insalubridade_fixa_recebedores_modo }}
+            </div>
+
+            <div
+                class="form-group"
+                id="quantidade-recebedores-wrapper"
+            >
+                <label for="{{ form.insalubridade_fixa_recebedores_quantidade.id_for_label }}">
+                    {{ form.insalubridade_fixa_recebedores_quantidade.label }}
+                </label>
+
+                {{ form.insalubridade_fixa_recebedores_quantidade }}
+
+                {% if form.insalubridade_fixa_recebedores_quantidade.help_text %}
+                    <small class="form-help-text">
+                        {{ form.insalubridade_fixa_recebedores_quantidade.help_text }}
+                    </small>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.insalubridade_banheirista_percentual.id_for_label }}">
+                    {{ form.insalubridade_banheirista_percentual.label }}
+                </label>
+
+                {{ form.insalubridade_banheirista_percentual }}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.insalubridade_banheirista_base.id_for_label }}">
+                    {{ form.insalubridade_banheirista_base.label }}
+                </label>
+
+                {{ form.insalubridade_banheirista_base }}
+            </div>
+        </div>
+
+        <div class="checkbox-group">
+            <label class="checkbox-label">
+                {{ form.calcular_diferenca_banheirista }}
+                <span>{{ form.calcular_diferenca_banheirista.label }}</span>
+            </label>
+        </div>
+
+        <div class="form-actions">
+            <a
+                class="secondary-action-button"
+                href="{% url 'detalhe_loja' loja.pk %}"
+            >
+                Cancelar
+            </a>
+
+            <button type="submit" class="primary-action-button">
+                <i class="fa-solid fa-floppy-disk"></i>
+                Salvar
+            </button>
+        </div>
+    </form>
+</section>
+
+<script>
+    const modoRecebedoresSelect = document.getElementById(
+        "{{ form.insalubridade_fixa_recebedores_modo.id_for_label }}"
+    );
+
+    const quantidadeWrapper = document.getElementById(
+        "quantidade-recebedores-wrapper"
+    );
+
+    function toggleQuantidadeRecebedores() {
+        const valorSelecionado = modoRecebedoresSelect.value;
+
+        if (valorSelecionado === "PERSONALIZADO") {
+            quantidadeWrapper.style.display = "block";
+        } else {
+            quantidadeWrapper.style.display = "none";
+        }
+    }
+
+    toggleQuantidadeRecebedores();
+
+    modoRecebedoresSelect.addEventListener(
+        "change",
+        toggleQuantidadeRecebedores
+    );
+</script>
 {% endblock %}

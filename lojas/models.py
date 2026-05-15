@@ -313,7 +313,7 @@ class ConfiguracaoInsalubridadeLoja(models.Model):
         default=INSALUBRIDADE_BASE_MINIMO_NACIONAL,
     )
     calcular_diferenca_banheirista = models.BooleanField(
-        "Calcular diferença de banheirista (teórico − fixa)",
+        "Calcular diferença de banheirista (banheirista − fixa)",
         default=True,
     )
     # Quantas pessoas recebem a insalubridade fixa no cálculo do escopo (usa soma das Qtds do escopo como teto).

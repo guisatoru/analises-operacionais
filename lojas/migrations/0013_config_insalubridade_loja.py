@@ -104,7 +104,7 @@ class Migration(migrations.Migration):
                     "calcular_diferenca_banheirista",
                     models.BooleanField(
                         default=True,
-                        verbose_name="Calcular diferença de banheirista (teórico − fixa)",
+                        verbose_name="Calcular diferença de banheirista (banheirista − fixa)",
                     ),
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
