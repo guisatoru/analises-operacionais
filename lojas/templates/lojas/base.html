@@ -23,6 +23,10 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
         rel="stylesheet"
     >
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    >
 </head>
 
 <body>
@@ -38,26 +42,32 @@
             <nav class="sidebar-menu">
 
                 <a href="{% url 'inicio' %}">
+                    <i class="fa-solid fa-house"></i>
                     Início
                 </a>
 
                 <a href="{% url 'lista_lojas' %}">
+                    <i class="fa-solid fa-store"></i>
                     Lojas
                 </a>
 
                 <a href="{% url 'lista_escopos' %}">
+                    <i class="fa-solid fa-calendar-days"></i>
                     Escopos
                 </a>
 
                 <a href="{% url 'importar_folha' %}">
+                    <i class="fa-solid fa-file-import"></i>
                     Importar folha
                 </a>
 
                 <a href="{% url 'lista_folha_duplicadas' %}">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
                     Duplicadas folha
                 </a>
 
                 <a href="{% url 'comparativo_loja' %}">
+                    <i class="fa-solid fa-chart-line"></i>
                     Comparativo
                 </a>
 

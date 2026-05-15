@@ -1,0 +1,163 @@
+.page-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 24px;
+
+    margin-bottom: 24px;
+}
+
+.page-title-row h1 {
+    margin-top: 6px;
+    margin-bottom: 8px;
+
+    font-size: 30px;
+
+    color: #111827;
+}
+
+.page-title-row p {
+    color: #6b7280;
+}
+
+.filter-card {
+    padding: 22px;
+
+    margin-bottom: 24px;
+}
+
+.filter-form {
+    display: grid;
+
+    grid-template-columns: 2fr 1.2fr 1fr 0.8fr 0.8fr auto;
+
+    gap: 16px;
+
+    align-items: end;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.table-card {
+    overflow: hidden;
+}
+
+.clickable-row {
+    cursor: pointer;
+
+    transition: 0.15s;
+}
+
+.clickable-row:hover {
+    background-color: #f1f5f9;
+}
+
+.table-actions {
+    white-space: nowrap;
+}
+
+.table-actions a {
+    display: inline-flex;
+
+    margin-right: 10px;
+
+    color: #2563eb;
+
+    font-size: 13px;
+    font-weight: 700;
+
+    text-decoration: none;
+}
+
+.table-actions a:hover {
+    text-decoration: underline;
+}
+
+.empty-table-message {
+    text-align: center;
+
+    color: #6b7280;
+
+    padding: 32px;
+}
+
+.pagination-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 16px;
+
+    margin-top: 22px;
+}
+
+.pagination-info {
+    color: #6b7280;
+
+    font-size: 14px;
+}
+
+.pagination-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.disabled-pagination {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 42px;
+
+    padding: 10px 16px;
+
+    border-radius: 12px;
+
+    background-color: #f3f4f6;
+
+    color: #9ca3af;
+
+    border: 1px solid #e5e7eb;
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+@media (max-width: 1200px) {
+    .filter-form {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .filter-actions {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 700px) {
+    .page-title-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .filter-form {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-actions {
+        grid-column: span 1;
+
+        flex-direction: column;
+
+        align-items: stretch;
+    }
+
+    .primary-action-button,
+    .secondary-action-button {
+        width: 100%;
+    }
+}

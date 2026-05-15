@@ -12,39 +12,44 @@
 </div>
 
 <section class="dashboard-grid" aria-label="Atalhos do sistema">
-    <article class="dashboard-card">
-        <div class="card-icon">🏬</div>
+    <a class="dashboard-card dashboard-card-link" href="{% url 'lista_lojas' %}">
+        <div class="card-icon">
+            <i class="fa-solid fa-store"></i>
+        </div>
         <h2>Lojas</h2>
         <p>Lista, filtros, cadastro e edição de lojas.</p>
-        <a class="card-button" href="{% url 'lista_lojas' %}">Abrir módulo</a>
-    </article>
+    </a>
 
-    <article class="dashboard-card">
-        <div class="card-icon">📅</div>
+    <a class="dashboard-card dashboard-card-link" href="{% url 'lista_escopos' %}">
+        <div class="card-icon">
+            <i class="fa-solid fa-calendar-days"></i>
+        </div>
         <h2>Escopos mensais</h2>
         <p>Visualização, filtros e manutenção dos escopos.</p>
-        <a class="card-button" href="{% url 'lista_escopos' %}">Abrir módulo</a>
-    </article>
+    </a>
 
-    <article class="dashboard-card">
-        <div class="card-icon">📊</div>
+    <a class="dashboard-card dashboard-card-link" href="{% url 'comparativo_loja' %}">
+        <div class="card-icon">
+            <i class="fa-solid fa-chart-line"></i>
+        </div>
         <h2>Comparativo</h2>
         <p>Folha × estimativa de escopo por loja e competências.</p>
-        <a class="card-button" href="{% url 'comparativo_loja' %}">Abrir módulo</a>
-    </article>
+    </a>
 
-    <article class="dashboard-card">
-        <div class="card-icon">⬆️</div>
+    <a class="dashboard-card dashboard-card-link" href="{% url 'importar_folha' %}">
+        <div class="card-icon">
+            <i class="fa-solid fa-file-import"></i>
+        </div>
         <h2>Importação de folhas</h2>
         <p>Upload de CSV da folha TOTVS, uma competência por arquivo.</p>
-        <a class="card-button" href="{% url 'importar_folha' %}">Abrir módulo</a>
-    </article>
+    </a>
 
-    <article class="dashboard-card">
-        <div class="card-icon">⚠️</div>
+    <a class="dashboard-card dashboard-card-link" href="{% url 'lista_folha_duplicadas' %}">
+        <div class="card-icon">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
         <h2>Pagamentos duplicados</h2>
         <p>Listagem e conferência de possíveis pagamentos duplicados.</p>
-        <a class="card-button" href="{% url 'lista_folha_duplicadas' %}">Abrir módulo</a>
-    </article>
+    </a>
 </section>
 {% endblock %}
