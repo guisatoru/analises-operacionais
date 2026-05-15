@@ -1,120 +1,191 @@
 {% extends "lojas/base.html" %}
+
 {% block titulo %}Escopos{% endblock %}
+
 {% block content %}
-<header>
-    <h1>Escopos</h1>
-</header>
+<div class="page-title-row">
+    <div>
+        <span class="page-eyebrow">Cadastro operacional</span>
+        <h1>Escopos</h1>
+        <p>Visualize, filtre e mantenha os escopos mensais das lojas.</p>
+    </div>
 
-<form method="get">
-    <p>
-        <label for="filtro-loja">Loja</label><br>
-        <select name="loja" id="filtro-loja">
-            <option value="">Todas</option>
-            {% for l in lojas_para_filtro %}
-                <option value="{{ l.pk }}" {% if loja_id_filtro == l.pk|stringformat:"s" %}selected{% endif %}>{{ l.nome_referencia }}</option>
-            {% endfor %}
-        </select>
-    </p>
-    <p>
-        <label for="filtro-ano">Ano</label><br>
-        <select name="ano" id="filtro-ano">
-            <option value="">Todos</option>
-            {% for a in anos_disponiveis %}
-                <option value="{{ a }}" {% if ano_filtro == a %}selected{% endif %}>{{ a }}</option>
-            {% endfor %}
-        </select>
-    </p>
-    <p>
-        <label for="filtro-mes">Mês</label><br>
-        <select name="mes" id="filtro-mes">
-            <option value="">Todos</option>
-            {% for num, nome in meses_choices %}
-                <option value="{{ num }}" {% if mes_filtro == num %}selected{% endif %}>{{ nome }}</option>
-            {% endfor %}
-        </select>
-    </p>
-    <p><button type="submit">Filtrar</button></p>
-</form>
+    <a class="primary-action-button" href="{% url 'novo_escopo' %}{% if loja_id_filtro %}?loja={{ loja_id_filtro }}{% endif %}">
+        <i class="fa-solid fa-plus"></i>
+        Novo Escopo
+    </a>
+</div>
 
-<p><a href="{% url 'novo_escopo' %}{% if loja_id_filtro %}?loja={{ loja_id_filtro }}{% endif %}">Novo Escopo</a></p>
-
-<form method="post" action="{% url 'escopo_duplicar_proximo_mes' %}" onsubmit="return confirm('Duplicar o ÚLTIMO mês de escopo cadastrado para o MÊS SEGUINTE em todas as lojas que têm esse mês? Lojas que já tiverem o mês destino serão ignoradas.');">
-    {% csrf_token %}
-    <p><button type="submit">Duplicar último mês → próximo (todas as lojas)</button></p>
-</form>
-
-{% for bloco in escopos_com_estimativa %}
-    <article>
-        <header>
-            <p><strong>{{ bloco.escopo.loja.nome_referencia }}</strong></p>
-            <p>Competência: {{ bloco.escopo.mes|stringformat:"02d" }}/{{ bloco.escopo.ano }}</p>
-            <p>
-                <a href="{% url 'editar_escopo' bloco.escopo.pk %}">Editar</a>
-                <a href="{% url 'excluir_escopo' bloco.escopo.pk %}">Excluir</a>
-            </p>
-        </header>
-        <table>
-            <thead>
-                <tr>
-                    <th>Cargo</th>
-                    <th>Turno</th>
-                    <th>Qtd</th>
-                    <th>Salário base (R$)</th>
-                    <th>Insal. Fixa (R$)</th>
-                    <th>Insal. Banheirista (R$)</th>
-                    <th>Adic. Noturno (R$)</th>
-                    <th>Total (R$)</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for linha in bloco.itens_com_estimativa %}
-                    <tr>
-                        <td>{{ linha.item.cargo.nome }}</td>
-                        <td>{{ linha.item.get_turno_display }}</td>
-                        <td>{{ linha.item.quantidade }}</td>
-                        {% if linha.detalhamento %}
-                            <td>{{ linha.detalhamento.base_total|floatformat:2 }}</td>
-                            <td>{{ linha.detalhamento.insalubridade_fixa_total|floatformat:2 }}</td>
-                            <td>{{ linha.detalhamento.insalubridade_banheirista_total|floatformat:2 }}</td>
-                            <td>{{ linha.detalhamento.adicional_noturno_total|floatformat:2 }}</td>
-                            <td><strong>{{ linha.detalhamento.total|floatformat:2 }}</strong></td>
-                        {% else %}
-                            <td colspan="5">Sem salário cadastrado para UF/ano/cargo.</td>
-                        {% endif %}
-                    </tr>
-                {% empty %}
-                    <tr>
-                        <td colspan="8">Escopo sem itens.</td>
-                    </tr>
+<section class="filter-card" aria-label="Filtros">
+    <form method="get" class="escopo-filter-form">
+        <div class="form-group">
+            <label for="filtro-loja">Loja</label>
+            <select name="loja" id="filtro-loja">
+                <option value="">Todas</option>
+                {% for l in lojas_para_filtro %}
+                    <option value="{{ l.pk }}" {% if loja_id_filtro == l.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ l.nome_referencia }}
+                    </option>
                 {% endfor %}
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td colspan="7"><strong>Total da estimativa (R$)</strong></td>
-                    <td><strong>{{ bloco.total_estimativa_escopo|floatformat:2 }}</strong></td>
-                </tr>
-            </tfoot>
-        </table>
-    </article>
-{% empty %}
-    <p>Nenhum escopo encontrado.</p>
-{% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="filtro-ano">Ano</label>
+            <select name="ano" id="filtro-ano">
+                <option value="">Todos</option>
+                {% for a in anos_disponiveis %}
+                    <option value="{{ a }}" {% if ano_filtro == a %}selected{% endif %}>
+                        {{ a }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="filtro-mes">Mês</label>
+            <select name="mes" id="filtro-mes">
+                <option value="">Todos</option>
+                {% for num, nome in meses_choices %}
+                    <option value="{{ num }}" {% if mes_filtro == num %}selected{% endif %}>
+                        {{ nome }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="filter-actions">
+            <button type="submit" class="primary-action-button">
+                <i class="fa-solid fa-filter"></i>
+                Filtrar
+            </button>
+
+            <a class="secondary-action-button" href="{% url 'lista_escopos' %}">
+                Limpar
+            </a>
+        </div>
+    </form>
+</section>
+
+<section class="escopo-actions-card">
+    <form method="post" action="{% url 'escopo_duplicar_proximo_mes' %}" onsubmit="return confirm('Duplicar o ÚLTIMO mês de escopo cadastrado para o MÊS SEGUINTE em todas as lojas que têm esse mês? Lojas que já tiverem o mês destino serão ignoradas.');">
+        {% csrf_token %}
+
+        <button type="submit" class="secondary-action-button">
+            <i class="fa-solid fa-copy"></i>
+            Duplicar último mês para o próximo
+        </button>
+    </form>
+</section>
+
+<div class="escopo-list">
+    {% for bloco in escopos_com_estimativa %}
+        <article class="escopo-card">
+            <header class="escopo-card-header">
+                <div>
+                    <h2>{{ bloco.escopo.loja.nome_referencia }}</h2>
+                    <p>Competência: {{ bloco.escopo.mes|stringformat:"02d" }}/{{ bloco.escopo.ano }}</p>
+                </div>
+
+                <div class="detail-actions">
+                    <a class="secondary-action-button" href="{% url 'editar_escopo' bloco.escopo.pk %}">
+                        <i class="fa-solid fa-pen"></i>
+                        Editar
+                    </a>
+
+                    <a class="danger-action-button" href="{% url 'excluir_escopo' bloco.escopo.pk %}">
+                        <i class="fa-solid fa-trash"></i>
+                        Excluir
+                    </a>
+                </div>
+            </header>
+
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Cargo</th>
+                            <th>Turno</th>
+                            <th>Qtd</th>
+                            <th>Salário base</th>
+                            <th>Insal. Fixa</th>
+                            <th>Insal. Banheirista</th>
+                            <th>Adic. Noturno</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for linha in bloco.itens_com_estimativa %}
+                            <tr>
+                                <td>{{ linha.item.cargo.nome }}</td>
+                                <td>{{ linha.item.get_turno_display }}</td>
+                                <td>{{ linha.item.quantidade }}</td>
+
+                                {% if linha.detalhamento %}
+                                    <td>R$ {{ linha.detalhamento.base_total|floatformat:2 }}</td>
+                                    <td>R$ {{ linha.detalhamento.insalubridade_fixa_total|floatformat:2 }}</td>
+                                    <td>R$ {{ linha.detalhamento.insalubridade_banheirista_total|floatformat:2 }}</td>
+                                    <td>R$ {{ linha.detalhamento.adicional_noturno_total|floatformat:2 }}</td>
+                                    <td><strong>R$ {{ linha.detalhamento.total|floatformat:2 }}</strong></td>
+                                {% else %}
+                                    <td colspan="5">Sem salário cadastrado para UF/ano/cargo.</td>
+                                {% endif %}
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="8" class="empty-table-message">
+                                    Escopo sem itens.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+
+                    <tfoot>
+                        <tr>
+                            <td colspan="7">
+                                <strong>Total da estimativa</strong>
+                            </td>
+                            <td>
+                                <strong>R$ {{ bloco.total_estimativa_escopo|floatformat:2 }}</strong>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </article>
+    {% empty %}
+        <section class="empty-state-card">
+            <i class="fa-solid fa-calendar-xmark"></i>
+            <h2>Nenhum escopo encontrado</h2>
+            <p>Use os filtros acima ou cadastre um novo escopo mensal.</p>
+        </section>
+    {% endfor %}
+</div>
 
 {% if page_obj.paginator.num_pages > 1 %}
-<nav aria-label="Paginação">
-    <ul>
+<nav class="pagination-wrapper" aria-label="Paginação">
+    <div class="pagination-info">
+        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+    </div>
+
+    <div class="pagination-actions">
         {% if page_obj.has_previous %}
-            <li><a href="?{% if escopos_filtros_query %}{{ escopos_filtros_query }}&{% endif %}page={{ page_obj.previous_page_number }}">Anterior</a></li>
+            <a class="secondary-action-button" href="?{% if escopos_filtros_query %}{{ escopos_filtros_query }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                Anterior
+            </a>
         {% else %}
-            <li><span>Anterior</span></li>
+            <span class="disabled-pagination">Anterior</span>
         {% endif %}
-        <li><span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
+
         {% if page_obj.has_next %}
-            <li><a href="?{% if escopos_filtros_query %}{{ escopos_filtros_query }}&{% endif %}page={{ page_obj.next_page_number }}">Próxima</a></li>
+            <a class="secondary-action-button" href="?{% if escopos_filtros_query %}{{ escopos_filtros_query }}&{% endif %}page={{ page_obj.next_page_number }}">
+                Próxima
+            </a>
         {% else %}
-            <li><span>Próxima</span></li>
+            <span class="disabled-pagination">Próxima</span>
         {% endif %}
-    </ul>
+    </div>
 </nav>
 {% endif %}
 {% endblock %}
