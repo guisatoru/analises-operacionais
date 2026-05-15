@@ -1,6 +1,12 @@
 {% extends "lojas/base.html" %}
 {% load static %}
 
+{% block extra_head %}
+    <script src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+    {{ form.media }}
+    {{ formset.media }}
+{% endblock %}
+
 {% block titulo %}{{ titulo }}{% endblock %}
 
 {% block content %}
@@ -12,8 +18,12 @@
         </a>
 
         <span class="page-eyebrow">Cadastro operacional</span>
+
         <h1>{{ titulo }}</h1>
-        <p>Informe a loja, competência e os itens do escopo mensal.</p>
+
+        <p>
+            Informe a loja, competência e os itens do escopo mensal.
+        </p>
     </div>
 </div>
 
@@ -21,11 +31,14 @@
     {% csrf_token %}
 
     <section class="form-card">
-        <h2 class="section-title">Dados do escopo</h2>
+        <h2 class="section-title">
+            Dados do escopo
+        </h2>
 
         <div class="form-grid">
-            {% for campo in form %}
+            {% for campo in form.visible_fields %}
                 <div class="form-group">
+
                     <label for="{{ campo.id_for_label }}">
                         {{ campo.label }}
                     </label>
@@ -33,82 +46,161 @@
                     {{ campo }}
 
                     {% if campo.errors %}
-                        <span class="form-error">{{ campo.errors|join:" " }}</span>
+                        <span class="form-error">
+                            {{ campo.errors|join:" " }}
+                        </span>
                     {% endif %}
+
                 </div>
             {% endfor %}
         </div>
     </section>
 
     <section class="form-card escopo-items-card">
+
         <div class="section-title-row">
+
             <div>
-                <h2 class="section-title">Itens do escopo</h2>
-                <p>Adicione os cargos, turnos e quantidades da competência.</p>
+                <h2 class="section-title">
+                    Itens do escopo
+                </h2>
+
+                <p>
+                    Adicione os cargos, turnos e quantidades da competência.
+                </p>
             </div>
 
-            <button type="button" id="add-item-btn" class="secondary-action-button">
+            <button
+                type="button"
+                id="add-item-btn"
+                class="secondary-action-button"
+            >
                 <i class="fa-solid fa-plus"></i>
                 Adicionar item
             </button>
+
         </div>
 
         {{ formset.management_form }}
 
-        <div id="itens-escopo" class="escopo-items-list">
+        <div
+            id="itens-escopo"
+            class="escopo-items-list"
+        >
+
             {% for item_form in formset %}
+
                 <fieldset class="escopo-item-card">
-                    <legend>Item {{ forloop.counter }}</legend>
+
+                    <legend>
+                        Item {{ forloop.counter }}
+                    </legend>
+
+                    <button
+                        type="button"
+                        class="remove-item-button"
+                    >
+                        <i class="fa-solid fa-trash"></i>
+                        Remover item
+                    </button>
 
                     <div class="escopo-item-grid">
-                        {% for campo in item_form %}
+
+                        {% for campo in item_form.visible_fields %}
+                            {% if campo.name != "DELETE" %}
+
+                                <div class="form-group">
+
+                                    <label for="{{ campo.id_for_label }}">
+                                        {{ campo.label }}
+                                    </label>
+
+                                    {{ campo }}
+
+                                    {% if campo.errors %}
+                                        <span class="form-error">
+                                            {{ campo.errors|join:" " }}
+                                        </span>
+                                    {% endif %}
+
+                                </div>
+
+                            {% endif %}
+
+                        {% endfor %}
+
+                    </div>
+
+                </fieldset>
+
+            {% endfor %}
+
+        </div>
+
+        <template id="item-escopo-template">
+
+            <fieldset class="escopo-item-card">
+
+                <legend>
+                    Novo item
+                </legend>
+
+                <button
+                    type="button"
+                    class="remove-item-button"
+                >
+                    <i class="fa-solid fa-trash"></i>
+                    Remover item
+                </button>
+
+                <div class="escopo-item-grid">
+
+                    {% for campo in formset.empty_form.visible_fields %}
+                        {% if campo.name != "DELETE" %}
+
                             <div class="form-group">
+
                                 <label for="{{ campo.id_for_label }}">
                                     {{ campo.label }}
                                 </label>
 
                                 {{ campo }}
 
-                                {% if campo.errors %}
-                                    <span class="form-error">{{ campo.errors|join:" " }}</span>
-                                {% endif %}
                             </div>
-                        {% endfor %}
-                    </div>
-                </fieldset>
-            {% endfor %}
-        </div>
 
-        <template id="item-escopo-template">
-            <fieldset class="escopo-item-card">
-                <legend>Novo item</legend>
+                        {% endif %}
 
-                <div class="escopo-item-grid">
-                    {% for campo in formset.empty_form %}
-                        <div class="form-group">
-                            <label for="{{ campo.id_for_label }}">
-                                {{ campo.label }}
-                            </label>
-
-                            {{ campo }}
-                        </div>
                     {% endfor %}
+
                 </div>
+
             </fieldset>
+
         </template>
+
     </section>
 
     <div class="form-actions">
-        <a class="secondary-action-button" href="{% url 'lista_escopos' %}">
+
+        <a
+            class="secondary-action-button"
+            href="{% url 'lista_escopos' %}"
+        >
             Cancelar
         </a>
 
-        <button type="submit" class="primary-action-button">
+        <button
+            type="submit"
+            class="primary-action-button"
+        >
             <i class="fa-solid fa-floppy-disk"></i>
             Salvar
         </button>
+
     </div>
+
 </form>
 
 <script src="{% static 'lojas/js/escopo_form.js' %}"></script>
+
 {% endblock %}

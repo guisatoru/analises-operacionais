@@ -1,5 +1,6 @@
 from django import forms
 from django.forms import inlineformset_factory
+from django_select2.forms import Select2Widget
 
 from .models import (
     ConfiguracaoInsalubridadeLoja,
@@ -7,7 +8,6 @@ from .models import (
     ItemEscopoMensal,
     Loja,
 )
-
 
 class LojaForm(forms.ModelForm):
     """Formulário do cadastro inicial — mostra todos os campos da loja."""
@@ -72,22 +72,66 @@ class LojaUpdateForm(forms.ModelForm):
 
 
 class EscopoMensalForm(forms.ModelForm):
-    """Cabeçalho do escopo: loja, ano e mês. Insalubridade fica na configuração da loja."""
+    """Usa Select2 para facilitar a busca de lojas em listas grandes."""
+
+    competencia = forms.CharField(
+        label="Competência",
+        widget=forms.DateInput(
+            attrs={
+                "type": "month",
+                "class": "form-control",
+            }
+        ),
+    )
 
     class Meta:
         model = EscopoMensal
-        fields = ["loja", "ano", "mes"]
+        fields = ["loja", "competencia", "ano", "mes"]
+
+        widgets = {
+            "loja": Select2Widget(
+                attrs={
+                    "class": "django-select2 searchable-select",
+                    "data-placeholder": "Digite para buscar uma loja",
+                }
+            ),
+            "ano": forms.HiddenInput(),
+            "mes": forms.HiddenInput(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.instance.pk:
+            self.initial["competencia"] = f"{self.instance.ano}-{self.instance.mes:02d}"
+
+    def clean(self):
+        cleaned_data = super().clean()
+        competencia = cleaned_data.get("competencia")
+
+        if competencia:
+            ano_texto, mes_texto = competencia.split("-")
+            cleaned_data["ano"] = int(ano_texto)
+            cleaned_data["mes"] = int(mes_texto)
+
+        return cleaned_data
 
 
 class ItemEscopoMensalForm(forms.ModelForm):
-    """
-    Cada linha representa um cargo/turno com quantidade para a competência.
-    """
+    """Usa Select2 para facilitar a busca de cargos em listas grandes."""
 
     class Meta:
         model = ItemEscopoMensal
         fields = ["cargo", "turno", "quantidade"]
 
+        widgets = {
+            "cargo": Select2Widget(
+                attrs={
+                    "class": "django-select2 searchable-select",
+                    "data-placeholder": "Digite para buscar um cargo",
+                }
+            ),
+        }
 
 class ConfiguracaoInsalubridadeLojaForm(forms.ModelForm):
     """Tela de insalubridade por loja (convênção)."""

@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "lojas",
+    'django_select2',
 ]
 
 MIDDLEWARE = [

@@ -121,6 +121,30 @@
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
 }
 
+.form-group .select2-container {
+    width: 100% !important;
+}
+
+.form-group .select2-container--default .select2-selection--single {
+    min-height: 42px;
+
+    border: 1px solid #d1d5db;
+
+    border-radius: 12px;
+}
+
+.form-group .select2-container--default .select2-selection--single .select2-selection__rendered {
+    padding: 7px 12px;
+
+    color: #111827;
+
+    font-size: 14px;
+}
+
+.form-group .select2-container--default .select2-selection--single .select2-selection__arrow {
+    min-height: 42px;
+}
+
 .table-wrapper {
     width: 100%;
     overflow-x: auto;

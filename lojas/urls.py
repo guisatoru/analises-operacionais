@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import include, path
 
 from . import views
 
@@ -28,4 +28,5 @@ urlpatterns = [
         "folhas/duplicadas/", views.folha_duplicadas_list, name="lista_folha_duplicadas"
     ),
     path("comparativo/", views.comparativo_loja, name="comparativo_loja"),
+    path("select2/", include("django_select2.urls")),
 ]
