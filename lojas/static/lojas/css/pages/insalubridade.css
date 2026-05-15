@@ -1,0 +1,19 @@
+.checkbox-group {
+    margin-top: 24px;
+}
+
+.checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+
+    color: #111827;
+
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+}

@@ -1,5 +1,10 @@
 @import url("./base.css");
 @import url("./layout.css");
 @import url("./components.css");
+
 @import url("./pages/home.css");
-@import url("./pages/lojas.css");
+@import url("./pages/lojas-list.css");
+@import url("./pages/lojas-form.css");
+@import url("./pages/lojas-detail.css");
+@import url("./pages/insalubridade.css");
+@import url("./pages/escopos.css");

@@ -84,7 +84,9 @@
             <header class="escopo-card-header">
                 <div>
                     <h2>{{ bloco.escopo.loja.nome_referencia }}</h2>
-                    <p>Competência: {{ bloco.escopo.mes|stringformat:"02d" }}/{{ bloco.escopo.ano }}</p>
+                    <span class="competencia-badge">
+                        {{ bloco.escopo.mes|stringformat:"02d" }}/{{ bloco.escopo.ano }}
+                    </span>
                 </div>
 
                 <div class="detail-actions">

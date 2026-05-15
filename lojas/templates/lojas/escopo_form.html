@@ -1,61 +1,114 @@
 {% extends "lojas/base.html" %}
+{% load static %}
 
 {% block titulo %}{{ titulo }}{% endblock %}
 
 {% block content %}
-<header>
-    <h1>{{ titulo }}</h1>
-</header>
+<div class="page-title-row">
+    <div>
+        <a class="back-link" href="{% url 'lista_escopos' %}">
+            <i class="fa-solid fa-arrow-left"></i>
+            Voltar para escopos
+        </a>
 
-<form method="post">
+        <span class="page-eyebrow">Cadastro operacional</span>
+        <h1>{{ titulo }}</h1>
+        <p>Informe a loja, competência e os itens do escopo mensal.</p>
+    </div>
+</div>
+
+<form method="post" class="escopo-form">
     {% csrf_token %}
 
-    <section aria-label="Cabeçalho do escopo">
-        {{ form.as_p }}
+    <section class="form-card">
+        <h2 class="section-title">Dados do escopo</h2>
+
+        <div class="form-grid">
+            {% for campo in form %}
+                <div class="form-group">
+                    <label for="{{ campo.id_for_label }}">
+                        {{ campo.label }}
+                    </label>
+
+                    {{ campo }}
+
+                    {% if campo.errors %}
+                        <span class="form-error">{{ campo.errors|join:" " }}</span>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
     </section>
 
-    <h2>Itens do Escopo</h2>
-    {{ formset.management_form }}
+    <section class="form-card escopo-items-card">
+        <div class="section-title-row">
+            <div>
+                <h2 class="section-title">Itens do escopo</h2>
+                <p>Adicione os cargos, turnos e quantidades da competência.</p>
+            </div>
 
-    <div id="itens-escopo">
-        {% for item_form in formset %}
-            <fieldset>
-                <legend>Item</legend>
-                {{ item_form.as_p }}
+            <button type="button" id="add-item-btn" class="secondary-action-button">
+                <i class="fa-solid fa-plus"></i>
+                Adicionar item
+            </button>
+        </div>
+
+        {{ formset.management_form }}
+
+        <div id="itens-escopo" class="escopo-items-list">
+            {% for item_form in formset %}
+                <fieldset class="escopo-item-card">
+                    <legend>Item {{ forloop.counter }}</legend>
+
+                    <div class="escopo-item-grid">
+                        {% for campo in item_form %}
+                            <div class="form-group">
+                                <label for="{{ campo.id_for_label }}">
+                                    {{ campo.label }}
+                                </label>
+
+                                {{ campo }}
+
+                                {% if campo.errors %}
+                                    <span class="form-error">{{ campo.errors|join:" " }}</span>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </fieldset>
+            {% endfor %}
+        </div>
+
+        <template id="item-escopo-template">
+            <fieldset class="escopo-item-card">
+                <legend>Novo item</legend>
+
+                <div class="escopo-item-grid">
+                    {% for campo in formset.empty_form %}
+                        <div class="form-group">
+                            <label for="{{ campo.id_for_label }}">
+                                {{ campo.label }}
+                            </label>
+
+                            {{ campo }}
+                        </div>
+                    {% endfor %}
+                </div>
             </fieldset>
-        {% endfor %}
+        </template>
+    </section>
+
+    <div class="form-actions">
+        <a class="secondary-action-button" href="{% url 'lista_escopos' %}">
+            Cancelar
+        </a>
+
+        <button type="submit" class="primary-action-button">
+            <i class="fa-solid fa-floppy-disk"></i>
+            Salvar
+        </button>
     </div>
-
-    <p><button type="button" id="add-item-btn">Adicionar item</button></p>
-
-    <template id="item-escopo-template">
-        <fieldset>
-            <legend>Item</legend>
-            {{ formset.empty_form.as_p }}
-        </fieldset>
-    </template>
-
-    <script>
-        (function () {
-            const addBtn = document.getElementById("add-item-btn");
-            const container = document.getElementById("itens-escopo");
-            const totalFormsInput = document.getElementById("id_itens-TOTAL_FORMS");
-            const template = document.getElementById("item-escopo-template");
-
-            if (!addBtn || !container || !totalFormsInput || !template) return;
-
-            addBtn.addEventListener("click", function () {
-                const currentIndex = Number(totalFormsInput.value);
-                const html = template.innerHTML.replace(/__prefix__/g, currentIndex);
-                container.insertAdjacentHTML("beforeend", html);
-                totalFormsInput.value = currentIndex + 1;
-            });
-        })();
-    </script>
-
-    <p>
-        <button type="submit">Salvar</button>
-        <a href="{% url 'lista_escopos' %}">Cancelar</a>
-    </p>
 </form>
+
+<script src="{% static 'lojas/js/escopo_form.js' %}"></script>
 {% endblock %}
