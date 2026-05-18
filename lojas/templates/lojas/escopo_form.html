@@ -2,9 +2,6 @@
 {% load static %}
 
 {% block extra_head %}
-    <script src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
-    {{ form.media }}
-    {{ formset.media }}
 {% endblock %}
 
 {% block titulo %}{{ titulo }}{% endblock %}
@@ -37,21 +34,32 @@
 
         <div class="form-grid">
             {% for campo in form.visible_fields %}
-                <div class="form-group">
 
-                    <label for="{{ campo.id_for_label }}">
-                        {{ campo.label }}
-                    </label>
+                {% if campo.name == "loja" %}
 
-                    {{ campo }}
+                    <div class="form-group">
+                        <label for="filtro-loja-busca">
+                            Loja
+                        </label>
 
-                    {% if campo.errors %}
-                        <span class="form-error">
-                            {{ campo.errors|join:" " }}
-                        </span>
-                    {% endif %}
+                        <input
+                            type="text"
+                            id="filtro-loja-busca"
+                            class="form-control"
+                            placeholder="Digite para buscar uma loja"
+                            autocomplete="off"
+                        >
 
-                </div>
+                        {{ campo }}
+
+                        <div
+                            id="loja-sugestoes"
+                            class="autocomplete-list"
+                        ></div>
+                    </div>
+
+                {% else %}
+                {% endif %}
             {% endfor %}
         </div>
     </section>

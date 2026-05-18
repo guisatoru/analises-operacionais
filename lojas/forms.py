@@ -1,6 +1,5 @@
 from django import forms
 from django.forms import inlineformset_factory
-from django_select2.forms import Select2Widget
 
 from .models import (
     ConfiguracaoInsalubridadeLoja,
@@ -89,7 +88,7 @@ class EscopoMensalForm(forms.ModelForm):
         fields = ["loja", "competencia", "ano", "mes"]
 
         widgets = {
-            "loja": Select2Widget(
+            "loja": forms.Select(
                 attrs={
                     "class": "django-select2 searchable-select",
                     "data-placeholder": "Digite para buscar uma loja",
@@ -125,7 +124,7 @@ class ItemEscopoMensalForm(forms.ModelForm):
         fields = ["cargo", "turno", "quantidade"]
 
         widgets = {
-            "cargo": Select2Widget(
+            "cargo": forms.Select(
                 attrs={
                     "class": "django-select2 searchable-select",
                     "data-placeholder": "Digite para buscar um cargo",

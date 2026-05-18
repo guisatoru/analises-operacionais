@@ -42,3 +42,126 @@ function configureRemoveButtons() {
 }
 
 configureRemoveButtons();
+
+configureAutocomplete(
+    "filtro-loja-busca",
+    "id_loja",
+    "loja-sugestoes"
+);
+
+function configureAutocomplete(
+    inputId,
+    selectId,
+    suggestionsId
+) {
+
+    const searchInput = document.getElementById(inputId);
+    const hiddenSelect = document.getElementById(selectId);
+    const suggestionsBox = document.getElementById(suggestionsId);
+
+    if (!searchInput || !hiddenSelect || !suggestionsBox) {
+        return;
+    }
+
+    const options = Array.from(hiddenSelect.options).map(function (option) {
+        return {
+            value: option.value,
+            text: option.text.trim(),
+            selected: option.selected,
+        };
+    });
+
+    const selectedOption = options.find(function (option) {
+        return option.selected && option.value !== "";
+    });
+
+    if (selectedOption) {
+        searchInput.value = selectedOption.text;
+    }
+
+    function clearSuggestions() {
+        suggestionsBox.innerHTML = "";
+        suggestionsBox.style.display = "none";
+    }
+
+    function selectOption(option) {
+        searchInput.value = option.text;
+        hiddenSelect.value = option.value;
+
+        clearSuggestions();
+    }
+
+    function showSuggestions(searchText) {
+
+        suggestionsBox.innerHTML = "";
+
+        const normalizedSearch =
+            searchText.trim().toLowerCase();
+
+        if (normalizedSearch.length === 0) {
+            clearSuggestions();
+            return;
+        }
+
+        const filteredOptions = options.filter(function (option) {
+
+            return (
+                option.value !== "" &&
+                option.text.toLowerCase().includes(normalizedSearch)
+            );
+
+        });
+
+        if (filteredOptions.length === 0) {
+
+            suggestionsBox.innerHTML = `
+                <div class="autocomplete-empty">
+                    Nenhum resultado encontrado
+                </div>
+            `;
+
+            suggestionsBox.style.display = "block";
+
+            return;
+        }
+
+        filteredOptions.slice(0, 10).forEach(function (option) {
+
+            const item = document.createElement("button");
+
+            item.type = "button";
+            item.className = "autocomplete-item";
+            item.textContent = option.text;
+
+            item.addEventListener("click", function () {
+                selectOption(option);
+            });
+
+            suggestionsBox.appendChild(item);
+
+        });
+
+        suggestionsBox.style.display = "block";
+    }
+
+    searchInput.addEventListener("input", function () {
+        showSuggestions(searchInput.value);
+    });
+
+    searchInput.addEventListener("focus", function () {
+        showSuggestions(searchInput.value);
+    });
+
+    document.addEventListener("click", function (event) {
+
+        const clickedInside =
+            searchInput.contains(event.target) ||
+            suggestionsBox.contains(event.target);
+
+        if (!clickedInside) {
+            clearSuggestions();
+        }
+
+    });
+
+}
