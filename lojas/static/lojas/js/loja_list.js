@@ -1,4 +1,5 @@
 document.addEventListener("DOMContentLoaded", function () {
+
     const filterForm = document.querySelector(".filter-form");
     const searchInput = document.getElementById("id-busca");
 
@@ -9,10 +10,25 @@ document.addEventListener("DOMContentLoaded", function () {
     let typingTimer = null;
 
     searchInput.addEventListener("input", function () {
+
         clearTimeout(typingTimer);
 
         typingTimer = setTimeout(function () {
             filterForm.submit();
-        }, 500);
+        }, 1200);
+
     });
+
+    searchInput.addEventListener("keydown", function (event) {
+
+        if (event.key === "Enter") {
+            event.preventDefault();
+
+            clearTimeout(typingTimer);
+
+            filterForm.submit();
+        }
+
+    });
+
 });

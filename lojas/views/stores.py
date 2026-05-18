@@ -3,6 +3,7 @@
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
+from unidecode import unidecode
 
 from ..forms import LojaForm, LojaUpdateForm
 from ..models import Loja, STATUS_CHOICES, obter_ou_criar_config_insalubridade_loja
@@ -19,7 +20,21 @@ def store_list(request):
     cost_center = request.GET.get("centro_de_custo", "").strip()
 
     if search_text:
-        stores = stores.filter(nome_referencia__icontains=search_text)
+
+        normalized_search = unidecode(search_text).upper()
+
+        filtered_store_ids = []
+
+        for store in stores:
+
+            normalized_store_name = unidecode(
+                store.nome_referencia
+            ).upper()
+
+            if normalized_search in normalized_store_name:
+                filtered_store_ids.append(store.id)
+
+        stores = stores.filter(id__in=filtered_store_ids)
     if client_name:
         stores = stores.filter(cliente__icontains=client_name)
     if panel_name:
