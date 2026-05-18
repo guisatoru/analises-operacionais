@@ -2,6 +2,7 @@
 
 from datetime import date
 from decimal import Decimal
+from unidecode import unidecode
 
 from django.contrib import messages
 from django.core.paginator import Paginator
@@ -26,12 +27,10 @@ ESCOPOS_POR_PAGINA = 10
 
 
 def escopo_list(request):
-    """
-    Lista escopos mensais com estimativa por item.
-    Salários em lote; paginação para não processar todos os escopos de uma vez.
-    """
     loja_id_raw = (request.GET.get("loja") or "").strip()
     loja_id_int = int(loja_id_raw) if loja_id_raw.isdigit() else None
+
+    busca_loja = (request.GET.get("busca_loja") or "").strip()
 
     ano_filtro = parse_int_param(request.GET.get("ano"), 2000, 2100)
     mes_filtro = parse_int_param(request.GET.get("mes"), 1, 12)
@@ -41,10 +40,28 @@ def escopo_list(request):
         .prefetch_related("itens__cargo")
         .order_by("loja__nome_referencia", "-ano", "-mes")
     )
+
+    if busca_loja:
+        normalized_search = unidecode(busca_loja).upper()
+
+        matching_store_ids = []
+
+        lojas = Loja.objects.all()
+
+        for loja in lojas:
+            normalized_store_name = unidecode(loja.nome_referencia).upper()
+
+            if normalized_search in normalized_store_name:
+                matching_store_ids.append(loja.id)
+
+        escopos = escopos.filter(loja_id__in=matching_store_ids)
+
     if loja_id_int is not None:
         escopos = escopos.filter(loja_id=loja_id_int)
+
     if ano_filtro is not None:
         escopos = escopos.filter(ano=ano_filtro)
+
     if mes_filtro is not None:
         escopos = escopos.filter(mes=mes_filtro)
 
@@ -92,6 +109,7 @@ def escopo_list(request):
     escopos_filtros_query = filtros_get.urlencode()
 
     context = {
+        "busca_loja": busca_loja,
         "escopos_com_estimativa": escopos_com_estimativa,
         "page_obj": page_obj,
         "escopos_filtros_query": escopos_filtros_query,

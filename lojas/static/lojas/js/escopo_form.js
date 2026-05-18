@@ -49,6 +49,15 @@ configureAutocomplete(
     "loja-sugestoes"
 );
 
+function normalizeText(text) {
+
+    return text
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+
+}
+
 function configureAutocomplete(
     inputId,
     selectId,
@@ -96,7 +105,7 @@ function configureAutocomplete(
         suggestionsBox.innerHTML = "";
 
         const normalizedSearch =
-            searchText.trim().toLowerCase();
+            normalizeText(searchText.trim());
 
         if (normalizedSearch.length === 0) {
             clearSuggestions();
@@ -107,7 +116,7 @@ function configureAutocomplete(
 
             return (
                 option.value !== "" &&
-                option.text.toLowerCase().includes(normalizedSearch)
+                normalizeText(option.text).includes(normalizedSearch)
             );
 
         });

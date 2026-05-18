@@ -20,32 +20,18 @@
 <section class="filter-card" aria-label="Filtros">
     <form method="get" class="escopo-filter-form">
         <div class="form-group">
-            <label for="filtro-loja">Loja</label>
+            <label for="id-busca-loja">
+                Loja
+            </label>
+
             <input
                 type="text"
-                id="filtro-loja-busca"
-                class="form-control"
-                placeholder="Digite para buscar uma loja"
+                name="busca_loja"
+                id="id-busca-loja"
+                value="{{ busca_loja }}"
+                placeholder="Digite para filtrar automaticamente"
                 autocomplete="off"
             >
-
-            <select
-                name="loja"
-                id="filtro-loja"
-                class="hidden-select"
-            >
-                <option value="">Todas</option>
-                {% for l in lojas_para_filtro %}
-                    <option
-                        value="{{ l.pk }}"
-                        {% if loja_id_filtro == l.pk|stringformat:"s" %}selected{% endif %}
-                    >
-                        {{ l.nome_referencia }}
-                    </option>
-                {% endfor %}
-            </select>
-
-            <div id="loja-sugestoes" class="autocomplete-list"></div>
         </div>
 
         <div class="form-group">
