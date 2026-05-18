@@ -11,6 +11,10 @@ from lojas.services.comparativo_loja import (
 
 
 def _nome_mes(mes: int) -> str:
+    """
+    Transforma o número do mês no nome por extenso.
+    Exemplo: 1 vira 'Janeiro'. Isso facilita a leitura na tela.
+    """
     for chave, rotulo in MESES_CHOICES:
         if chave == mes:
             return str(rotulo)
@@ -21,6 +25,11 @@ def comparativo_loja(request):
     """
     Filtro estilo BI: escolhe loja e um ou mais meses/anos (DT ARQ na folha).
     Soma colunas do escopo e compara com o total da folha da loja no período.
+
+    Fluxo:
+    1. Captura a loja selecionada via GET.
+    2. Busca opções de meses (competências) disponíveis para essa loja.
+    3. Se houver meses selecionados, pede ao Serviço para montar o consolidado (Resultado).
     """
     lojas = Loja.objects.all().order_by("nome_referencia")
 

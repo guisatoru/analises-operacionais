@@ -28,209 +28,220 @@
   </div>
 </div>
 
-<form method="get" class="escopo-form">
-  <section class="form-card">
-    <h2 class="section-title">Filtros</h2>
+<div class="comparativo-layout">
+  
+  <!-- COLUNA ESQUERDA: Sidebar de Filtros -->
+  <aside class="comparativo-sidebar">
+    <form method="get" class="escopo-form">
+      <section class="form-card">
+        <h2 class="section-title">Filtros</h2>
 
-    <div class="form-grid">
-      <div class="form-group">
-        <label for="filtro-loja-busca">Loja</label>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="filtro-loja-busca">Loja</label>
 
-        <input
-          type="text"
-          id="filtro-loja-busca"
-          class="form-control"
-          placeholder="Digite para buscar uma loja"
-          autocomplete="off"
-        />
-
-        <select name="loja" id="loja" required style="display: none">
-          <option value="">— Selecione —</option>
-          {% for l in lojas %}
-          <option value="{{ l.pk }}" {% if loja_selecionada_id == l.pk %}selected{% endif %}>
-            {{ l.nome_referencia }}
-          </option>
-          {% endfor %}
-        </select>
-
-        <div id="loja-sugestoes" class="autocomplete-list"></div>
-      </div>
-    </div>
-
-  {% if loja_selecionada_id and competencias_opcoes %}
-  <div class="escopo-items-card" style="margin-top: 2rem; border-top: 1px solid #e2e8f0; padding-top: 2rem;">
-    <div class="section-title-row">
-      <div>
-        <h2 class="section-title">Competências (data ARQ)</h2>
-        <p>
-          Marque um ou mais meses. Os valores do escopo e da folha serão
-          <strong>somados</strong> na visualização abaixo.
-        </p>
-      </div>
-    </div>
-
-    <div class="competencias-anos-grid">
-      {% regroup competencias_opcoes by ano as por_ano %}
-      {% for grupo in por_ano %}
-      <div class="competencia-ano-section">
-        <h3 class="competencia-ano-title" data-year="{{ grupo.grouper }}">{{ grupo.grouper }}</h3>
-        <div class="competencia-tags-list">
-          {% for op in grupo.list %}
-          <label for="c_{{ op.value }}" class="competencia-tag {% if op.checked %}active{% endif %}">
             <input
-              type="checkbox"
-              name="c"
-              value="{{ op.value }}"
-              id="c_{{ op.value }}"
-              class="hidden-checkbox"
-              data-label="{{ op.label }}"
-              {% if op.checked %}checked{% endif %}
+              type="text"
+              id="filtro-loja-busca"
+              class="form-control"
+              placeholder="Digite para buscar uma loja"
+              autocomplete="off"
             />
-            <span class="competencia-label">{{ op.label }}</span>
-          </label>
+
+            <select name="loja" id="loja" required style="display: none">
+              <option value="">— Selecione —</option>
+              {% for l in lojas %}
+              <option value="{{ l.pk }}" {% if loja_selecionada_id == l.pk %}selected{% endif %}>
+                {{ l.nome_referencia }}
+              </option>
+              {% endfor %}
+            </select>
+
+            <div id="loja-sugestoes" class="autocomplete-list"></div>
+          </div>
+        </div>
+
+      {% if loja_selecionada_id and competencias_opcoes %}
+      <div class="escopo-items-card" style="margin-top: 2rem; border-top: 1px solid #e2e8f0; padding-top: 2rem;">
+        <div class="section-title-row">
+          <div>
+            <h2 class="section-title">Competências (data ARQ)</h2>
+          </div>
+        </div>
+
+        <div class="competencias-anos-grid">
+          {% regroup competencias_opcoes by ano as por_ano %}
+          {% for grupo in por_ano %}
+          <div class="competencia-ano-section">
+            <h3 class="competencia-ano-title" data-year="{{ grupo.grouper }}">{{ grupo.grouper }}</h3>
+            <div class="competencia-tags-list">
+              {% for op in grupo.list %}
+              <label for="c_{{ op.value }}" class="competencia-tag {% if op.checked %}active{% endif %}">
+                <input
+                  type="checkbox"
+                  name="c"
+                  value="{{ op.value }}"
+                  id="c_{{ op.value }}"
+                  class="hidden-checkbox"
+                  data-label="{{ op.label }}"
+                  {% if op.checked %}checked{% endif %}
+                />
+                <span class="competencia-label">{{ op.label }}</span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
           {% endfor %}
         </div>
       </div>
-      {% endfor %}
-    </div>
-  </div>
-  {% elif loja_selecionada_id %}
-  <div style="margin-top: 1.5rem;">
-    <div role="status" class="status-warning" style="margin-bottom: 0;">
-      <p>
-        <i class="fa-solid fa-circle-exclamation"></i>
-        Nenhuma competência encontrada para esta loja (sem escopo mensal e sem
-        linhas de folha com loja vinculada). Cadastre escopos ou importe a folha
-        com centro de custo que mapeie para a loja.
-      </p>
-    </div>
-  </div>
-  {% endif %}
-  </section>
-</form>
+      {% elif loja_selecionada_id %}
+      <div style="margin-top: 1.5rem;">
+        <div role="status" class="status-warning" style="margin-bottom: 0;">
+          <p>
+            <i class="fa-solid fa-circle-exclamation"></i>
+            Nenhuma competência encontrada para esta loja.
+          </p>
+        </div>
+      </div>
+      {% endif %}
+      </section>
+    </form>
+  </aside>
 
-{% if resultado %}
-<section class="form-card">
-  <div class="section-title-row title-margin-bottom">
-    <div>
-      <h2 class="section-title">
-        Resultado — {{ resultado.loja.nome_referencia }}
-      </h2>
-      <p>({{ resultado.competencias|length }} competência(s) selecionada(s))</p>
-    </div>
-  </div>
+  <!-- COLUNA DIREITA: Tela de Resultados -->
+  <main class="comparativo-main">
+    {% if resultado %}
+    <section class="form-card">
+      <div class="section-title-row title-margin-bottom">
+        <div>
+          <h2 class="section-title">
+            Resultado — {{ resultado.loja.nome_referencia }}
+          </h2>
+          <p>({{ resultado.competencias|length }} competência(s) selecionada(s))</p>
+        </div>
+      </div>
 
-  {% if resultado.escopo_meses_sem_registro %}
-  <div role="status" class="status-warning">
-    <p>
-      <i class="fa-solid fa-circle-exclamation"></i>
-      Sem escopo cadastrado para:
-      {% for ano, mes in resultado.escopo_meses_sem_registro %}
-      <strong>{% if mes < 10 %}0{% endif %}{{ mes }}/{{ ano }}</strong>{% if not forloop.last %}, {% endif %}
-      {% endfor %} (esses meses não entram na soma do escopo).
-    </p>
-  </div>
-  {% endif %}
+      <div class="comparativo-resultado-grid">
+        <div class="escopo-item-card comparativo-item-card card-folha">
+          <p class="comparativo-item-card-title">Total folha (import)</p>
+          <p class="comparativo-item-card-value">R$ {{ resultado.folha_total|floatformat:2 }}</p>
+          <p class="comparativo-item-card-subtitle">{{ resultado.folha_linhas_count }} linhas processadas</p>
+        </div>
 
-  {% if resultado.escopo_itens_sem_estimativa %}
-  <div role="status" class="status-danger">
-    <p>
-      <i class="fa-solid fa-triangle-exclamation"></i>
-      {{ resultado.escopo_itens_sem_estimativa }} item(ns) de escopo sem
-      estimativa (ex.: falta salário para cargo/UF/ano).
-    </p>
-  </div>
-  {% endif %}
+        <div class="escopo-item-card comparativo-item-card card-escopo">
+          <p class="comparativo-item-card-title">Total estimado escopo</p>
+          <p class="comparativo-item-card-value">R$ {{ resultado.escopo_total|floatformat:2 }}</p>
+          <p class="comparativo-item-card-subtitle">Base de rubricas</p>
+        </div>
 
-  <div class="comparativo-resultado-grid">
-    <div class="escopo-item-card comparativo-item-card card-folha">
-      <p class="comparativo-item-card-title">Total folha (import)</p>
-      <p class="comparativo-item-card-value">R$ {{ resultado.folha_total|floatformat:2 }}</p>
-      <p class="comparativo-item-card-subtitle">{{ resultado.folha_linhas_count }} linha(s)</p>
-    </div>
+        <div class="escopo-item-card comparativo-item-card {% if resultado.diferenca_folha_menos_escopo > 0 %}card-diferenca-danger{% elif resultado.diferenca_folha_menos_escopo < 0 %}card-diferenca-success{% else %}card-diferenca-neutral{% endif %}">
+          <p class="comparativo-item-card-title">Diferença (folha - escopo)</p>
+          <p class="comparativo-item-card-value {% if resultado.diferenca_folha_menos_escopo > 0 %}text-danger{% elif resultado.diferenca_folha_menos_escopo < 0 %}text-success{% endif %}">
+            R$ {{ resultado.diferenca_folha_menos_escopo|floatformat:2 }}
+          </p>
+          <p class="comparativo-item-card-subtitle">
+            {% if resultado.diferenca_folha_menos_escopo > 0 %}
+              Acima do orçado
+            {% else %}
+              Abaixo do orçado
+            {% endif %}
+          </p>
+        </div>
+      </div>
 
-    <div class="escopo-item-card comparativo-item-card card-escopo">
-      <p class="comparativo-item-card-title">Total estimado escopo</p>
-      <p class="comparativo-item-card-value">R$ {{ resultado.escopo_total|floatformat:2 }}</p>
-    </div>
+      <div class="section-title-row title-margin-bottom" style="margin-top: 2rem;">
+        <div>
+          <h3 class="section-title">Visão Detalhada de Rubricas (mesmo período)</h3>
+        </div>
+      </div>
 
-    <div class="escopo-item-card comparativo-item-card {% if resultado.diferenca_folha_menos_escopo > 0 %}card-diferenca-danger{% elif resultado.diferenca_folha_menos_escopo < 0 %}card-diferenca-success{% else %}card-diferenca-neutral{% endif %}">
-      <p class="comparativo-item-card-title">Diferença (folha − escopo)</p>
-      <p class="comparativo-item-card-value {% if resultado.diferenca_folha_menos_escopo > 0 %}text-danger{% elif resultado.diferenca_folha_menos_escopo < 0 %}text-success{% endif %}">
-        R$ {{ resultado.diferenca_folha_menos_escopo|floatformat:2 }}
-      </p>
-    </div>
-  </div>
+      <div class="dashboard-table-container">
+        <table class="dashboard-table">
+          <thead>
+            <tr>
+              <th>Rubrica</th>
+              <th class="number-cell">Valor Estimado</th>
+              <th class="number-cell">Valor Folha</th>
+              <th class="number-cell">Desvio</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="category-title">Salário base</div></td>
+              <td class="number-cell"><span class="main-value text-escopo">R$ {{ resultado.escopo_base_total|floatformat:2 }}</span></td>
+              <td class="number-cell"><span class="main-value text-folha">R$ {{ resultado.folha_salario_categoria_total|floatformat:2 }}</span></td>
+              <td class="number-cell {% if resultado.desvio_salario > 0 %}text-danger{% elif resultado.desvio_salario < 0 %}text-success{% endif %}">
+                {% if resultado.desvio_salario > 0 %}+{% endif %}{{ resultado.desvio_salario|floatformat:2 }} 
+                {% if resultado.desvio_salario > 0 %}↗{% elif resultado.desvio_salario < 0 %}↘{% else %}-{% endif %}
+              </td>
+            </tr>
+            <tr>
+              <td><div class="category-title">Insalubridade (Total)</div></td>
+              <td class="number-cell font-bold text-escopo">R$ {{ resultado.escopo_insalubridade_total|floatformat:2 }}</td>
+              <td class="number-cell font-bold text-folha">R$ {{ resultado.folha_insalubridade_categoria_total|floatformat:2 }}</td>
+              <td class="number-cell {% if resultado.desvio_insalubridade > 0 %}text-danger{% elif resultado.desvio_insalubridade < 0 %}text-success{% endif %}">
+                {% if resultado.desvio_insalubridade > 0 %}+{% endif %}{{ resultado.desvio_insalubridade|floatformat:2 }} 
+                {% if resultado.desvio_insalubridade > 0 %}↗{% elif resultado.desvio_insalubridade < 0 %}↘{% else %}-{% endif %}
+              </td>
+            </tr>
+            <!-- Sub-linhas da Insalubridade -->
+            <tr class="sub-row">
+              <td>Insalubridade Fixa</td>
+              <td class="number-cell">R$ {{ resultado.escopo_insalubridade_fixa_total|floatformat:2 }}</td>
+              <td class="number-cell">-</td>
+              <td class="number-cell">-</td>
+            </tr>
+            <tr class="sub-row">
+              <td>Insalubridade Banheirista</td>
+              <td class="number-cell">R$ {{ resultado.escopo_insalubridade_banheirista_total|floatformat:2 }}</td>
+              <td class="number-cell">-</td>
+              <td class="number-cell">-</td>
+            </tr>
+            <!-- Fim Sub-linhas -->
+            <tr>
+              <td><div class="category-title">Adicional noturno</div></td>
+              <td class="number-cell"><span class="main-value text-escopo">R$ {{ resultado.escopo_adicional_noturno_total|floatformat:2 }}</span></td>
+              <td class="number-cell"><span class="main-value text-folha">R$ {{ resultado.folha_adicional_noturno_categoria_total|floatformat:2 }}</span></td>
+              <td class="number-cell {% if resultado.desvio_adicional_noturno > 0 %}text-danger{% elif resultado.desvio_adicional_noturno < 0 %}text-success{% endif %}">
+                {% if resultado.desvio_adicional_noturno > 0 %}+{% endif %}{{ resultado.desvio_adicional_noturno|floatformat:2 }} 
+                {% if resultado.desvio_adicional_noturno > 0 %}↗{% elif resultado.desvio_adicional_noturno < 0 %}↘{% else %}-{% endif %}
+              </td>
+            </tr>
+          </tbody>
+          <!-- Linha de Total no estilo Mockup -->
+          <tfoot>
+            <tr class="table-total-row">
+              <td>Total</td>
+              <td class="number-cell">R$ {{ resultado.tabela_escopo_total|floatformat:2 }}</td>
+              <td class="number-cell">R$ {{ resultado.tabela_folha_total|floatformat:2 }}</td>
+              <td class="number-cell">R$ {{ resultado.tabela_desvio_total|floatformat:2 }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
 
-  <h3 class="comparativo-table-title">
-    Escopo agregado (soma das colunas da estimativa)
-  </h3>
-  <div class="comparativo-table-container">
-    <table class="comparativo-table">
-      <thead>
-        <tr>
-          <th class="number-cell">Salário base</th>
-          <th class="number-cell">Insalubridade fixa</th>
-          <th class="number-cell">Insalubridade banheirista</th>
-          <th class="number-cell">Total insalubridades</th>
-          <th class="number-cell">Adicional noturno</th>
-          <th class="number-cell total-column">Total escopo</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td class="number-cell">R$ {{ resultado.escopo_base_total|floatformat:2 }}</td>
-          <td class="number-cell">R$ {{ resultado.escopo_insalubridade_fixa_total|floatformat:2 }}</td>
-          <td class="number-cell">R$ {{ resultado.escopo_insalubridade_banheirista_total|floatformat:2}}</td>
-          <td class="number-cell">R$ {{ resultado.escopo_insalubridade_total|floatformat:2 }}</td>
-          <td class="number-cell">R$ {{ resultado.escopo_adicional_noturno_total|floatformat:2 }}</td>
-          <td class="number-cell total-column"><strong>R$ {{ resultado.escopo_total|floatformat:2 }}</strong></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+      <div role="status" class="status-warning" style="background-color: #f8fafc; border-color: #e2e8f0; color: #475569; margin-bottom: 0;">
+        <p>
+          <i class="fa-solid fa-circle-info" style="color: #64748b;"></i>
+          A última coluna exibe a diferença. O Total Folha soma todas as linhas da competência. 
+          As outras somam apenas categorias de rubricas coincidentes. Diferenças indicam a presença de outras categorias.
+        </p>
+      </div>
+    </section>
+    {% elif loja_selecionada_id and marcou_alguma_competencia and not resultado %}
+    <section class="form-card">
+      <div role="status" class="status-danger">
+        <p>
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          Nenhuma competência válida foi reconhecida. Use os checkboxes listados
+          após carregar a loja.
+        </p>
+      </div>
+    </section>
+    {% endif %}
+  </main>
 
-  <h3 class="comparativo-table-title">
-    Folha por categoria (mesmo período)
-  </h3>
-  <div style="overflow-x: auto">
-    <table class="comparativo-table">
-      <thead>
-        <tr>
-          <th class="number-cell">Salário</th>
-          <th class="number-cell">Insalubridade</th>
-          <th class="number-cell">Adicional noturno</th>
-          <th class="number-cell total-column">Total folha (todas as verbas)</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td class="number-cell">R$ {{ resultado.folha_salario_categoria_total|floatformat:2 }}</td>
-          <td class="number-cell">R$ {{ resultado.folha_insalubridade_categoria_total|floatformat:2 }}</td>
-          <td class="number-cell">R$ {{ resultado.folha_adicional_noturno_categoria_total|floatformat:2 }}</td>
-          <td class="number-cell total-column"><strong>R$ {{ resultado.folha_total|floatformat:2 }}</strong></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <p class="comparativo-table-footer-text">
-    A última coluna é a soma de <strong>todas</strong> as linhas da folha no
-    período; as outras colunas somam apenas verbas cuja categoria coincide com
-    SALÁRIO, INSALUBRIDADE ou ADICIONAL NOTURNO (conforme cadastro de verbas).
-    Diferenças em relação à soma das três colunas indicam outras categorias.
-  </p>
-</section>
-{% elif loja_selecionada_id and marcou_alguma_competencia and not resultado %}
-<section class="form-card">
-  <div role="status" class="status-danger">
-    <p>
-      <i class="fa-solid fa-triangle-exclamation"></i>
-      Nenhuma competência válida foi reconhecida. Use os checkboxes listados
-      após carregar a loja.
-    </p>
-  </div>
-</section>
-{% endif %}
+</div>
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {

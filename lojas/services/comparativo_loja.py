@@ -126,7 +126,54 @@ class ResultadoComparativoLoja:
 
     @property
     def diferenca_folha_menos_escopo(self) -> Decimal:
+        """
+        Calcula a diferença geral entre o total importado na folha e o estimado no escopo.
+        Positivo indica gasto acima do orçado. Negativo indica economia.
+        """
         return self.folha_total - self.escopo_total
+
+    @property
+    def desvio_salario(self) -> Decimal:
+        """Diferença específica apenas para a rubrica de Salário Base."""
+        return self.folha_salario_categoria_total - self.escopo_base_total
+
+    @property
+    def desvio_insalubridade(self) -> Decimal:
+        """Diferença específica para a rubrica de Insalubridade (Total)."""
+        return (
+            self.folha_insalubridade_categoria_total - self.escopo_insalubridade_total
+        )
+
+    @property
+    def desvio_adicional_noturno(self) -> Decimal:
+        """Diferença específica para a rubrica de Adicional Noturno."""
+        return (
+            self.folha_adicional_noturno_categoria_total
+            - self.escopo_adicional_noturno_total
+        )
+
+    @property
+    def tabela_escopo_total(self) -> Decimal:
+        """Soma total apenas das colunas estimadas que aparecem na tabela de detalhamento."""
+        return (
+            self.escopo_base_total
+            + self.escopo_insalubridade_total
+            + self.escopo_adicional_noturno_total
+        )
+
+    @property
+    def tabela_folha_total(self) -> Decimal:
+        """Soma total apenas das colunas de folha que aparecem na tabela de detalhamento."""
+        return (
+            self.folha_salario_categoria_total
+            + self.folha_insalubridade_categoria_total
+            + self.folha_adicional_noturno_categoria_total
+        )
+
+    @property
+    def tabela_desvio_total(self) -> Decimal:
+        """Desvio total da tabela de detalhamento."""
+        return self.tabela_folha_total - self.tabela_escopo_total
 
 
 def montar_resultado_comparativo(
