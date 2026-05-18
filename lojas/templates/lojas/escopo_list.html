@@ -1,5 +1,18 @@
 {% extends "lojas/base.html" %}
 
+{% block extra_head %}
+
+<link
+    href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
+    rel="stylesheet"
+/>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+{% endblock %}
+
 {% block titulo %}Escopos{% endblock %}
 
 {% block content %}
@@ -20,7 +33,11 @@
     <form method="get" class="escopo-filter-form">
         <div class="form-group">
             <label for="filtro-loja">Loja</label>
-            <select name="loja" id="filtro-loja">
+            <select
+                name="loja"
+                id="filtro-loja"
+                class="searchable-select"
+            >
                 <option value="">Todas</option>
                 {% for l in lojas_para_filtro %}
                     <option value="{{ l.pk }}" {% if loja_id_filtro == l.pk|stringformat:"s" %}selected{% endif %}>
@@ -190,4 +207,15 @@
     </div>
 </nav>
 {% endif %}
+<script>
+    $(document).ready(function () {
+
+        $("#filtro-loja").select2({
+            placeholder: "Digite para buscar uma loja",
+            allowClear: true,
+            width: "100%"
+        });
+
+    });
+</script>
 {% endblock %}
