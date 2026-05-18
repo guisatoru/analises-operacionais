@@ -1,5 +1,5 @@
 {% extends "lojas/base.html" %}
-
+{% load static %}
 {% block titulo %}Lojas{% endblock %}
 
 {% block content %}
@@ -20,7 +20,15 @@
     <form method="get" class="filter-form">
         <div class="form-group">
             <label for="id-busca">Nome referência</label>
-            <input type="text" name="busca" id="id-busca" value="{{ busca }}" placeholder="Ex.: ASSAÍ BAURU">
+
+            <input
+                type="text"
+                name="busca"
+                id="id-busca"
+                value="{{ busca }}"
+                placeholder="Digite para filtrar automaticamente"
+                autocomplete="off"
+            >
         </div>
 
         <div class="form-group">
@@ -159,4 +167,5 @@
     </div>
 </nav>
 {% endif %}
+<script src="{% static 'lojas/js/loja_list.js' %}"></script>
 {% endblock %}

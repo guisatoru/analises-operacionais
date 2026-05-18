@@ -161,3 +161,7 @@
         width: 100%;
     }
 }
+
+.form-group {
+    position: relative;
+}
