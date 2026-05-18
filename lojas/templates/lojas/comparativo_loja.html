@@ -1,154 +1,330 @@
 {% extends "lojas/base.html" %}
+{% load static %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'lojas/css/comparativo.css' %}">
+{% endblock %}
+
 {% block titulo %}{{ titulo }}{% endblock %}
 {% block content %}
-<header>
-    <p><a href="{% url 'inicio' %}">&larr; Início</a></p>
+<div class="page-title-row">
+  <div>
+    <a class="back-link" href="{% url 'inicio' %}">
+      <i class="fa-solid fa-arrow-left"></i>
+      Voltar para Início
+    </a>
+
+    <span class="page-eyebrow">Relatórios</span>
+
     <h1>{{ titulo }}</h1>
-    <p>
-        Escolha a <strong>loja</strong> e uma ou mais
-        <strong>competências (DT ARQ)</strong>. O escopo agrega a estimativa por
-        rubrica; a folha mostra totais por categoria de verba e o
-        <strong>total geral</strong> da importação (todas as verbas que entram na
-        soma).
-    </p>
-</header>
 
-<form method="get">
     <p>
-        <label for="loja">Loja</label><br>
-        <select name="loja" id="loja" required>
-            <option value="">— Selecione —</option>
-            {% for l in lojas %}
-                <option value="{{ l.pk }}" {% if loja_selecionada_id == l.pk %}selected{% endif %}>{{ l.nome_referencia }}</option>
-            {% endfor %}
+      Escolha a <strong>loja</strong> e uma ou mais
+      <strong>competências (DT ARQ)</strong>. O escopo agrega a estimativa por
+      rubrica; a folha mostra totais por categoria de verba e o
+      <strong>total geral</strong> da importação (todas as verbas que entram na
+      soma).
+    </p>
+  </div>
+</div>
+
+<form method="get" class="escopo-form">
+  <section class="form-card">
+    <h2 class="section-title">Filtros</h2>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="filtro-loja-busca">Loja</label>
+
+        <input
+          type="text"
+          id="filtro-loja-busca"
+          class="form-control"
+          placeholder="Digite para buscar uma loja"
+          autocomplete="off"
+        />
+
+        <select name="loja" id="loja" required style="display: none">
+          <option value="">— Selecione —</option>
+          {% for l in lojas %}
+          <option value="{{ l.pk }}" {% if loja_selecionada_id == l.pk %}selected{% endif %}>
+            {{ l.nome_referencia }}
+          </option>
+          {% endfor %}
         </select>
-    </p>
-    <p><button type="submit">Carregar competências / atualizar</button></p>
 
-    {% if loja_selecionada_id and competencias_opcoes %}
-        <hr>
-        <h2>Competências (data ARQ)</h2>
+        <div id="loja-sugestoes" class="autocomplete-list"></div>
+      </div>
+    </div>
+
+  {% if loja_selecionada_id and competencias_opcoes %}
+  <div class="escopo-items-card" style="margin-top: 2rem; border-top: 1px solid #e2e8f0; padding-top: 2rem;">
+    <div class="section-title-row">
+      <div>
+        <h2 class="section-title">Competências (data ARQ)</h2>
         <p>
-            Marque um ou mais meses. Os valores do escopo e da folha serão
-            <strong>somados</strong> na visualização abaixo.
+          Marque um ou mais meses. Os valores do escopo e da folha serão
+          <strong>somados</strong> na visualização abaixo.
         </p>
-        <div>
-            {% regroup competencias_opcoes by ano as por_ano %}
-            {% for grupo in por_ano %}
-                <section>
-                    <h3>{{ grupo.grouper }}</h3>
-                    <ul>
-                        {% for op in grupo.list %}
-                            <li>
-                                <input type="checkbox" name="c" value="{{ op.value }}" id="c_{{ op.value }}" {% if op.checked %}checked{% endif %}>
-                                <label for="c_{{ op.value }}">{{ op.label }}</label>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                </section>
-            {% endfor %}
+      </div>
+    </div>
+
+    <div class="competencias-anos-grid">
+      {% regroup competencias_opcoes by ano as por_ano %}
+      {% for grupo in por_ano %}
+      <div class="competencia-ano-section">
+        <h3 class="competencia-ano-title" data-year="{{ grupo.grouper }}">{{ grupo.grouper }}</h3>
+        <div class="competencia-tags-list">
+          {% for op in grupo.list %}
+          <label for="c_{{ op.value }}" class="competencia-tag {% if op.checked %}active{% endif %}">
+            <input
+              type="checkbox"
+              name="c"
+              value="{{ op.value }}"
+              id="c_{{ op.value }}"
+              class="hidden-checkbox"
+              data-label="{{ op.label }}"
+              {% if op.checked %}checked{% endif %}
+            />
+            <span class="competencia-label">{{ op.label }}</span>
+          </label>
+          {% endfor %}
         </div>
-        <p><button type="submit">Comparar período selecionado</button></p>
-    {% elif loja_selecionada_id %}
-        <hr>
-        <p>
-            Nenhuma competência encontrada para esta loja (sem escopo mensal e sem
-            linhas de folha com loja vinculada). Cadastre escopos ou importe a folha
-            com centro de custo que mapeie para a loja.
-        </p>
-    {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% elif loja_selecionada_id %}
+  <div style="margin-top: 1.5rem;">
+    <div role="status" class="status-warning" style="margin-bottom: 0;">
+      <p>
+        <i class="fa-solid fa-circle-exclamation"></i>
+        Nenhuma competência encontrada para esta loja (sem escopo mensal e sem
+        linhas de folha com loja vinculada). Cadastre escopos ou importe a folha
+        com centro de custo que mapeie para a loja.
+      </p>
+    </div>
+  </div>
+  {% endif %}
+  </section>
 </form>
 
 {% if resultado %}
-<article>
-    <header>
-        <h2>Resultado — {{ resultado.loja.nome_referencia }}</h2>
-        <p>({{ resultado.competencias|length }} competência(s) selecionada(s))</p>
-    </header>
+<section class="form-card">
+  <div class="section-title-row title-margin-bottom">
+    <div>
+      <h2 class="section-title">
+        Resultado — {{ resultado.loja.nome_referencia }}
+      </h2>
+      <p>({{ resultado.competencias|length }} competência(s) selecionada(s))</p>
+    </div>
+  </div>
 
-    {% if resultado.escopo_meses_sem_registro %}
-        <div role="status">
-            <p>Sem escopo cadastrado para:
-                {% for ano, mes in resultado.escopo_meses_sem_registro %}
-                    <strong>{% if mes < 10 %}0{% endif %}{{ mes }}/{{ ano }}</strong>{% if not forloop.last %}, {% endif %}
-                {% endfor %}
-                (esses meses não entram na soma do escopo).
-            </p>
-        </div>
-    {% endif %}
-    {% if resultado.escopo_itens_sem_estimativa %}
-        <div role="status">
-            <p>{{ resultado.escopo_itens_sem_estimativa }} item(ns) de escopo sem
-                estimativa (ex.: falta salário para cargo/UF/ano).</p>
-        </div>
-    {% endif %}
-
-    <section aria-label="Totais">
-        <p>Total folha (import)</p>
-        <p><strong>R$ {{ resultado.folha_total|floatformat:2 }}</strong></p>
-        <p>{{ resultado.folha_linhas_count }} linha(s)</p>
-
-        <p>Total estimado escopo</p>
-        <p><strong>R$ {{ resultado.escopo_total|floatformat:2 }}</strong></p>
-
-        <p>Diferença (folha − escopo)</p>
-        <p><strong>R$ {{ resultado.diferenca_folha_menos_escopo|floatformat:2 }}</strong></p>
-    </section>
-
-    <h3>Escopo agregado (soma das colunas da estimativa)</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Salário base</th>
-                <th>Insalubridade fixa</th>
-                <th>Insalubridade banheirista</th>
-                <th>Total insalubridades</th>
-                <th>Adicional noturno</th>
-                <th>Total escopo</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>R$ {{ resultado.escopo_base_total|floatformat:2 }}</td>
-                <td>R$ {{ resultado.escopo_insalubridade_fixa_total|floatformat:2 }}</td>
-                <td>R$ {{ resultado.escopo_insalubridade_banheirista_total|floatformat:2 }}</td>
-                <td>R$ {{ resultado.escopo_insalubridade_total|floatformat:2 }}</td>
-                <td>R$ {{ resultado.escopo_adicional_noturno_total|floatformat:2 }}</td>
-                <td><strong>R$ {{ resultado.escopo_total|floatformat:2 }}</strong></td>
-            </tr>
-        </tbody>
-    </table>
-
-    <h3>Folha por categoria (mesmo período)</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Salário</th>
-                <th>Insalubridade</th>
-                <th>Adicional noturno</th>
-                <th>Total folha (todas as verbas)</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>R$ {{ resultado.folha_salario_categoria_total|floatformat:2 }}</td>
-                <td>R$ {{ resultado.folha_insalubridade_categoria_total|floatformat:2 }}</td>
-                <td>R$ {{ resultado.folha_adicional_noturno_categoria_total|floatformat:2 }}</td>
-                <td><strong>R$ {{ resultado.folha_total|floatformat:2 }}</strong></td>
-            </tr>
-        </tbody>
-    </table>
+  {% if resultado.escopo_meses_sem_registro %}
+  <div role="status" class="status-warning">
     <p>
-        A última coluna é a soma de <strong>todas</strong> as linhas da folha no
-        período; as outras colunas somam apenas verbas cuja categoria coincide com
-        SALÁRIO, INSALUBRIDADE ou ADICIONAL NOTURNO (conforme cadastro de verbas).
-        Diferenças em relação à soma das três colunas indicam outras categorias.
+      <i class="fa-solid fa-circle-exclamation"></i>
+      Sem escopo cadastrado para:
+      {% for ano, mes in resultado.escopo_meses_sem_registro %}
+      <strong>{% if mes < 10 %}0{% endif %}{{ mes }}/{{ ano }}</strong>{% if not forloop.last %}, {% endif %}
+      {% endfor %} (esses meses não entram na soma do escopo).
     </p>
-</article>
+  </div>
+  {% endif %}
+
+  {% if resultado.escopo_itens_sem_estimativa %}
+  <div role="status" class="status-danger">
+    <p>
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      {{ resultado.escopo_itens_sem_estimativa }} item(ns) de escopo sem
+      estimativa (ex.: falta salário para cargo/UF/ano).
+    </p>
+  </div>
+  {% endif %}
+
+  <div class="comparativo-resultado-grid">
+    <div class="escopo-item-card comparativo-item-card card-folha">
+      <p class="comparativo-item-card-title">Total folha (import)</p>
+      <p class="comparativo-item-card-value">R$ {{ resultado.folha_total|floatformat:2 }}</p>
+      <p class="comparativo-item-card-subtitle">{{ resultado.folha_linhas_count }} linha(s)</p>
+    </div>
+
+    <div class="escopo-item-card comparativo-item-card card-escopo">
+      <p class="comparativo-item-card-title">Total estimado escopo</p>
+      <p class="comparativo-item-card-value">R$ {{ resultado.escopo_total|floatformat:2 }}</p>
+    </div>
+
+    <div class="escopo-item-card comparativo-item-card {% if resultado.diferenca_folha_menos_escopo > 0 %}card-diferenca-danger{% elif resultado.diferenca_folha_menos_escopo < 0 %}card-diferenca-success{% else %}card-diferenca-neutral{% endif %}">
+      <p class="comparativo-item-card-title">Diferença (folha − escopo)</p>
+      <p class="comparativo-item-card-value {% if resultado.diferenca_folha_menos_escopo > 0 %}text-danger{% elif resultado.diferenca_folha_menos_escopo < 0 %}text-success{% endif %}">
+        R$ {{ resultado.diferenca_folha_menos_escopo|floatformat:2 }}
+      </p>
+    </div>
+  </div>
+
+  <h3 class="comparativo-table-title">
+    Escopo agregado (soma das colunas da estimativa)
+  </h3>
+  <div class="comparativo-table-container">
+    <table class="comparativo-table">
+      <thead>
+        <tr>
+          <th class="number-cell">Salário base</th>
+          <th class="number-cell">Insalubridade fixa</th>
+          <th class="number-cell">Insalubridade banheirista</th>
+          <th class="number-cell">Total insalubridades</th>
+          <th class="number-cell">Adicional noturno</th>
+          <th class="number-cell total-column">Total escopo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="number-cell">R$ {{ resultado.escopo_base_total|floatformat:2 }}</td>
+          <td class="number-cell">R$ {{ resultado.escopo_insalubridade_fixa_total|floatformat:2 }}</td>
+          <td class="number-cell">R$ {{ resultado.escopo_insalubridade_banheirista_total|floatformat:2}}</td>
+          <td class="number-cell">R$ {{ resultado.escopo_insalubridade_total|floatformat:2 }}</td>
+          <td class="number-cell">R$ {{ resultado.escopo_adicional_noturno_total|floatformat:2 }}</td>
+          <td class="number-cell total-column"><strong>R$ {{ resultado.escopo_total|floatformat:2 }}</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="comparativo-table-title">
+    Folha por categoria (mesmo período)
+  </h3>
+  <div style="overflow-x: auto">
+    <table class="comparativo-table">
+      <thead>
+        <tr>
+          <th class="number-cell">Salário</th>
+          <th class="number-cell">Insalubridade</th>
+          <th class="number-cell">Adicional noturno</th>
+          <th class="number-cell total-column">Total folha (todas as verbas)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="number-cell">R$ {{ resultado.folha_salario_categoria_total|floatformat:2 }}</td>
+          <td class="number-cell">R$ {{ resultado.folha_insalubridade_categoria_total|floatformat:2 }}</td>
+          <td class="number-cell">R$ {{ resultado.folha_adicional_noturno_categoria_total|floatformat:2 }}</td>
+          <td class="number-cell total-column"><strong>R$ {{ resultado.folha_total|floatformat:2 }}</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="comparativo-table-footer-text">
+    A última coluna é a soma de <strong>todas</strong> as linhas da folha no
+    período; as outras colunas somam apenas verbas cuja categoria coincide com
+    SALÁRIO, INSALUBRIDADE ou ADICIONAL NOTURNO (conforme cadastro de verbas).
+    Diferenças em relação à soma das três colunas indicam outras categorias.
+  </p>
+</section>
 {% elif loja_selecionada_id and marcou_alguma_competencia and not resultado %}
-<div role="status">
-    <p>Nenhuma competência válida foi reconhecida. Use os checkboxes listados após
-        carregar a loja.</p>
-</div>
+<section class="form-card">
+  <div role="status" class="status-danger">
+    <p>
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      Nenhuma competência válida foi reconhecida. Use os checkboxes listados
+      após carregar a loja.
+    </p>
+  </div>
+</section>
 {% endif %}
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const inputBusca = document.getElementById("filtro-loja-busca");
+    const selectLoja = document.getElementById("loja");
+    const listContainer = document.getElementById("loja-sugestoes");
+
+    if (inputBusca && selectLoja && listContainer) {
+      // Sincroniza o valor inicial se houver
+      if (selectLoja.selectedIndex > 0) {
+        inputBusca.value = selectLoja.options[selectLoja.selectedIndex].text;
+      }
+
+      function renderizarLista(termo) {
+        listContainer.innerHTML = "";
+        const termLower = termo.toLowerCase();
+        let achou = false;
+
+        for (let i = 1; i < selectLoja.options.length; i++) {
+          const option = selectLoja.options[i];
+          const texto = option.text;
+
+          if (texto.toLowerCase().includes(termLower)) {
+            achou = true;
+            const item = document.createElement("div");
+            item.classList.add("autocomplete-item");
+            item.textContent = texto;
+
+            item.addEventListener("click", function () {
+              inputBusca.value = texto;
+              selectLoja.value = option.value;
+              listContainer.style.display = "none";
+              selectLoja.closest("form").submit();
+            });
+
+            listContainer.appendChild(item);
+          }
+        }
+
+        if (!achou && termo !== "") {
+          const semResultado = document.createElement("div");
+          semResultado.classList.add("autocomplete-item");
+          semResultado.style.color = "var(--text-muted)";
+          semResultado.style.pointerEvents = "none";
+          semResultado.textContent = "Nenhuma loja encontrada...";
+          listContainer.appendChild(semResultado);
+        }
+      }
+
+      inputBusca.addEventListener("focus", function () {
+        listContainer.style.display = "block";
+        renderizarLista(inputBusca.value);
+      });
+
+      inputBusca.addEventListener("input", function (e) {
+        renderizarLista(e.target.value);
+        // Se apagar o input todo, reseta a opção selecionada no select oculto
+        if (e.target.value.trim() === "") {
+          selectLoja.value = "";
+        }
+      });
+
+      document.addEventListener("click", function (e) {
+        if (
+          !inputBusca.contains(e.target) &&
+          !listContainer.contains(e.target)
+        ) {
+          listContainer.style.display = "none";
+        }
+      });
+    }
+
+    // Formata os labels para exibir apenas o mês
+    const sections = document.querySelectorAll(".competencia-ano-section");
+    sections.forEach(section => {
+      const title = section.querySelector(".competencia-ano-title");
+      const year = title.getAttribute("data-year");
+      const labels = section.querySelectorAll(".competencia-label");
+      labels.forEach(label => {
+          let text = label.textContent.trim();
+          if (year) {
+              text = text.replace(year, '').replace(/[\/\-\s]+$/, '').replace(/^[\/\-\s]+/, '');
+          }
+          label.textContent = text.charAt(0).toUpperCase() + text.slice(1);
+      });
+    });
+
+    // Auto-submit para as tags de competência
+    const tagCheckboxes = document.querySelectorAll(".hidden-checkbox");
+    tagCheckboxes.forEach((cb) => {
+      cb.addEventListener("change", function () {
+        this.closest("form").submit();
+      });
+    });
+  });
+</script>
 {% endblock %}
