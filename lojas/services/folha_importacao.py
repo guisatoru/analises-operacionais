@@ -36,15 +36,15 @@ def _normalizar_valor_chave(valor):
     return d.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
-def _dataframe_verbas_provento_considerar():
+def _dataframe_todas_as_verbas():
     """
-    Monta DataFrame das verbas que entram na soma (mesma regra do comparativo).
+    Monta DataFrame de todos os proventos cadastrados para validar duplicidades,
+    independentemente de entrarem ou não na contagem do escopo.
     """
     rows = list(
-        Verba.objects.filter(
-            tipo_codigo="PROVENTO",
-            considerar_na_contagem=True,
-        ).values("id", "codigo_verba", "categoria")
+        Verba.objects.filter(tipo_codigo="PROVENTO").values(
+            "id", "codigo_verba", "categoria"
+        )
     )
     if not rows:
         return pd.DataFrame(columns=["_codigo", "verba_id", "categoria"])
@@ -213,12 +213,9 @@ def processar_csv_para_linhas(conteudo_utf8, arquivo_origem):
 
     folha = tratar_folha(folha)
     folha = preparar_folha_processada(folha)
-    df_verbas = _dataframe_verbas_provento_considerar()
+    df_verbas = _dataframe_todas_as_verbas()
     if df_verbas.empty:
-        raise ValueError(
-            "Não há verbas cadastradas como PROVENTO com 'considerar na contagem'. "
-            "Importe o cadastro de verbas antes da folha."
-        )
+        raise ValueError("Importe o cadastro de verbas antes da folha.")
 
     merged = merge_com_verbas_elegiveis(folha, df_verbas)
     if merged.empty:

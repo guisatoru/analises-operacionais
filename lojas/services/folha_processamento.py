@@ -60,8 +60,10 @@ def tratar_folha(folha):
     folha["VALOR"] = pd.to_numeric(folha["VALOR"], errors="coerce")
     folha["CODIGO VERBA"] = folha["CODIGO VERBA"].map(normalizar_codigo_verba)
     # Centro sempre 12 dígitos; depois troca centros migrados.
-    folha["CENTRO CUSTO"] = folha["CENTRO CUSTO"].fillna("").map(
-        lambda x: normalizar_centro_custo(x) if str(x).strip() != "" else ""
+    folha["CENTRO CUSTO"] = (
+        folha["CENTRO CUSTO"]
+        .fillna("")
+        .map(lambda x: normalizar_centro_custo(x) if str(x).strip() != "" else "")
     )
     folha["CENTRO CUSTO"] = folha["CENTRO CUSTO"].replace(SUBSTITUICOES_CENTRO_CUSTO)
     return folha
@@ -101,7 +103,7 @@ def preparar_folha_processada(folha):
 
 def merge_com_verbas_elegiveis(folha_processada, dataframe_verbas):
     """
-    Mantém só linhas cuja verba existe no cadastro como PROVENTO e considerar_na_contagem.
+    Mantém só linhas cuja verba existe no cadastro de verbas enviado.
     dataframe_verbas: colunas _codigo (normalizado), verba_id, categoria
     """
     df = folha_processada.copy()

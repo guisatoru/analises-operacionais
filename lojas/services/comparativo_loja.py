@@ -151,7 +151,12 @@ def montar_resultado_comparativo(
     for ano, mes in competencias:
         q_data |= Q(dt_arq__year=ano, dt_arq__month=mes)
 
-    folha_qs = LinhaFolha.objects.filter(loja_id=loja_id).filter(q_data)
+    # Filtra apenas verbas marcadas para entrar na conta (Provento e Considerar)
+    folha_qs = (
+        LinhaFolha.objects.filter(loja_id=loja_id)
+        .filter(q_data)
+        .filter(verba__tipo_codigo="PROVENTO", verba__considerar_na_contagem=True)
+    )
     folha_total = folha_qs.aggregate(s=Sum("valor"))["s"] or Decimal("0.00")
     resultado.folha_total = folha_total
     resultado.folha_linhas_count = folha_qs.count()
