@@ -74,3 +74,30 @@
 .import-empty-state p {
   color: #6b7280;
 }
+
+/* Dicas de Importação */
+.import-tips-card {
+    margin-top: 24px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.import-tips-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.import-tips-title i {
+    color: var(--primary-color);
+}
+
+.import-tips-list {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    line-height: 1.6;
+    padding-left: 1.25rem;
+}

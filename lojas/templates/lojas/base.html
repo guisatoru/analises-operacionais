@@ -30,7 +30,7 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-logo">
-                    <i class="fa-solid fa-layer-group" style="color: #4f46e5; font-size: 1.5rem;"></i>
+                    <i class="fa-solid fa-layer-group"></i>
                     <span>Análises Op.</span>
                 </div>
                 <button class="sidebar-toggle" id="toggle-btn" title="Alternar Menu">
@@ -110,9 +110,9 @@
         <!-- Conteúdo Principal -->
         <main class="main-content">
             {% if messages %}
-                <div class="messages-container" style="margin-bottom: 24px;">
+                <div class="messages-container">
                     {% for message in messages %}
-                        <div class="badge {% if message.tags == 'success' %}badge-success{% elif message.tags == 'error' %}badge-danger{% else %}badge-neutral{% endif %}" style="padding: 12px 20px; width: 100%; border-radius: 12px; font-size: 0.875rem; display: flex; align-items: center; gap: 10px;">
+                        <div class="badge {% if message.tags == 'success' %}badge-success{% elif message.tags == 'error' %}badge-danger{% else %}badge-neutral{% endif %} alert-badge">
                             {% if message.tags == 'success' %}
                                 <i class="fa-solid fa-circle-check"></i>
                             {% elif message.tags == 'error' %}
@@ -131,28 +131,7 @@
 
     </div>
 
-    <script>
-        // Lógica da Sidebar Retrátil
-        const sidebar = document.getElementById('sidebar');
-        const toggleBtn = document.getElementById('toggle-btn');
-        
-        // Aplica estado inicial sem animação para evitar flicker
-        if (localStorage.getItem('sidebar-collapsed') === 'true' || window.innerWidth < 1024) {
-            sidebar.classList.add('collapsed');
-        }
-
-        toggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('collapsed');
-            localStorage.setItem('sidebar-collapsed', sidebar.classList.contains('collapsed'));
-        });
-
-        // Ajuste automático para mobile
-        window.addEventListener('resize', () => {
-            if (window.innerWidth < 768) {
-                sidebar.classList.add('collapsed');
-            }
-        });
-    </script>
+    <script src="{% static 'lojas/js/layout.js' %}"></script>
 
     {% block extra_js %}{% endblock %}
 

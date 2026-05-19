@@ -65,13 +65,13 @@
     </form>
 </section>
 
-<div class="card" style="margin-top: 24px; border-left: 4px solid var(--primary-color);">
+<div class="card import-tips-card">
     <div class="card-body">
-        <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 12px; color: var(--text-main);">
-            <i class="fa-solid fa-circle-info" style="color: var(--primary-color); margin-right: 8px;"></i>
+        <h3 class="import-tips-title">
+            <i class="fa-solid fa-circle-info"></i>
             Dicas para Importação
         </h3>
-        <ul style="color: var(--text-muted); font-size: 0.875rem; line-height: 1.6; padding-left: 1.25rem;">
+        <ul class="import-tips-list">
             <li>O arquivo deve ser um <strong>CSV</strong> exportado diretamente do sistema TOTVS.</li>
             <li>Certifique-se de que o encoding seja <strong>UTF-8</strong> (ou UTF-8 com BOM).</li>
             <li>Colaboradores sem data de admissão no arquivo serão ignorados.</li>
@@ -79,19 +79,8 @@
         </ul>
     </div>
 </div>
+{% endblock %}
 
-<script>
-    (function () {
-        var form = document.querySelector('form[enctype="multipart/form-data"]');
-        if (!form) return;
-        
-        form.addEventListener("submit", function () {
-            var btn = document.getElementById("btn-importar");
-            if (btn && !btn.disabled) {
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processando...';
-            }
-        });
-    })();
-</script>
+{% block extra_js %}
+<script src="{% static 'lojas/js/import_form.js' %}"></script>
 {% endblock %}

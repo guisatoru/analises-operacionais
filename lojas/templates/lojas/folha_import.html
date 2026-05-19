@@ -1,6 +1,13 @@
-{% extends "lojas/base.html" %} {% block titulo %}{{ titulo }}{% endblock %} {%load static %} {% block extra_head %}
+{% extends "lojas/base.html" %} 
+{% load static %}
+
+{% block titulo %}{{ titulo }}{% endblock %} 
+
+{% block extra_head %}
 <link rel="stylesheet" href="{% static 'lojas/css/pages/folha-import.css' %}" />
-{% endblock %} {%block content %}
+{% endblock %} 
+
+{% block content %}
 <div class="page-title-row">
   <div>
     <a class="back-link" href="{% url 'inicio' %}">
@@ -60,25 +67,8 @@
   </form>
 </section>
 
-<script>
-  (function () {
-    var form = document.querySelector('form[enctype="multipart/form-data"]');
-    if (!form) {
-      return;
-    }
-    form.addEventListener("submit", function () {
-      var btn = document.getElementById("btn-importar-folha");
-      if (btn && !btn.disabled) {
-        btn.disabled = true;
-        btn.innerHTML =
-          '<i class="fa-solid fa-spinner fa-spin"></i> Importando…';
-      }
-    });
-  })();
-</script>
-
 {% if resumo_importacao %}
-<div class="page-title-row" style="margin-top: 40px">
+<div class="page-title-row mt-40">
   <div>
     <span class="page-eyebrow">Resultado</span>
     <h2>Detalhe do último import</h2>
@@ -203,7 +193,7 @@
   {% endif %}
 </div>
 
-<div style="display: flex; gap: 12px; margin-top: 24px; align-items: center">
+<div class="import-footer-actions">
   <a
     class="secondary-action-button"
     href="{% url 'admin:lojas_linhafolha_changelist' %}"
@@ -219,4 +209,9 @@
     Ver histórico de duplicadas
   </a>
 </div>
-{% endif %} {% endblock %}
+{% endif %} 
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'lojas/js/import_form.js' %}"></script>
+{% endblock %}

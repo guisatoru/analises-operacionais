@@ -2,8 +2,8 @@ from django.shortcuts import render, redirect
 from django.core.paginator import Paginator
 from django.contrib import messages
 from .models import Colaborador
-from lojas.forms import ColaboradorImportForm
-from lojas.services.colaborador_importacao import importar_colaboradores_de_texto
+from .forms import ColaboradorImportForm
+from .services.colaborador_importacao import importar_colaboradores_de_texto
 
 def colaborador_list(request):
     """

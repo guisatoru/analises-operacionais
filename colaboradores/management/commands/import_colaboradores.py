@@ -1,7 +1,7 @@
 # Comando: importa o CSV de colaboradores da TOTVS.
 
 from django.core.management.base import BaseCommand
-from lojas.services.colaborador_importacao import importar_colaboradores_de_texto
+from colaboradores.services.colaborador_importacao import importar_colaboradores_de_texto
 
 class Command(BaseCommand):
     help = "Importa cadastro de colaboradores a partir do CSV da TOTVS."

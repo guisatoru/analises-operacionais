@@ -1,4 +1,5 @@
 {% extends 'lojas/base.html' %}
+{% load static %}
 
 {% block titulo %}
     {{ titulo }}
@@ -27,7 +28,7 @@
             >
         </div>
 
-        <div style="display: flex; gap: 8px;">
+        <div class="inline-flex gap-8">
             <button type="submit" class="btn btn-primary">
                 <i class="fa-solid fa-magnifying-glass"></i>
                 Buscar
@@ -61,37 +62,36 @@
             <tbody>
                 {% for colaborador in page_obj %}
                 <tr class="clickable-row" 
-                    onclick="openColaboradorModal({
-                        nome: '{{ colaborador.nome|escapejs }}',
-                        re: '{{ colaborador.re|escapejs }}',
-                        cargo: '{{ colaborador.cargo|escapejs }}',
-                        loja: '{{ colaborador.loja.nome_referencia|default:colaborador.centro_custo|escapejs }}',
-                        status: '{% if not colaborador.status or colaborador.status == '' %}Ativo{% elif colaborador.status == 'A' %}Afastado{% elif colaborador.status == 'F' %}Férias{% elif colaborador.status == 'D' %}Demitido{% else %}{{ colaborador.status }}{% endif %}',
-                        admissao: '{{ colaborador.data_admissao|date:"d/m/Y" }}',
-                        demissao: '{{ colaborador.data_demissao|date:"d/m/Y"|default:"-" }}',
-                        termino1: '{{ colaborador.termino_1|date:"d/m/Y"|default:"-" }}',
-                        termino2: '{{ colaborador.termino_2|date:"d/m/Y"|default:"-" }}'
-                    })">
-                    <td style="font-family: monospace;">{{ colaborador.re }}</td>
+                    data-nome="{{ colaborador.nome|escapejs }}"
+                    data-re="{{ colaborador.re|escapejs }}"
+                    data-cargo="{{ colaborador.cargo|escapejs }}"
+                    data-loja="{{ colaborador.loja.nome_referencia|default:colaborador.centro_custo|escapejs }}"
+                    data-status="{% if not colaborador.status or colaborador.status == '' %}Ativo{% elif colaborador.status == 'A' %}Afastado{% elif colaborador.status == 'F' %}Férias{% elif colaborador.status == 'D' %}Demitido{% else %}{{ colaborador.status }}{% endif %}"
+                    data-admissao="{{ colaborador.data_admissao|date:'d/m/Y' }}"
+                    data-demissao="{{ colaborador.data_demissao|date:'d/m/Y'|default:'-' }}"
+                    data-termino1="{{ colaborador.termino_1|date:'d/m/Y'|default:'-' }}"
+                    data-termino2="{{ colaborador.termino_2|date:'d/m/Y'|default:'-' }}"
+                >
+                    <td class="font-mono">{{ colaborador.re }}</td>
                     <td><strong>{{ colaborador.nome }}</strong></td>
                     <td>
                         {% if colaborador.loja %}
-                            <span style="display: inline-flex; align-items: center; gap: 6px;">
-                                <i class="fa-solid fa-store" style="color: var(--text-muted); font-size: 0.75rem;"></i>
+                            <span class="inline-flex items-center gap-6">
+                                <i class="fa-solid fa-store text-muted text-xs"></i>
                                 {{ colaborador.loja.nome_referencia }}
                             </span>
                         {% else %}
-                            <span class="text-muted" style="font-size: 0.8125rem;">{{ colaborador.centro_custo }}</span>
+                            <span class="text-muted text-sm">{{ colaborador.centro_custo }}</span>
                         {% endif %}
                     </td>
-                    <td style="color: var(--text-muted);">{{ colaborador.cargo }}</td>
+                    <td class="text-muted">{{ colaborador.cargo }}</td>
                     <td>
                         {% if not colaborador.status or colaborador.status == '' %}
                             <span class="badge badge-success">Ativo</span>
                         {% elif colaborador.status == 'A' %}
-                            <span class="badge badge-neutral" style="background-color: #fef9c3; color: #854d0e;">Afastado</span>
+                            <span class="badge badge-neutral bg-warning text-warning">Afastado</span>
                         {% elif colaborador.status == 'F' %}
-                            <span class="badge badge-neutral" style="background-color: #e0f2fe; color: #075985;">Férias</span>
+                            <span class="badge badge-neutral bg-info text-info">Férias</span>
                         {% elif colaborador.status == 'D' %}
                             <span class="badge badge-danger">Demitido</span>
                         {% else %}
@@ -105,7 +105,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" style="padding: 40px; text-align: center; color: var(--text-muted);">
+                    <td colspan="7" class="p-40 text-center text-muted">
                         Nenhum colaborador encontrado com os critérios de busca.
                     </td>
                 </tr>
@@ -143,7 +143,7 @@
 </div>
 
 <!-- Modal de Detalhes do Colaborador (Estilo SaaS) -->
-<div class="modal-overlay" id="colaboradorModalOverlay" onclick="closeColaboradorModal(event)">
+<div class="modal-overlay" id="colaboradorModalOverlay" onclick="closeColaboradorModal()">
     <div class="modal-container" onclick="event.stopPropagation()">
         <header class="modal-header">
             <h2 class="modal-title">Ficha do Colaborador</h2>
@@ -154,14 +154,14 @@
         <div class="modal-body">
             <div class="detail-grid-small">
                 <!-- Identificação -->
-                <div class="detail-item" style="grid-column: span 2;">
+                <div class="detail-item col-span-2">
                     <span class="detail-label">Nome Completo</span>
-                    <span class="detail-value" id="modal-nome" style="font-size: 1.125rem;">-</span>
+                    <span class="detail-value text-lg" id="modal-nome">-</span>
                 </div>
                 
                 <div class="detail-item">
                     <span class="detail-label">Matrícula (RE)</span>
-                    <span class="detail-value" id="modal-re" style="font-family: monospace;">-</span>
+                    <span class="detail-value font-mono" id="modal-re">-</span>
                 </div>
                 <div class="detail-item">
                     <span class="detail-label">Status Atual</span>
@@ -210,41 +210,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-function openColaboradorModal(data) {
-    // Preenche os campos
-    document.getElementById('modal-nome').innerText = data.nome;
-    document.getElementById('modal-re').innerText = data.re;
-    document.getElementById('modal-cargo').innerText = data.cargo;
-    document.getElementById('modal-loja').innerText = data.loja;
-    document.getElementById('modal-admissao').innerText = data.admissao;
-    document.getElementById('modal-demissao').innerText = data.demissao;
-    document.getElementById('modal-termino1').innerText = data.termino1;
-    document.getElementById('modal-termino2').innerText = data.termino2;
-
-    // Badge de status
-    const statusEl = document.getElementById('modal-status');
-    statusEl.className = 'badge';
-    statusEl.innerText = data.status;
-    
-    if (data.status === 'Ativo') statusEl.classList.add('badge-success');
-    else if (data.status === 'Demitido') statusEl.classList.add('badge-danger');
-    else statusEl.classList.add('badge-neutral');
-
-    // Mostra o modal
-    document.getElementById('colaboradorModalOverlay').classList.add('active');
-    document.body.style.overflow = 'hidden'; // Trava o scroll do fundo
-}
-
-function closeColaboradorModal(event) {
-    document.getElementById('colaboradorModalOverlay').classList.remove('active');
-    document.body.style.overflow = ''; // Destrava o scroll
-}
-
-// Atalho: Fechar com ESC
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeColaboradorModal();
-});
-</script>
+<script src="{% static 'colaboradores/js/colaborador_modal.js' %}"></script>
 {% endblock %}
-

@@ -431,8 +431,16 @@
 
 /* 10. Utilitários */
 .text-right { text-align: right; }
+.text-center { text-align: center; }
 .font-bold { font-weight: 700; }
+.font-mono { font-family: monospace; }
+.text-lg { font-size: 1.125rem; }
+.text-sm { font-size: 0.8125rem; }
 .text-success { color: #16a34a; }
 .text-danger { color: #dc2626; }
 .text-muted { color: var(--text-muted); }
+.col-span-2 { grid-column: span 2; }
+.w-100 { width: 100%; }
+.p-40 { padding: 40px; }
+.gap-8 { gap: 8px; }
 .hidden { display: none; }
