@@ -122,27 +122,35 @@
       </div>
 
       <div class="comparativo-resultado-grid">
-        <div class="escopo-item-card comparativo-item-card card-folha">
+        <div class="comparativo-item-card card-folha">
           <p class="comparativo-item-card-title">Total folha (import)</p>
           <p class="comparativo-item-card-value">R$ {{ resultado.folha_total|floatformat:2 }}</p>
-          <p class="comparativo-item-card-subtitle">{{ resultado.folha_linhas_count }} linhas processadas</p>
+          <p class="comparativo-item-card-subtitle">
+            <i class="fa-regular fa-file-lines"></i>
+            {{ resultado.folha_linhas_count }} linhas processadas
+          </p>
         </div>
 
-        <div class="escopo-item-card comparativo-item-card card-escopo">
+        <div class="comparativo-item-card card-escopo">
           <p class="comparativo-item-card-title">Total estimado escopo</p>
           <p class="comparativo-item-card-value">R$ {{ resultado.escopo_total|floatformat:2 }}</p>
-          <p class="comparativo-item-card-subtitle">Base de rubricas</p>
+          <p class="comparativo-item-card-subtitle">
+            <i class="fa-regular fa-calendar-check"></i>
+            Base de rubricas
+          </p>
         </div>
 
-        <div class="escopo-item-card comparativo-item-card {% if resultado.diferenca_folha_menos_escopo > 0 %}card-diferenca-danger{% elif resultado.diferenca_folha_menos_escopo < 0 %}card-diferenca-success{% else %}card-diferenca-neutral{% endif %}">
+        <div class="comparativo-item-card {% if resultado.diferenca_folha_menos_escopo > 0 %}card-diferenca-danger{% elif resultado.diferenca_folha_menos_escopo < 0 %}card-diferenca-success{% else %}card-diferenca-neutral{% endif %}">
           <p class="comparativo-item-card-title">Diferença (folha - escopo)</p>
           <p class="comparativo-item-card-value {% if resultado.diferenca_folha_menos_escopo > 0 %}text-danger{% elif resultado.diferenca_folha_menos_escopo < 0 %}text-success{% endif %}">
             R$ {{ resultado.diferenca_folha_menos_escopo|floatformat:2 }}
           </p>
           <p class="comparativo-item-card-subtitle">
             {% if resultado.diferenca_folha_menos_escopo > 0 %}
+              <i class="fa-solid fa-arrow-trend-up"></i>
               Acima do orçado
             {% else %}
+              <i class="fa-solid fa-arrow-trend-down"></i>
               Abaixo do orçado
             {% endif %}
           </p>
@@ -170,18 +178,22 @@
               <td><div class="category-title">Salário base</div></td>
               <td class="number-cell"><span class="main-value text-escopo">R$ {{ resultado.escopo_base_total|floatformat:2 }}</span></td>
               <td class="number-cell"><span class="main-value text-folha">R$ {{ resultado.folha_salario_categoria_total|floatformat:2 }}</span></td>
-              <td class="number-cell {% if resultado.desvio_salario > 0 %}text-danger{% elif resultado.desvio_salario < 0 %}text-success{% endif %}">
-                {% if resultado.desvio_salario > 0 %}+{% endif %}{{ resultado.desvio_salario|floatformat:2 }} 
-                {% if resultado.desvio_salario > 0 %}↗{% elif resultado.desvio_salario < 0 %}↘{% else %}-{% endif %}
+              <td class="number-cell">
+                <span class="desvio-pill {% if resultado.desvio_salario > 0 %}desvio-negative{% elif resultado.desvio_salario < 0 %}desvio-positive{% endif %}">
+                  {% if resultado.desvio_salario > 0 %}+{% endif %}{{ resultado.desvio_salario|floatformat:2 }} 
+                  {% if resultado.desvio_salario > 0 %}↗{% elif resultado.desvio_salario < 0 %}↘{% else %}-{% endif %}
+                </span>
               </td>
             </tr>
             <tr>
               <td><div class="category-title">Insalubridade (Total)</div></td>
               <td class="number-cell font-bold text-escopo">R$ {{ resultado.escopo_insalubridade_total|floatformat:2 }}</td>
               <td class="number-cell font-bold text-folha">R$ {{ resultado.folha_insalubridade_categoria_total|floatformat:2 }}</td>
-              <td class="number-cell {% if resultado.desvio_insalubridade > 0 %}text-danger{% elif resultado.desvio_insalubridade < 0 %}text-success{% endif %}">
-                {% if resultado.desvio_insalubridade > 0 %}+{% endif %}{{ resultado.desvio_insalubridade|floatformat:2 }} 
-                {% if resultado.desvio_insalubridade > 0 %}↗{% elif resultado.desvio_insalubridade < 0 %}↘{% else %}-{% endif %}
+              <td class="number-cell">
+                <span class="desvio-pill {% if resultado.desvio_insalubridade > 0 %}desvio-negative{% elif resultado.desvio_insalubridade < 0 %}desvio-positive{% endif %}">
+                  {% if resultado.desvio_insalubridade > 0 %}+{% endif %}{{ resultado.desvio_insalubridade|floatformat:2 }} 
+                  {% if resultado.desvio_insalubridade > 0 %}↗{% elif resultado.desvio_insalubridade < 0 %}↘{% else %}-{% endif %}
+                </span>
               </td>
             </tr>
             <!-- Sub-linhas da Insalubridade -->
@@ -202,9 +214,11 @@
               <td><div class="category-title">Adicional noturno</div></td>
               <td class="number-cell"><span class="main-value text-escopo">R$ {{ resultado.escopo_adicional_noturno_total|floatformat:2 }}</span></td>
               <td class="number-cell"><span class="main-value text-folha">R$ {{ resultado.folha_adicional_noturno_categoria_total|floatformat:2 }}</span></td>
-              <td class="number-cell {% if resultado.desvio_adicional_noturno > 0 %}text-danger{% elif resultado.desvio_adicional_noturno < 0 %}text-success{% endif %}">
-                {% if resultado.desvio_adicional_noturno > 0 %}+{% endif %}{{ resultado.desvio_adicional_noturno|floatformat:2 }} 
-                {% if resultado.desvio_adicional_noturno > 0 %}↗{% elif resultado.desvio_adicional_noturno < 0 %}↘{% else %}-{% endif %}
+              <td class="number-cell">
+                <span class="desvio-pill {% if resultado.desvio_adicional_noturno > 0 %}desvio-negative{% elif resultado.desvio_adicional_noturno < 0 %}desvio-positive{% endif %}">
+                  {% if resultado.desvio_adicional_noturno > 0 %}+{% endif %}{{ resultado.desvio_adicional_noturno|floatformat:2 }} 
+                  {% if resultado.desvio_adicional_noturno > 0 %}↗{% elif resultado.desvio_adicional_noturno < 0 %}↘{% else %}-{% endif %}
+                </span>
               </td>
             </tr>
           </tbody>
