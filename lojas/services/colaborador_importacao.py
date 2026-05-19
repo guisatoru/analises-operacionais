@@ -3,7 +3,10 @@ from datetime import datetime
 from django.db import transaction
 from lojas.models import Loja
 from colaboradores.models import Colaborador
-from lojas.services.folha_constants import normalizar_centro_custo
+from lojas.services.folha_constants import (
+    normalizar_centro_custo, 
+    SUBSTITUICOES_CENTRO_CUSTO
+)
 
 def parse_data(valor):
     """Converte string de data DD/MM/YYYY para objeto date do Python."""
@@ -128,6 +131,11 @@ def importar_colaboradores_de_texto(conteudo_csv):
 
                 cc_bruto = str(row['C.C. Movto']).strip()
                 cc_norm = normalizar_centro_custo(cc_bruto)
+                
+                # Aplica substituição de-para se o centro de custo for antigo/legado
+                if cc_norm in SUBSTITUICOES_CENTRO_CUSTO:
+                    cc_norm = SUBSTITUICOES_CENTRO_CUSTO[cc_norm]
+                
                 loja = mapa_lojas.get(cc_norm)
 
                 defaults = {
