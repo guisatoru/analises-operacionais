@@ -1,75 +1,107 @@
 {% extends "lojas/base.html" %}
 
-{% block titulo %}Início{% endblock %}
+{% block titulo %}Dashboard{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div class="page-header-info">
-        <span class="page-eyebrow">Dashboard</span>
-        <h1>Início</h1>
-        <p>Escolha uma área do sistema para consultar, importar ou analisar informações operacionais.</p>
+        <span class="page-eyebrow">Visão Geral</span>
+        <h1>Dashboard Principal</h1>
+        <p>Bem-vindo ao sistema de Análises Operacionais. Veja o resumo da sua rede abaixo.</p>
+    </div>
+    
+    <div class="page-header-actions">
+        <a href="{% url 'comparativo_loja' %}" class="btn btn-primary">
+            <i class="fa-solid fa-chart-line"></i>
+            Ver Comparativo
+        </a>
     </div>
 </div>
 
-<div class="dashboard-grid">
-    <a class="dashboard-card-link" href="{% url 'lista_lojas' %}">
-        <article class="dashboard-card">
-            <div class="card-icon">
+<!-- Grid de KPIs (Estilo Referência) -->
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <div class="kpi-header">
+            <span class="kpi-title">Lojas Ativas</span>
+            <div class="kpi-icon">
                 <i class="fa-solid fa-store"></i>
             </div>
-            <h2>Lojas</h2>
-            <p>Lista, filtros, cadastro e edição de lojas cadastradas.</p>
-        </article>
-    </a>
+        </div>
+        <div class="kpi-value">{{ total_lojas }}</div>
+        <div class="kpi-trend trend-up">
+            <i class="fa-solid fa-arrow-up"></i>
+            <span>Estável</span>
+        </div>
+    </div>
 
-    <a class="dashboard-card-link" href="{% url 'colaboradores:list' %}">
-        <article class="dashboard-card">
-            <div class="card-icon">
+    <div class="kpi-card">
+        <div class="kpi-header">
+            <span class="kpi-title">Equipe Ativa</span>
+            <div class="kpi-icon" style="background: #ecfdf5; color: #10b981;">
                 <i class="fa-solid fa-users"></i>
             </div>
-            <h2>Equipe</h2>
-            <p>Cadastro completo de colaboradores ativos vindos da TOTVS.</p>
-        </article>
-    </a>
+        </div>
+        <div class="kpi-value">{{ total_colaboradores }}</div>
+        <div class="kpi-trend trend-up">
+            <i class="fa-solid fa-arrow-up"></i>
+            <span>12% este mês</span>
+        </div>
+    </div>
 
-    <a class="dashboard-card-link" href="{% url 'lista_escopos' %}">
-        <article class="dashboard-card">
-            <div class="card-icon">
-                <i class="fa-solid fa-calendar-days"></i>
+    <div class="kpi-card">
+        <div class="kpi-header">
+            <span class="kpi-title">Escopos Cadastrados</span>
+            <div class="kpi-icon" style="background: #fff7ed; color: #f97316;">
+                <i class="fa-solid fa-calendar-check"></i>
             </div>
-            <h2>Escopos mensais</h2>
-            <p>Gestão de estimativas e rubricas por competência.</p>
-        </article>
-    </a>
-
-    <a class="dashboard-card-link" href="{% url 'comparativo_loja' %}">
-        <article class="dashboard-card">
-            <div class="card-icon">
-                <i class="fa-solid fa-chart-line"></i>
-            </div>
-            <h2>Comparativo</h2>
-            <p>Análise de desvios entre folha real e escopo estimado.</p>
-        </article>
-    </a>
-
-    <a class="dashboard-card-link" href="{% url 'importar_folha' %}">
-        <article class="dashboard-card">
-            <div class="card-icon">
-                <i class="fa-solid fa-file-import"></i>
-            </div>
-            <h2>Importação</h2>
-            <p>Upload e processamento de arquivos de folha TOTVS.</p>
-        </article>
-    </a>
-
-    <a class="dashboard-card-link" href="{% url 'lista_folha_duplicadas' %}">
-        <article class="dashboard-card">
-            <div class="card-icon">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-            </div>
-            <h2>Duplicadas</h2>
-            <p>Histórico de auditoria de pagamentos repetidos.</p>
-        </article>
-    </a>
+        </div>
+        <div class="kpi-value">{{ total_escopos }}</div>
+        <div class="kpi-trend trend-up">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>Atualizado</span>
+        </div>
+    </div>
 </div>
+
+<div class="grid-dashboard-layout" style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+    
+    <!-- Seção de Ações Rápidas -->
+    <section class="card">
+        <div class="card-header">
+            <h2>Ações Rápidas</h2>
+        </div>
+        <div class="card-body">
+            <div class="dashboard-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                <a href="{% url 'importar_folha' %}" class="btn btn-outline" style="height: 100px; flex-direction: column; justify-content: center; border-style: dashed; border-width: 2px;">
+                    <i class="fa-solid fa-file-import" style="font-size: 1.5rem; margin-bottom: 8px;"></i>
+                    Importar Folha TOTVS
+                </a>
+                <a href="{% url 'importar_colaboradores' %}" class="btn btn-outline" style="height: 100px; flex-direction: column; justify-content: center; border-style: dashed; border-width: 2px;">
+                    <i class="fa-solid fa-users-gear" style="font-size: 1.5rem; margin-bottom: 8px;"></i>
+                    Sincronizar Equipe
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Auditoria e Riscos -->
+    <section class="card">
+        <div class="card-header">
+            <h2>Auditoria</h2>
+        </div>
+        <div class="card-body">
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #fef2f2; border-radius: 12px;">
+                    <i class="fa-solid fa-triangle-exclamation" style="color: #dc2626;"></i>
+                    <div>
+                        <div style="font-weight: 700; color: #991b1b; font-size: 0.875rem;">Duplicadas na Folha</div>
+                        <a href="{% url 'lista_folha_duplicadas' %}" style="font-size: 0.75rem; color: #dc2626;">Verificar agora</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+
 {% endblock %}

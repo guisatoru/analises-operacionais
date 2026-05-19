@@ -30,7 +30,7 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-logo">
-                    <i class="fa-solid fa-chart-pie" style="color: #2563eb; font-size: 1.25rem;"></i>
+                    <i class="fa-solid fa-layer-group" style="color: #4f46e5; font-size: 1.5rem;"></i>
                     <span>Análises Op.</span>
                 </div>
                 <button class="sidebar-toggle" id="toggle-btn" title="Alternar Menu">
@@ -59,11 +59,11 @@
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">RH & Equipe</div>
                     <nav class="sidebar-menu">
-                        <a href="{% url 'colaboradores:list' %}" class="{% if 'colaboradores' in request.path and 'demitidos' not in request.path %}active{% endif %}">
+                        <a href="{% url 'colaboradores:list' %}" class="{% if request.resolver_match.view_name == 'colaboradores:list' %}active{% endif %}">
                             <i class="fa-solid fa-users"></i>
                             <span>Ativos</span>
                         </a>
-                        <a href="{% url 'colaboradores:demitidos_list' %}" class="{% if 'demitidos' in request.path %}active{% endif %}">
+                        <a href="{% url 'colaboradores:demitidos_list' %}" class="{% if request.resolver_match.view_name == 'colaboradores:demitidos_list' %}active{% endif %}">
                             <i class="fa-solid fa-user-slash"></i>
                             <span>Demitidos</span>
                         </a>
