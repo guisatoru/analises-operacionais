@@ -60,7 +60,18 @@
             </thead>
             <tbody>
                 {% for colaborador in page_obj %}
-                <tr>
+                <tr class="clickable-row" 
+                    onclick="openColaboradorModal({
+                        nome: '{{ colaborador.nome|escapejs }}',
+                        re: '{{ colaborador.re|escapejs }}',
+                        cargo: '{{ colaborador.cargo|escapejs }}',
+                        loja: '{{ colaborador.loja.nome_referencia|default:colaborador.centro_custo|escapejs }}',
+                        status: '{% if not colaborador.status or colaborador.status == '' %}Ativo{% elif colaborador.status == 'A' %}Afastado{% elif colaborador.status == 'F' %}Férias{% elif colaborador.status == 'D' %}Demitido{% else %}{{ colaborador.status }}{% endif %}',
+                        admissao: '{{ colaborador.data_admissao|date:"d/m/Y" }}',
+                        demissao: '{{ colaborador.data_demissao|date:"d/m/Y"|default:"-" }}',
+                        termino1: '{{ colaborador.termino_1|date:"d/m/Y"|default:"-" }}',
+                        termino2: '{{ colaborador.termino_2|date:"d/m/Y"|default:"-" }}'
+                    })">
                     <td style="font-family: monospace;">{{ colaborador.re }}</td>
                     <td><strong>{{ colaborador.nome }}</strong></td>
                     <td>
@@ -130,5 +141,110 @@
     </div>
     {% endif %}
 </div>
+
+<!-- Modal de Detalhes do Colaborador (Estilo SaaS) -->
+<div class="modal-overlay" id="colaboradorModalOverlay" onclick="closeColaboradorModal(event)">
+    <div class="modal-container" onclick="event.stopPropagation()">
+        <header class="modal-header">
+            <h2 class="modal-title">Ficha do Colaborador</h2>
+            <button class="modal-close" onclick="closeColaboradorModal()">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </header>
+        <div class="modal-body">
+            <div class="detail-grid-small">
+                <!-- Identificação -->
+                <div class="detail-item" style="grid-column: span 2;">
+                    <span class="detail-label">Nome Completo</span>
+                    <span class="detail-value" id="modal-nome" style="font-size: 1.125rem;">-</span>
+                </div>
+                
+                <div class="detail-item">
+                    <span class="detail-label">Matrícula (RE)</span>
+                    <span class="detail-value" id="modal-re" style="font-family: monospace;">-</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Status Atual</span>
+                    <span id="modal-status">-</span>
+                </div>
+
+                <div class="detail-divider"></div>
+
+                <!-- Cargo e Loja -->
+                <div class="detail-item">
+                    <span class="detail-label">Cargo</span>
+                    <span class="detail-value" id="modal-cargo">-</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Loja / CC</span>
+                    <span class="detail-value" id="modal-loja">-</span>
+                </div>
+
+                <div class="detail-divider"></div>
+
+                <!-- Datas -->
+                <div class="detail-item">
+                    <span class="detail-label">Data de Admissão</span>
+                    <span class="detail-value" id="modal-admissao">-</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Data de Demissão</span>
+                    <span class="detail-value" id="modal-demissao">-</span>
+                </div>
+
+                <div class="detail-divider"></div>
+
+                <!-- Experiência -->
+                <div class="detail-item">
+                    <span class="detail-label">Término Experiência (1º)</span>
+                    <span class="detail-value" id="modal-termino1">-</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Término Experiência (2º)</span>
+                    <span class="detail-value" id="modal-termino2">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openColaboradorModal(data) {
+    // Preenche os campos
+    document.getElementById('modal-nome').innerText = data.nome;
+    document.getElementById('modal-re').innerText = data.re;
+    document.getElementById('modal-cargo').innerText = data.cargo;
+    document.getElementById('modal-loja').innerText = data.loja;
+    document.getElementById('modal-admissao').innerText = data.admissao;
+    document.getElementById('modal-demissao').innerText = data.demissao;
+    document.getElementById('modal-termino1').innerText = data.termino1;
+    document.getElementById('modal-termino2').innerText = data.termino2;
+
+    // Badge de status
+    const statusEl = document.getElementById('modal-status');
+    statusEl.className = 'badge';
+    statusEl.innerText = data.status;
+    
+    if (data.status === 'Ativo') statusEl.classList.add('badge-success');
+    else if (data.status === 'Demitido') statusEl.classList.add('badge-danger');
+    else statusEl.classList.add('badge-neutral');
+
+    // Mostra o modal
+    document.getElementById('colaboradorModalOverlay').classList.add('active');
+    document.body.style.overflow = 'hidden'; // Trava o scroll do fundo
+}
+
+function closeColaboradorModal(event) {
+    document.getElementById('colaboradorModalOverlay').classList.remove('active');
+    document.body.style.overflow = ''; // Destrava o scroll
+}
+
+// Atalho: Fechar com ESC
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeColaboradorModal();
+});
+</script>
 {% endblock %}
 
