@@ -82,6 +82,10 @@
                             <i class="fa-solid fa-file-import"></i>
                             <span>Importar Folha</span>
                         </a>
+                        <a href="{% url 'importar_colaboradores' %}" class="{% if request.resolver_match.url_name == 'importar_colaboradores' %}active{% endif %}">
+                            <i class="fa-solid fa-users-gear"></i>
+                            <span>Importar Equipe</span>
+                        </a>
                         <a href="{% url 'lista_folha_duplicadas' %}" class="{% if request.resolver_match.url_name == 'lista_folha_duplicadas' %}active{% endif %}">
                             <i class="fa-solid fa-triangle-exclamation"></i>
                             <span>Duplicadas</span>
