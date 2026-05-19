@@ -6,85 +6,92 @@
 
 {% block content %}
 <div class="page-header">
-    <div class="header-content">
+    <div class="page-header-info">
+        <span class="page-eyebrow">RH & Equipe</span>
         <h1>{{ titulo }}</h1>
-        <p class="subtitle">Gestão de cadastro vindo da TOTVS</p>
+        <p>Gestão de cadastro vindo da TOTVS para acompanhamento operacional.</p>
     </div>
 </div>
 
-<div class="card search-card" style="margin-bottom: 2rem; padding: 1.5rem; border-radius: 12px; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-    <form method="GET" style="display: flex; gap: 1rem;">
-        <div style="flex: 1; position: relative;">
-            <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #64748b;"></i>
+<!-- Filtros e Busca -->
+<section class="card filter-card">
+    <form method="GET" class="filter-form">
+        <div class="form-group">
+            <label for="id-q">Buscar Colaborador</label>
             <input 
                 type="text" 
                 name="q" 
-                placeholder="Buscar por nome ou RE..." 
+                id="id-q"
+                placeholder="Nome ou RE..." 
                 value="{{ search_query }}"
-                style="width: 100%; padding: 0.75rem 1rem 0.75rem 3rem; border: 1px solid #e2e8f0; border-radius: 8px; font-family: inherit; font-size: 0.95rem;"
             >
         </div>
-        <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.5rem; background: #2563eb; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">
-            Buscar
-        </button>
-        {% if search_query %}
-            <a href="?" class="btn" style="padding: 0.75rem 1.5rem; color: #64748b; text-decoration: none; border: 1px solid #e2e8f0; border-radius: 8px; display: flex; align-items: center;">
-                Limpar
-            </a>
-        {% endif %}
-    </form>
-</div>
 
-<div class="card table-card" style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow: hidden;">
-    <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+        <div style="display: flex; gap: 8px;">
+            <button type="submit" class="btn btn-primary">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                Buscar
+            </button>
+            {% if search_query %}
+                <a href="?" class="btn btn-outline">
+                    Limpar
+                </a>
+            {% endif %}
+        </div>
+    </form>
+</section>
+
+<!-- Tabela de Dados -->
+<div class="card table-card">
+    <div class="table-container">
+        <table class="dense-table">
             <thead>
-                <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
-                    <th style="padding: 1rem 1.5rem; font-weight: 600; color: #475569; font-size: 0.875rem;">RE</th>
-                    <th style="padding: 1rem 1.5rem; font-weight: 600; color: #475569; font-size: 0.875rem;">NOME</th>
-                    <th style="padding: 1rem 1.5rem; font-weight: 600; color: #475569; font-size: 0.875rem;">LOJA</th>
-                    <th style="padding: 1rem 1.5rem; font-weight: 600; color: #475569; font-size: 0.875rem;">CARGO</th>
-                    <th style="padding: 1rem 1.5rem; font-weight: 600; color: #475569; font-size: 0.875rem;">STATUS</th>
-                    <th style="padding: 1rem 1.5rem; font-weight: 600; color: #475569; font-size: 0.875rem;">ADMISSÃO</th>
+                <tr>
+                    <th style="width: 100px;">RE</th>
+                    <th>Nome do Colaborador</th>
+                    <th>Loja / Centro de Custo</th>
+                    <th>Cargo</th>
+                    <th style="width: 100px;">Status</th>
+                    <th style="width: 120px;">Admissão</th>
                     {% if titulo == 'Colaboradores Demitidos' %}
-                        <th style="padding: 1rem 1.5rem; font-weight: 600; color: #475569; font-size: 0.875rem;">DEMISSÃO</th>
+                        <th style="width: 120px;">Demissão</th>
                     {% endif %}
                 </tr>
             </thead>
             <tbody>
                 {% for colaborador in page_obj %}
-                <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.2s;">
-                    <td style="padding: 1rem 1.5rem; color: #64748b; font-weight: 500;">{{ colaborador.re }}</td>
-                    <td style="padding: 1rem 1.5rem; color: #1e293b; font-weight: 600;">{{ colaborador.nome }}</td>
-                    <td style="padding: 1rem 1.5rem; color: #64748b;">
+                <tr>
+                    <td style="font-family: monospace;">{{ colaborador.re }}</td>
+                    <td><strong>{{ colaborador.nome }}</strong></td>
+                    <td>
                         {% if colaborador.loja %}
-                            <span style="display: inline-flex; align-items: center; gap: 0.5rem;">
-                                <i class="fa-solid fa-store" style="font-size: 0.8rem; color: #94a3b8;"></i>
+                            <span style="display: inline-flex; align-items: center; gap: 6px;">
+                                <i class="fa-solid fa-store" style="color: var(--text-muted); font-size: 0.75rem;"></i>
                                 {{ colaborador.loja.nome_referencia }}
                             </span>
                         {% else %}
-                            <span style="color: #cbd5e1; font-style: italic;">{{ colaborador.centro_custo }}</span>
+                            <span class="text-muted" style="font-size: 0.8125rem;">{{ colaborador.centro_custo }}</span>
                         {% endif %}
                     </td>
-                    <td style="padding: 1rem 1.5rem; color: #64748b;">{{ colaborador.cargo }}</td>
-                    <td style="padding: 1rem 1.5rem;">
-                        <span style="padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; 
-                            {% if colaborador.status == 'A' %} background: #dcfce7; color: #166534;
-                            {% elif colaborador.status == 'D' %} background: #fee2e2; color: #991b1b;
-                            {% else %} background: #f1f5f9; color: #475569; {% endif %}">
-                            {{ colaborador.status }}
-                        </span>
+                    <td style="color: var(--text-muted);">{{ colaborador.cargo }}</td>
+                    <td>
+                        {% if colaborador.status == 'A' %}
+                            <span class="badge badge-success">Ativo</span>
+                        {% elif colaborador.status == 'D' %}
+                            <span class="badge badge-danger">Demitido</span>
+                        {% else %}
+                            <span class="badge badge-neutral">{{ colaborador.status }}</span>
+                        {% endif %}
                     </td>
-                    <td style="padding: 1rem 1.5rem; color: #64748b;">{{ colaborador.data_admissao|date:"d/m/Y" }}</td>
+                    <td>{{ colaborador.data_admissao|date:"d/m/Y" }}</td>
                     {% if titulo == 'Colaboradores Demitidos' %}
-                        <td style="padding: 1rem 1.5rem; color: #b91c1c;">{{ colaborador.data_demissao|date:"d/m/Y"|default:"-" }}</td>
+                        <td class="text-danger">{{ colaborador.data_demissao|date:"d/m/Y"|default:"-" }}</td>
                     {% endif %}
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" style="padding: 3rem; text-align: center; color: #94a3b8;">
-                        <i class="fa-solid fa-users-slash" style="display: block; font-size: 2.5rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-                        Nenhum colaborador encontrado.
+                    <td colspan="7" style="padding: 40px; text-align: center; color: var(--text-muted);">
+                        Nenhum colaborador encontrado com os critérios de busca.
                     </td>
                 </tr>
                 {% endfor %}
@@ -93,25 +100,25 @@
     </div>
 
     {% if page_obj.has_other_pages %}
-    <div class="pagination" style="padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border-top: 1px solid #e2e8f0;">
-        <span style="color: #64748b; font-size: 0.875rem;">
+    <div class="pagination-wrapper">
+        <span class="pagination-info">
             Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
         </span>
-        <div style="display: flex; gap: 0.5rem;">
+        <div class="pagination-actions">
             {% if page_obj.has_previous %}
-                <a href="?page=1{% if search_query %}&q={{ search_query }}{% endif %}" style="padding: 0.5rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; text-decoration: none; color: #475569; background: white;">
+                <a href="?page=1{% if search_query %}&q={{ search_query }}{% endif %}" class="btn btn-outline" title="Primeira página">
                     <i class="fa-solid fa-angles-left"></i>
                 </a>
-                <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" style="padding: 0.5rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; text-decoration: none; color: #475569; background: white;">
-                    <i class="fa-solid fa-angle-left"></i>
+                <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="btn btn-outline">
+                    <i class="fa-solid fa-angle-left"></i> Anterior
                 </a>
             {% endif %}
 
             {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" style="padding: 0.5rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; text-decoration: none; color: #475569; background: white;">
-                    <i class="fa-solid fa-angle-right"></i>
+                <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="btn btn-outline">
+                    Próxima <i class="fa-solid fa-angle-right"></i>
                 </a>
-                <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&q={{ search_query }}{% endif %}" style="padding: 0.5rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; text-decoration: none; color: #475569; background: white;">
+                <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&q={{ search_query }}{% endif %}" class="btn btn-outline" title="Última página">
                     <i class="fa-solid fa-angles-right"></i>
                 </a>
             {% endif %}
@@ -120,3 +127,4 @@
     {% endif %}
 </div>
 {% endblock %}
+

@@ -4,52 +4,72 @@
 
 {% block content %}
 <div class="page-header">
-    <div>
+    <div class="page-header-info">
         <span class="page-eyebrow">Dashboard</span>
         <h1>Início</h1>
         <p>Escolha uma área do sistema para consultar, importar ou analisar informações operacionais.</p>
     </div>
 </div>
 
-<section class="dashboard-grid" aria-label="Atalhos do sistema">
-    <a class="dashboard-card dashboard-card-link" href="{% url 'lista_lojas' %}">
-        <div class="card-icon">
-            <i class="fa-solid fa-store"></i>
-        </div>
-        <h2>Lojas</h2>
-        <p>Lista, filtros, cadastro e edição de lojas.</p>
+<div class="dashboard-grid">
+    <a class="dashboard-card-link" href="{% url 'lista_lojas' %}">
+        <article class="dashboard-card">
+            <div class="card-icon">
+                <i class="fa-solid fa-store"></i>
+            </div>
+            <h2>Lojas</h2>
+            <p>Lista, filtros, cadastro e edição de lojas cadastradas.</p>
+        </article>
     </a>
 
-    <a class="dashboard-card dashboard-card-link" href="{% url 'lista_escopos' %}">
-        <div class="card-icon">
-            <i class="fa-solid fa-calendar-days"></i>
-        </div>
-        <h2>Escopos mensais</h2>
-        <p>Visualização, filtros e manutenção dos escopos.</p>
+    <a class="dashboard-card-link" href="{% url 'colaboradores:list' %}">
+        <article class="dashboard-card">
+            <div class="card-icon">
+                <i class="fa-solid fa-users"></i>
+            </div>
+            <h2>Equipe</h2>
+            <p>Cadastro completo de colaboradores ativos vindos da TOTVS.</p>
+        </article>
     </a>
 
-    <a class="dashboard-card dashboard-card-link" href="{% url 'comparativo_loja' %}">
-        <div class="card-icon">
-            <i class="fa-solid fa-chart-line"></i>
-        </div>
-        <h2>Comparativo</h2>
-        <p>Folha × estimativa de escopo por loja e competências.</p>
+    <a class="dashboard-card-link" href="{% url 'lista_escopos' %}">
+        <article class="dashboard-card">
+            <div class="card-icon">
+                <i class="fa-solid fa-calendar-days"></i>
+            </div>
+            <h2>Escopos mensais</h2>
+            <p>Gestão de estimativas e rubricas por competência.</p>
+        </article>
     </a>
 
-    <a class="dashboard-card dashboard-card-link" href="{% url 'importar_folha' %}">
-        <div class="card-icon">
-            <i class="fa-solid fa-file-import"></i>
-        </div>
-        <h2>Importação de folhas</h2>
-        <p>Upload de CSV da folha TOTVS, uma competência por arquivo.</p>
+    <a class="dashboard-card-link" href="{% url 'comparativo_loja' %}">
+        <article class="dashboard-card">
+            <div class="card-icon">
+                <i class="fa-solid fa-chart-line"></i>
+            </div>
+            <h2>Comparativo</h2>
+            <p>Análise de desvios entre folha real e escopo estimado.</p>
+        </article>
     </a>
 
-    <a class="dashboard-card dashboard-card-link" href="{% url 'lista_folha_duplicadas' %}">
-        <div class="card-icon">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-        </div>
-        <h2>Pagamentos duplicados</h2>
-        <p>Listagem e conferência de possíveis pagamentos duplicados.</p>
+    <a class="dashboard-card-link" href="{% url 'importar_folha' %}">
+        <article class="dashboard-card">
+            <div class="card-icon">
+                <i class="fa-solid fa-file-import"></i>
+            </div>
+            <h2>Importação</h2>
+            <p>Upload e processamento de arquivos de folha TOTVS.</p>
+        </article>
     </a>
-</section>
+
+    <a class="dashboard-card-link" href="{% url 'lista_folha_duplicadas' %}">
+        <article class="dashboard-card">
+            <div class="card-icon">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h2>Duplicadas</h2>
+            <p>Histórico de auditoria de pagamentos repetidos.</p>
+        </article>
+    </a>
+</div>
 {% endblock %}

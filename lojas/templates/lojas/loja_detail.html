@@ -2,6 +2,10 @@
 
 {% block titulo %}{{ loja.nome_referencia }}{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'lojas/css/pages/lojas-detail.css' %}">
+{% endblock %}
+
 {% block content %}
 <div class="page-title-row">
     <div>

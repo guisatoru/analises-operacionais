@@ -5,102 +5,152 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>
-        {% block titulo %}
-        Sistema
-        {% endblock %}
+        {% block titulo %}Sistema{% endblock %} | Análises Operacionais
     </title>
 
-    <link
-        rel="stylesheet"
-        href="{% static 'lojas/css/style.css' %}"
-    >
+    <!-- CSS Base e Layout -->
+    <link rel="stylesheet" href="{% static 'lojas/css/layout.css' %}">
+    <link rel="stylesheet" href="{% static 'lojas/css/components.css' %}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-        rel="stylesheet"
-    >
-    <link
-        rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-    >
-    <link
-        rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-    >
-
-    {% block extra_head %}
-    {% endblock %}
-
+    {% block extra_head %}{% endblock %}
 </head>
 
 <body>
 
     <div class="layout">
 
-        <aside class="sidebar">
-
-            <div class="sidebar-logo">
-                <h2>Análises Operacionais</h2>
+        <!-- Sidebar Retrátil -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <i class="fa-solid fa-chart-pie" style="color: #2563eb; font-size: 1.25rem;"></i>
+                    <span>Análises Op.</span>
+                </div>
+                <button class="sidebar-toggle" id="toggle-btn" title="Alternar Menu">
+                    <i class="fa-solid fa-bars-staggered"></i>
+                </button>
             </div>
 
-            <nav class="sidebar-menu">
+            <div class="sidebar-content">
+                
+                <!-- Seção: Principal -->
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Principal</div>
+                    <nav class="sidebar-menu">
+                        <a href="{% url 'inicio' %}" class="{% if request.resolver_match.url_name == 'inicio' %}active{% endif %}">
+                            <i class="fa-solid fa-house"></i>
+                            <span>Dashboard</span>
+                        </a>
+                        <a href="{% url 'lista_lojas' %}" class="{% if request.resolver_match.url_name == 'lista_lojas' %}active{% endif %}">
+                            <i class="fa-solid fa-store"></i>
+                            <span>Lojas</span>
+                        </a>
+                    </nav>
+                </div>
 
-                <a href="{% url 'inicio' %}">
-                    <i class="fa-solid fa-house"></i>
-                    Início
-                </a>
+                <!-- Seção: RH & Colaboradores -->
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">RH & Equipe</div>
+                    <nav class="sidebar-menu">
+                        <a href="{% url 'colaboradores:list' %}" class="{% if 'colaboradores' in request.path and 'demitidos' not in request.path %}active{% endif %}">
+                            <i class="fa-solid fa-users"></i>
+                            <span>Ativos</span>
+                        </a>
+                        <a href="{% url 'colaboradores:demitidos_list' %}" class="{% if 'demitidos' in request.path %}active{% endif %}">
+                            <i class="fa-solid fa-user-slash"></i>
+                            <span>Demitidos</span>
+                        </a>
+                    </nav>
+                </div>
 
-                <a href="{% url 'lista_lojas' %}">
-                    <i class="fa-solid fa-store"></i>
-                    Lojas
-                </a>
+                <!-- Seção: Operacional -->
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Operacional</div>
+                    <nav class="sidebar-menu">
+                        <a href="{% url 'lista_escopos' %}" class="{% if request.resolver_match.url_name == 'lista_escopos' %}active{% endif %}">
+                            <i class="fa-solid fa-calendar-days"></i>
+                            <span>Escopos</span>
+                        </a>
+                        <a href="{% url 'importar_folha' %}" class="{% if request.resolver_match.url_name == 'importar_folha' %}active{% endif %}">
+                            <i class="fa-solid fa-file-import"></i>
+                            <span>Importar Folha</span>
+                        </a>
+                        <a href="{% url 'lista_folha_duplicadas' %}" class="{% if request.resolver_match.url_name == 'lista_folha_duplicadas' %}active{% endif %}">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <span>Duplicadas</span>
+                        </a>
+                    </nav>
+                </div>
 
-                <a href="{% url 'colaboradores:list' %}">
-                    <i class="fa-solid fa-users"></i>
-                    Colaboradores
-                </a>
+                <!-- Seção: Análise -->
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Análise</div>
+                    <nav class="sidebar-menu">
+                        <a href="{% url 'comparativo_loja' %}" class="{% if request.resolver_match.url_name == 'comparativo_loja' %}active{% endif %}">
+                            <i class="fa-solid fa-chart-line"></i>
+                            <span>Comparativo</span>
+                        </a>
+                    </nav>
+                </div>
 
-                <a href="{% url 'colaboradores:demitidos_list' %}">
-                    <i class="fa-solid fa-user-slash"></i>
-                    Demitidos
-                </a>
-
-                <a href="{% url 'lista_escopos' %}">
-                    <i class="fa-solid fa-calendar-days"></i>
-                    Escopos
-                </a>
-
-                <a href="{% url 'importar_folha' %}">
-                    <i class="fa-solid fa-file-import"></i>
-                    Importar folha
-                </a>
-
-                <a href="{% url 'lista_folha_duplicadas' %}">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                    Duplicadas folha
-                </a>
-
-                <a href="{% url 'comparativo_loja' %}">
-                    <i class="fa-solid fa-chart-line"></i>
-                    Comparativo
-                </a>
-
-            </nav>
-
+            </div>
         </aside>
 
+        <!-- Conteúdo Principal -->
         <main class="main-content">
+            {% if messages %}
+                <div class="messages-container" style="margin-bottom: 24px;">
+                    {% for message in messages %}
+                        <div class="badge {% if message.tags == 'success' %}badge-success{% elif message.tags == 'error' %}badge-danger{% else %}badge-neutral{% endif %}" style="padding: 12px 20px; width: 100%; border-radius: 12px; font-size: 0.875rem; display: flex; align-items: center; gap: 10px;">
+                            {% if message.tags == 'success' %}
+                                <i class="fa-solid fa-circle-check"></i>
+                            {% elif message.tags == 'error' %}
+                                <i class="fa-solid fa-circle-exclamation"></i>
+                            {% else %}
+                                <i class="fa-solid fa-circle-info"></i>
+                            {% endif %}
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
 
-            {% block content %}
-            {% endblock %}
-
+            {% block content %}{% endblock %}
         </main>
 
     </div>
+
+    <script>
+        // Lógica da Sidebar Retrátil
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('toggle-btn');
+        
+        // Aplica estado inicial sem animação para evitar flicker
+        if (localStorage.getItem('sidebar-collapsed') === 'true' || window.innerWidth < 1024) {
+            sidebar.classList.add('collapsed');
+        }
+
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            localStorage.setItem('sidebar-collapsed', sidebar.classList.contains('collapsed'));
+        });
+
+        // Ajuste automático para mobile
+        window.addEventListener('resize', () => {
+            if (window.innerWidth < 768) {
+                sidebar.classList.add('collapsed');
+            }
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
 
 </body>
 
