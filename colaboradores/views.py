@@ -2,32 +2,63 @@ from django.shortcuts import render, redirect
 from django.core.paginator import Paginator
 from django.contrib import messages
 from .models import Colaborador
+from lojas.models import Loja
 from .forms import ColaboradorImportForm
 from .services.colaborador_importacao import importar_colaboradores_de_texto
 
 def colaborador_list(request):
     """
     Lista todos os colaboradores ativos (status diferente de 'D').
+    Permite filtros avançados.
     """
     colaboradores_qs = Colaborador.objects.exclude(status='D').select_related('loja')
     
-    # Busca por nome ou RE
-    search_query = request.GET.get('q', '')
-    if search_query:
-        colaboradores_qs = colaboradores_qs.filter(
-            nome__icontains=search_query
-        ) | colaboradores_qs.filter(
-            re__icontains=search_query
-        )
+    loja_query = request.GET.get('loja', '')
+    re_query = request.GET.get('re', '')
+    nome_query = request.GET.get('nome', '')
+    cargo_query = request.GET.get('cargo', '')
+    status_query = request.GET.get('status', '')
+
+    if loja_query:
+        colaboradores_qs = colaboradores_qs.filter(loja_id=loja_query)
+    
+    if re_query:
+        colaboradores_qs = colaboradores_qs.filter(re__icontains=re_query)
+        
+    if nome_query:
+        colaboradores_qs = colaboradores_qs.filter(nome__icontains=nome_query)
+        
+    if cargo_query:
+        colaboradores_qs = colaboradores_qs.filter(cargo__iexact=cargo_query)
+        
+    if status_query:
+        if status_query == 'ativo':
+            # Considera vazio ou valores não específicos como trabalhando
+            colaboradores_qs = colaboradores_qs.exclude(status__in=['A', 'F'])
+        else:
+            colaboradores_qs = colaboradores_qs.filter(status=status_query)
 
     paginator = Paginator(colaboradores_qs, 50) # 50 por página
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
+    lojas = Loja.objects.filter(status="ATIVA").order_title() if hasattr(Loja.objects, 'order_title') else Loja.objects.filter(status="ATIVA").order_by('nome_referencia')
+    
+    # Obtém cargos únicos para o dropdown de filtros (de colaboradores não demitidos)
+    cargos_unicos = Colaborador.objects.exclude(status='D').values_list('cargo', flat=True).distinct().order_by('cargo')
+    # Remove cargos vazios e limpa os espaços
+    cargos_opcoes = sorted(list(set(c.strip() for c in cargos_unicos if c.strip())))
+    
     context = {
         'page_obj': page_obj,
-        'search_query': search_query,
-        'titulo': 'Colaboradores Ativos'
+        'lojas': lojas,
+        'cargos_opcoes': cargos_opcoes,
+        'loja_query': loja_query,
+        're_query': re_query,
+        'nome_query': nome_query,
+        'cargo_query': cargo_query,
+        'status_query': status_query,
+        'titulo': 'Colaboradores'
     }
     return render(request, 'colaboradores/colaborador_list.html', context)
 
@@ -37,22 +68,40 @@ def demitido_list(request):
     """
     colaboradores_qs = Colaborador.objects.filter(status='D').select_related('loja')
     
-    # Busca por nome ou RE
-    search_query = request.GET.get('q', '')
-    if search_query:
-        colaboradores_qs = colaboradores_qs.filter(
-            nome__icontains=search_query
-        ) | colaboradores_qs.filter(
-            re__icontains=search_query
-        )
+    loja_query = request.GET.get('loja', '')
+    re_query = request.GET.get('re', '')
+    nome_query = request.GET.get('nome', '')
+    cargo_query = request.GET.get('cargo', '')
+
+    if loja_query:
+        colaboradores_qs = colaboradores_qs.filter(loja_id=loja_query)
+    
+    if re_query:
+        colaboradores_qs = colaboradores_qs.filter(re__icontains=re_query)
+        
+    if nome_query:
+        colaboradores_qs = colaboradores_qs.filter(nome__icontains=nome_query)
+        
+    if cargo_query:
+        colaboradores_qs = colaboradores_qs.filter(cargo__iexact=cargo_query)
 
     paginator = Paginator(colaboradores_qs, 50)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
+    lojas = Loja.objects.filter(status="ATIVA").order_by('nome_referencia')
+    
+    cargos_unicos = Colaborador.objects.filter(status='D').values_list('cargo', flat=True).distinct().order_by('cargo')
+    cargos_opcoes = sorted(list(set(c.strip() for c in cargos_unicos if c.strip())))
+    
     context = {
         'page_obj': page_obj,
-        'search_query': search_query,
+        'lojas': lojas,
+        'cargos_opcoes': cargos_opcoes,
+        'loja_query': loja_query,
+        're_query': re_query,
+        'nome_query': nome_query,
+        'cargo_query': cargo_query,
         'titulo': 'Colaboradores Demitidos'
     }
     return render(request, 'colaboradores/colaborador_list.html', context)
