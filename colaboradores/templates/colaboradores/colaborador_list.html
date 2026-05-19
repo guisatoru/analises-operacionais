@@ -75,8 +75,12 @@
                     </td>
                     <td style="color: var(--text-muted);">{{ colaborador.cargo }}</td>
                     <td>
-                        {% if colaborador.status == 'A' %}
+                        {% if not colaborador.status or colaborador.status == '' %}
                             <span class="badge badge-success">Ativo</span>
+                        {% elif colaborador.status == 'A' %}
+                            <span class="badge badge-neutral" style="background-color: #fef9c3; color: #854d0e;">Afastado</span>
+                        {% elif colaborador.status == 'F' %}
+                            <span class="badge badge-neutral" style="background-color: #e0f2fe; color: #075985;">Férias</span>
                         {% elif colaborador.status == 'D' %}
                             <span class="badge badge-danger">Demitido</span>
                         {% else %}
