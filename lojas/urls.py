@@ -21,8 +21,9 @@ urlpatterns = [
         views.escopo_duplicar_proximo_mes,
         name="escopo_duplicar_proximo_mes",
     ),
-    path("escopos/<int:pk>/editar/", views.escopo_update, name="editar_escopo"),
     path("escopos/<int:pk>/excluir/", views.escopo_delete, name="excluir_escopo"),
+    path("escopos/api/item/save/", views.api_item_escopo_save, name="api_item_escopo_save"),
+    path("escopos/api/item/<int:pk>/delete/", views.api_item_escopo_delete, name="api_item_escopo_delete"),
     path("folhas/importar/", views.folha_import, name="importar_folha"),
     path(
         "folhas/duplicadas/", views.folha_duplicadas_list, name="lista_folha_duplicadas"

@@ -13,10 +13,16 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from ..forms import EscopoMensalForm, ItemEscopoMensalFormSet
+import json
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 from ..models import (
     MESES_CHOICES,
     EscopoMensal,
     Loja,
+    Cargo,
+    ItemEscopoMensal,
+    TURNO_CHOICES,
     escala_insalubridade_fixa_para_escopo,
     montar_caches_salario_para_itens,
 )
@@ -119,8 +125,92 @@ def escopo_list(request):
         "meses_choices": MESES_CHOICES,
         "anos_disponiveis": anos_disponiveis,
         "lojas_para_filtro": Loja.objects.order_by("nome_referencia"),
+        "cargos_json": json.dumps(list(Cargo.objects.all().values("id", "nome"))),
+        "turnos_json": json.dumps([{"id": t[0], "nome": t[1]} for t in TURNO_CHOICES]),
     }
     return render(request, "lojas/escopo_list.html", context)
+
+
+@require_POST
+def api_item_escopo_save(request):
+    """Cria ou atualiza um item de escopo via AJAX."""
+    try:
+        data = json.loads(request.body)
+        item_id = data.get("id")
+        escopo_id = data.get("escopo_id")
+        cargo_id = data.get("cargo_id")
+        turno = data.get("turno")
+        quantidade = data.get("quantidade")
+
+        if item_id:
+            item = get_object_or_404(ItemEscopoMensal, pk=item_id)
+        else:
+            if not escopo_id or not cargo_id or not turno:
+                return JsonResponse({"success": False, "error": "Dados incompletos"}, status=400)
+            item = ItemEscopoMensal(escopo_mensal_id=escopo_id)
+
+        if cargo_id:
+            item.cargo_id = cargo_id
+        if turno:
+            item.turno = turno
+        if quantidade is not None:
+            item.quantidade = int(quantidade)
+
+        item.save()
+
+        # Retornar dados para atualizar a linha
+        escala = escala_insalubridade_fixa_para_escopo(item.escopo_mensal)
+        cache_reg, cache_min = montar_caches_salario_para_itens([item])
+        det = item.get_estimativa_detalhada(cache_reg, cache_min, escala)
+
+        # Calcular novo total do escopo
+        total_escopo = Decimal("0")
+        itens_escopo = list(item.escopo_mensal.itens.all())
+        c_reg, c_min = montar_caches_salario_para_itens(itens_escopo)
+        for i in itens_escopo:
+            d = i.get_estimativa_detalhada(c_reg, c_min, escala)
+            if d:
+                total_escopo += d["total"]
+
+        return JsonResponse(
+            {
+                "success": True,
+                "id": item.id,
+                "cargo_nome": item.cargo.nome,
+                "turno_display": item.get_turno_display(),
+                "detalhes": {
+                    "base_total": str(det["base_total"]) if det else "0.00",
+                    "insal_fixa": str(det["insalubridade_fixa_total"]) if det else "0.00",
+                    "insal_ban": str(det["insalubridade_banheirista_total"]) if det else "0.00",
+                    "adic_not": str(det["adicional_noturno_total"]) if det else "0.00",
+                    "total": str(det["total"]) if det else "0.00",
+                },
+                "total_escopo": str(total_escopo),
+            }
+        )
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+
+@require_POST
+def api_item_escopo_delete(request, pk):
+    """Exclui um item de escopo via AJAX."""
+    item = get_object_or_404(ItemEscopoMensal, pk=pk)
+    escopo = item.escopo_mensal
+    item.delete()
+
+    # Recalcular total do escopo
+    escala = escala_insalubridade_fixa_para_escopo(escopo)
+    itens_escopo = list(escopo.itens.all())
+    cache_reg, cache_min = montar_caches_salario_para_itens(itens_escopo)
+    total_escopo = Decimal("0")
+    for i in itens_escopo:
+        d = i.get_estimativa_detalhada(cache_reg, cache_min, escala)
+        if d:
+            total_escopo += d["total"]
+
+    return JsonResponse({"success": True, "total_escopo": str(total_escopo)})
+
 
 
 def escopo_create(request):
@@ -165,31 +255,6 @@ def escopo_create(request):
             "form": form,
             "formset": formset,
             "titulo": "Novo Escopo Mensal",
-        },
-    )
-
-
-def escopo_update(request, pk):
-    """Edita escopo mensal existente."""
-    escopo_mensal = get_object_or_404(EscopoMensal, pk=pk)
-    if request.method == "POST":
-        form = EscopoMensalForm(request.POST, instance=escopo_mensal)
-        formset = ItemEscopoMensalFormSet(request.POST, instance=escopo_mensal)
-        if form.is_valid() and formset.is_valid():
-            form.save()
-            formset.save()
-            messages.success(request, "Escopo mensal atualizado com sucesso.")
-            return redirect("lista_escopos")
-    else:
-        form = EscopoMensalForm(instance=escopo_mensal)
-        formset = ItemEscopoMensalFormSet(instance=escopo_mensal)
-    return render(
-        request,
-        "lojas/escopo_form.html",
-        {
-            "form": form,
-            "formset": formset,
-            "titulo": f"Editar Escopo Mensal #{escopo_mensal.pk}",
         },
     )
 

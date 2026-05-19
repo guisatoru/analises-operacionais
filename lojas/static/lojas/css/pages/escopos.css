@@ -67,8 +67,70 @@
     font-size: 14px;
 }
 
-.data-table tbody td:last-child,
-.data-table tfoot td:last-child {
+.text-right {
+    text-align: right;
+}
+
+.editable {
+    cursor: pointer;
+    position: relative;
+    transition: background-color 0.2s;
+}
+
+.editable:hover {
+    background-color: #f0f9ff !important;
+}
+
+.editable:hover::after {
+    content: "\f303";
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    color: #3b82f6;
+    opacity: 0.6;
+}
+
+.editable input, 
+.editable select {
+    width: 100%;
+    padding: 4px 8px;
+    border: 1px solid #3b82f6;
+    border-radius: 4px;
+    font-size: 14px;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.btn-delete-item {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 4px 8px;
+    transition: color 0.2s;
+}
+
+.btn-delete-item:hover {
+    color: #ef4444;
+}
+
+.actions-cell {
+    text-align: center;
+    width: 40px;
+}
+
+.no-salary {
+    color: #ef4444;
+    font-style: italic;
+    font-size: 12px;
+}
+
+.data-table tbody td:nth-last-child(2),
+.data-table tfoot td:nth-last-child(2) {
     color: #111827;
 
     font-weight: 800;

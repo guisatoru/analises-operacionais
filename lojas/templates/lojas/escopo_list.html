@@ -82,9 +82,13 @@
     </form>
 </section>
 
-<div class="escopo-list">
+<div class="escopo-list" id="escopo-list-container">
+    {# Dados para o JS #}
+    <script id="cargos-data" type="application/json">{{ cargos_json|safe }}</script>
+    <script id="turnos-data" type="application/json">{{ turnos_json|safe }}</script>
+
     {% for bloco in escopos_com_estimativa %}
-        <article class="escopo-card">
+        <article class="escopo-card" data-escopo-id="{{ bloco.escopo.pk }}">
             <header class="escopo-card-header">
                 <div>
                     <h2>{{ bloco.escopo.loja.nome_referencia }}</h2>
@@ -94,11 +98,6 @@
                 </div>
 
                 <div class="detail-actions">
-                    <a class="secondary-action-button" href="{% url 'editar_escopo' bloco.escopo.pk %}">
-                        <i class="fa-solid fa-pen"></i>
-                        Editar
-                    </a>
-
                     <a class="danger-action-button" href="{% url 'excluir_escopo' bloco.escopo.pk %}">
                         <i class="fa-solid fa-trash"></i>
                         Excluir
@@ -107,41 +106,47 @@
             </header>
 
             <div class="table-wrapper">
-                <table class="data-table">
+                <table class="data-table escopo-items-table">
                     <thead>
                         <tr>
                             <th>Cargo</th>
                             <th>Turno</th>
-                            <th>Qtd</th>
+                            <th style="width: 80px;">Qtd</th>
                             <th>Salário base</th>
                             <th>Insal. Fixa</th>
                             <th>Insal. Banheirista</th>
                             <th>Adic. Noturno</th>
                             <th>Total</th>
+                            <th style="width: 40px;"></th>
                         </tr>
                     </thead>
 
-                    <tbody>
+                    <tbody class="items-tbody">
                         {% for linha in bloco.itens_com_estimativa %}
-                            <tr>
-                                <td>{{ linha.item.cargo.nome }}</td>
-                                <td>{{ linha.item.get_turno_display }}</td>
-                                <td>{{ linha.item.quantidade }}</td>
+                            <tr data-item-id="{{ linha.item.pk }}">
+                                <td class="editable" data-field="cargo" data-value="{{ linha.item.cargo_id }}">{{ linha.item.cargo.nome }}</td>
+                                <td class="editable" data-field="turno" data-value="{{ linha.item.turno }}">{{ linha.item.get_turno_display }}</td>
+                                <td class="editable" data-field="quantidade" data-value="{{ linha.item.quantidade }}">{{ linha.item.quantidade }}</td>
 
                                 {% if linha.detalhamento %}
-                                    <td>R$ {{ linha.detalhamento.base_total|floatformat:2 }}</td>
-                                    <td>R$ {{ linha.detalhamento.insalubridade_fixa_total|floatformat:2 }}</td>
-                                    <td>R$ {{ linha.detalhamento.insalubridade_banheirista_total|floatformat:2 }}</td>
-                                    <td>R$ {{ linha.detalhamento.adicional_noturno_total|floatformat:2 }}</td>
-                                    <td><strong>R$ {{ linha.detalhamento.total|floatformat:2 }}</strong></td>
+                                    <td class="val-base">R$ {{ linha.detalhamento.base_total|floatformat:2 }}</td>
+                                    <td class="val-fixa">R$ {{ linha.detalhamento.insalubridade_fixa_total|floatformat:2 }}</td>
+                                    <td class="val-ban">R$ {{ linha.detalhamento.insalubridade_banheirista_total|floatformat:2 }}</td>
+                                    <td class="val-adic">R$ {{ linha.detalhamento.adicional_noturno_total|floatformat:2 }}</td>
+                                    <td class="val-total"><strong>R$ {{ linha.detalhamento.total|floatformat:2 }}</strong></td>
                                 {% else %}
-                                    <td colspan="5">Sem salário cadastrado para UF/ano/cargo.</td>
+                                    <td colspan="5" class="no-salary">Sem salário cadastrado para UF/ano/cargo.</td>
                                 {% endif %}
+                                <td class="actions-cell">
+                                    <button class="btn-delete-item" title="Remover item">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </td>
                             </tr>
                         {% empty %}
-                            <tr>
-                                <td colspan="8" class="empty-table-message">
-                                    Escopo sem itens.
+                            <tr class="empty-row">
+                                <td colspan="9" class="empty-table-message">
+                                    Escopo sem itens. Clique no + para adicionar.
                                 </td>
                             </tr>
                         {% endfor %}
@@ -149,12 +154,18 @@
 
                     <tfoot>
                         <tr>
-                            <td colspan="7">
+                            <td colspan="2">
+                                <button class="btn-add-item primary-action-button" style="padding: 5px 10px; min-height: 30px; font-size: 12px;">
+                                    <i class="fa-solid fa-plus"></i> Novo Item
+                                </button>
+                            </td>
+                            <td colspan="5" class="text-right">
                                 <strong>Total da estimativa</strong>
                             </td>
                             <td>
-                                <strong>R$ {{ bloco.total_estimativa_escopo|floatformat:2 }}</strong>
+                                <strong class="escopo-total-val">R$ {{ bloco.total_estimativa_escopo|floatformat:2 }}</strong>
                             </td>
+                            <td></td>
                         </tr>
                     </tfoot>
                 </table>

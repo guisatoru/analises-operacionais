@@ -6,11 +6,12 @@ from .common import (
     replicar_do_mes_anterior_se_existir,
 )
 from .escopos import (
+    api_item_escopo_delete,
+    api_item_escopo_save,
     escopo_create,
     escopo_delete,
     escopo_duplicar_proximo_mes,
     escopo_list,
-    escopo_update,
 )
 from .folha_import import folha_import
 from .home import home
@@ -27,12 +28,13 @@ from .comparativo import comparativo_loja
 from .folha_duplicadas import folha_duplicadas_list
 
 __all__ = [
+    "api_item_escopo_delete",
+    "api_item_escopo_save",
     "comparativo_loja",
     "competencia_anterior",
     "escopo_create",
     "escopo_delete",
     "escopo_list",
-    "escopo_update",
     "folha_import",
     "home",
     "parse_int_param",
