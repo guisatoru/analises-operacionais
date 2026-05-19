@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "lojas",
+    "colaboradores",
     'django_select2',
 ]
 
