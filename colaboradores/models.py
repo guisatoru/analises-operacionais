@@ -34,6 +34,32 @@ class Colaborador(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    @property
+    def is_divergente(self):
+        """
+        Verifica se há divergência entre a Loja TOTVS e a Loja Gestão.
+        Lojas 'DIA' são consideradas consistentes se ambas as descrições contiverem a palavra 'DIA' isolada.
+        """
+        if not self.loja_gestao or not self.loja or not self.loja.nome_gestao:
+            return False
+            
+        nome_totvs = self.loja.nome_gestao
+        nome_gestao = self.loja_gestao
+        
+        # Se os nomes forem idênticos, não há divergência
+        if nome_totvs == nome_gestao:
+            return False
+            
+        # Caso especial para lojas DIA
+        import re
+        is_dia_totvs = bool(re.search(r'\bDIA\b', nome_totvs.upper()))
+        is_dia_gestao = bool(re.search(r'\bDIA\b', nome_gestao.upper()))
+        
+        if is_dia_totvs and is_dia_gestao:
+            return False
+            
+        return True
+
     class Meta:
         verbose_name = "Colaborador"
         verbose_name_plural = "Colaboradores"

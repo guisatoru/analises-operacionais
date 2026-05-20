@@ -140,7 +140,7 @@
                         <div class="badge-group">
                             {% if titulo != 'Colaboradores Demitidos' %}
                                 {% if colaborador.loja_gestao and colaborador.loja and colaborador.loja.nome_gestao %}
-                                    {% if colaborador.loja_gestao == colaborador.loja.nome_gestao %}
+                                    {% if not colaborador.is_divergente %}
                                         <span class="badge-compact badge-consistent">
                                             <i class="fa-solid fa-circle-check"></i> Loja consistente
                                         </span>

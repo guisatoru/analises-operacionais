@@ -312,11 +312,32 @@ def colaborador_list(request):
 
     # Lógica do Filtro Rápido: Divergente (Ignora Afastados 'A')
     if divergente_query == 'S':
+        # 1. Filtra quem tem loja_gestao preenchida e não está afastado
         colaboradores_qs = colaboradores_qs.exclude(status='A').filter(
             Q(loja_gestao__isnull=False) & ~Q(loja_gestao='')
-        ).filter(
-            Q(loja__isnull=True) | ~Q(loja__nome_gestao=models.F('loja_gestao'))
         )
+        
+        # 2. Identifica divergências (precisamos iterar ou usar uma lógica mais complexa para o caso 'DIA')
+        ids_divergentes = []
+        for c in colaboradores_qs:
+            nome_totvs = c.loja.nome_gestao if c.loja else ""
+            nome_gestao = c.loja_gestao or ""
+            
+            # Normalização para busca da palavra "DIA"
+            # Regex \bDIA\b garante que seja a palavra isolada
+            import re
+            is_dia_totvs = bool(re.search(r'\bDIA\b', nome_totvs.upper()))
+            is_dia_gestao = bool(re.search(r'\bDIA\b', nome_gestao.upper()))
+            
+            # Se ambos são DIA, é consistente
+            if is_dia_totvs and is_dia_gestao:
+                continue
+            
+            # Se os nomes forem diferentes, é divergente
+            if nome_totvs != nome_gestao:
+                ids_divergentes.append(c.id)
+                
+        colaboradores_qs = colaboradores_qs.filter(id__in=ids_divergentes)
 
     # Lógica do Filtro Rápido: Só TOTVS (Não encontrado na Gestão)
     if so_totvs_query == 'S':
