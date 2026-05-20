@@ -26,14 +26,27 @@
             </div>
         </div>
         <div class="form-group">
-            <label>Término a partir de</label>
-            <input type="date" name="data_filtro" value="{{ data_filtro }}">
+            <label>Término entre</label>
+            <div class="flex gap-8">
+                <input type="date" name="data_filtro" value="{{ data_filtro }}" class="flex-1">
+                <span class="flex items-center text-slate-400">até</span>
+                <input type="date" name="data_fim" value="{{ data_fim }}" class="flex-1">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Coordenador</label>
+            <select name="coordenador" class="form-control">
+                <option value="">Todos</option>
+                {% for coord in coordenadores %}
+                    <option value="{{ coord }}" {% if coordenador_query == coord %}selected{% endif %}>{{ coord }}</option>
+                {% endfor %}
+            </select>
         </div>
         <div class="flex items-end gap-8">
             <button type="submit" class="btn btn-primary">
                 <i class="fa-solid fa-filter"></i> Filtrar
             </button>
-            {% if search_query or data_filtro %}
+            {% if search_query or data_filtro or data_fim or coordenador_query %}
             <a href="{% url 'colaboradores:terminos_list' %}" class="btn btn-outline">
                 Limpar
             </a>
@@ -50,17 +63,15 @@
                 <tr>
                     <th style="width: 25%;">RE / Nome</th>
                     <th style="width: 20%;">Loja</th>
+                    <th style="width: 15%;">Coordenador</th>
                     <th style="width: 10%;">Admissão</th>
-                    <th style="width: 10%;">Término 1</th>
-                    <th style="width: 10%;">Término 2</th>
-                    <th style="width: 10%;">Fase Atual</th>
-                    <th style="width: 15%;">Status</th>
-                    <th style="width: 10%; text-align: right;">Ação</th>
+                    <th style="width: 15%;">Término 1</th>
+                    <th style="width: 15%;">Término 2</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in page_obj %}
-                <tr class="clickable-row">
+                <tr class="clickable-row open-modal-btn" data-colaborador-id="{{ item.colaborador.id }}" style="cursor: pointer;">
                     <td>
                         <div class="font-bold text-slate-900">{{ item.colaborador.nome }}</div>
                         <div class="text-xs text-slate-500">RE: {{ item.colaborador.re }}</div>
@@ -71,31 +82,29 @@
                             <div class="text-[10px] text-slate-400">CC: {{ item.colaborador.centro_custo }}</div>
                         {% endif %}
                     </td>
+                    <td>
+                        <span class="text-sm">{{ item.colaborador.loja.coordenador|default:"-" }}</span>
+                    </td>
                     <td class="text-sm">{{ item.colaborador.data_admissao|date:"d/m/Y" }}</td>
-                    <td class="text-sm font-medium {% if item.relevant_date == item.colaborador.termino_1 %}text-indigo-600{% else %}text-slate-400{% endif %}">
-                        {{ item.colaborador.termino_1|date:"d/m/Y"|default:"-" }}
-                    </td>
-                    <td class="text-sm font-medium {% if item.relevant_date == item.colaborador.termino_2 %}text-indigo-600{% else %}text-slate-400{% endif %}">
-                        {{ item.colaborador.termino_2|date:"d/m/Y"|default:"-" }}
+                    <td>
+                        {% with status=item.state.statusControle etapa=item.state.etapaAtual %}
+                        <div class="date-highlight 
+                            {% if etapa == 1 %}
+                                {% if 'Pendente' in status %}bg-yellow{% elif 'Término' in status %}bg-red{% elif 'Prorrogado' in status or 'Mantido' in status %}bg-green{% endif %}
+                            {% endif %}">
+                            {{ item.colaborador.termino_1|date:"d/m/Y"|default:"-" }}
+                        </div>
+                        {% endwith %}
                     </td>
                     <td>
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-1 rounded-md">{{ item.state.tipoTermino }}</span>
-                    </td>
-                    <td>
-                        {% if 'Término registrado' in item.state.statusControle %}
-                            <span class="badge-termino red">{{ item.state.statusControle }}</span>
-                        {% elif 'Prorrogado' in item.state.statusControle %}
-                            <span class="badge-termino amber">{{ item.state.statusControle }}</span>
-                        {% elif 'Mantido' in item.state.statusControle %}
-                            <span class="badge-termino emerald">{{ item.state.statusControle }}</span>
-                        {% else %}
-                            <span class="badge-termino slate">{{ item.state.statusControle }}</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-right">
-                        <button type="button" class="btn btn-sm btn-outline open-modal-btn" data-colaborador-id="{{ item.colaborador.id }}">
-                            Gerenciar
-                        </button>
+                        {% with status=item.state.statusControle etapa=item.state.etapaAtual %}
+                        <div class="date-highlight 
+                            {% if etapa == 2 %}
+                                {% if 'Pendente' in status %}bg-yellow{% elif 'Término' in status %}bg-red{% elif 'Prorrogado' in status or 'Mantido' in status %}bg-green{% endif %}
+                            {% endif %}">
+                            {{ item.colaborador.termino_2|date:"d/m/Y"|default:"-" }}
+                        </div>
+                        {% endwith %}
                     </td>
                 </tr>
                 {% empty %}
@@ -120,13 +129,13 @@
         </span>
         <div class="flex gap-8">
             {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if data_filtro %}&data_filtro={{ data_filtro }}{% endif %}" class="btn btn-outline">Anterior</a>
+                <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if data_filtro %}&data_filtro={{ data_filtro }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}{% if coordenador_query %}&coordenador={{ coordenador_query }}{% endif %}" class="btn btn-outline">Anterior</a>
             {% else %}
                 <button disabled class="btn btn-outline opacity-50 cursor-not-allowed">Anterior</button>
             {% endif %}
 
             {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if data_filtro %}&data_filtro={{ data_filtro }}{% endif %}" class="btn btn-outline">Próxima</a>
+                <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if data_filtro %}&data_filtro={{ data_filtro }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}{% if coordenador_query %}&coordenador={{ coordenador_query }}{% endif %}" class="btn btn-outline">Próxima</a>
             {% else %}
                 <button disabled class="btn btn-outline opacity-50 cursor-not-allowed">Próxima</button>
             {% endif %}

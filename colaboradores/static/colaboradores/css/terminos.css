@@ -181,3 +181,29 @@
 .btn-save-decision:hover {
     background: #1e293b;
 }
+
+/* Destaque de Datas na Tabela */
+.date-highlight {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-align: center;
+    min-width: 100px;
+}
+
+.date-highlight.bg-yellow {
+    background-color: #fffbeb;
+    color: #b45309;
+}
+
+.date-highlight.bg-green {
+    background-color: #ecfdf5;
+    color: #047857;
+}
+
+.date-highlight.bg-red {
+    background-color: #fef2f2;
+    color: #b91c1c;
+}

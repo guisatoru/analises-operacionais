@@ -59,6 +59,8 @@ def terminos_list(request):
 
     search_query = request.GET.get('search', '').strip().lower()
     data_filtro = request.GET.get('data_filtro', '')
+    data_fim = request.GET.get('data_fim', '')
+    coordenador_query = request.GET.get('coordenador', '')
 
     today = date.today()
     processed_colaboradores = []
@@ -74,6 +76,7 @@ def terminos_list(request):
             
         relevant_date = colaborador.termino_2 if state['etapaAtual'] == 2 else colaborador.termino_1
         
+        # Filtro de Data Início (A partir de)
         if data_filtro and relevant_date:
             try:
                 filtro_date = date.fromisoformat(data_filtro)
@@ -81,7 +84,22 @@ def terminos_list(request):
                     continue
             except ValueError:
                 pass
+
+        # Filtro de Data Fim (Até)
+        if data_fim and relevant_date:
+            try:
+                fim_date = date.fromisoformat(data_fim)
+                if relevant_date > fim_date:
+                    continue
+            except ValueError:
+                pass
                 
+        # Filtro de Coordenador
+        if coordenador_query:
+            loja_coordenador = colaborador.loja.coordenador if colaborador.loja else ""
+            if coordenador_query != loja_coordenador:
+                continue
+
         if search_query:
             if search_query not in colaborador.nome.lower() and search_query not in colaborador.re.lower():
                 continue
@@ -100,10 +118,16 @@ def terminos_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    # Coordenadores únicos para o filtro
+    coordenadores = Loja.objects.exclude(coordenador="").values_list('coordenador', flat=True).distinct().order_by('coordenador')
+
     context = {
         'page_obj': page_obj,
         'search_query': search_query,
         'data_filtro': data_filtro,
+        'data_fim': data_fim,
+        'coordenador_query': coordenador_query,
+        'coordenadores': coordenadores,
         'titulo': 'Controle de Términos',
     }
     return render(request, 'colaboradores/terminos_list.html', context)
