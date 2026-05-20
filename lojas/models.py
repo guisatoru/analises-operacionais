@@ -158,6 +158,16 @@ class Loja(models.Model):
         max_length=80,
         blank=True,
     )
+    coordenador = models.CharField(
+        "Coordenador",
+        max_length=120,
+        blank=True,
+    )
+    supervisor = models.CharField(
+        "Supervisor",
+        max_length=120,
+        blank=True,
+    )
 
     # ---------------------------------------------------------------
     # Datas de controle preenchidas automaticamente pelo Django.

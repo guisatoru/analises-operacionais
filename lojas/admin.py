@@ -35,15 +35,19 @@ class LojaAdmin(admin.ModelAdmin):
         "centro_de_custo",
         "cliente",
         "quadro",
+        "coordenador",
+        "supervisor",
         "status",
     )
-    list_filter = ("status", "quadro", "cliente", "uf", "sub_regiao")
+    list_filter = ("status", "quadro", "cliente", "uf", "sub_regiao", "coordenador", "supervisor")
     search_fields = (
         "nome_referencia",
         "centro_de_custo",
         "cnpj",
         "cliente",
         "nome_metricas",
+        "coordenador",
+        "supervisor",
     )
     ordering = ("nome_referencia",)
     readonly_fields = ("created_at", "updated_at")
@@ -60,6 +64,8 @@ class LojaAdmin(admin.ModelAdmin):
                     "cliente",
                     "cnpj",
                     "codigo_loja",
+                    "coordenador",
+                    "supervisor",
                     "nome_metricas",
                 ),
             },

@@ -33,6 +33,8 @@ class LojaForm(forms.ModelForm):
             "municipio",
             "uf",
             "sub_regiao",
+            "coordenador",
+            "supervisor",
         ]
 
     def __init__(self, *args, **kwargs):
@@ -67,6 +69,8 @@ class LojaUpdateForm(forms.ModelForm):
             "municipio",
             "uf",
             "sub_regiao",
+            "coordenador",
+            "supervisor",
         ]
 
 
