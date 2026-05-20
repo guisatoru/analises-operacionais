@@ -1,0 +1,183 @@
+/* Estilos específicos para a página de Controle de Términos */
+
+/* Badges de Status do Controle */
+.badge-termino {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 9999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.badge-termino.red { background-color: #fef2f2; color: #b91c1c; }
+.badge-termino.amber { background-color: #fffbeb; color: #b45309; }
+.badge-termino.emerald { background-color: #ecfdf5; color: #047857; }
+.badge-termino.slate { background-color: #f1f5f9; color: #475569; }
+
+/* Timeline do Histórico no Modal */
+.history-timeline {
+    border-left: 2px solid #e2e8f0;
+    padding-left: 16px;
+    margin-left: 8px;
+}
+
+.history-item {
+    position: relative;
+    margin-bottom: 16px;
+}
+
+.history-item::before {
+    content: '';
+    position: absolute;
+    left: -21px;
+    top: 4px;
+    width: 10px;
+    height: 10px;
+    background: #0f172a;
+    border-radius: 50%;
+}
+
+/* Utilitários Locais */
+.mb-20 { margin-bottom: 20px; }
+.mb-32 { margin-bottom: 32px; }
+
+/* Estilização das Opções de Ação no Modal */
+.action-options {
+    display: flex;
+    gap: 12px;
+}
+
+.action-option {
+    flex: 1;
+    cursor: pointer;
+    border-radius: 16px;
+    border: 1.5px solid #e2e8f0;
+    padding: 16px;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.action-option:hover {
+    background-color: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+.action-option input[type="radio"] {
+    display: none;
+}
+
+.action-option .option-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #475569;
+}
+
+.action-option i {
+    font-size: 1.25rem;
+    margin-bottom: 4px;
+}
+
+/* Cores quando selecionado */
+.action-option.selected {
+    border-color: #0f172a;
+    background-color: #f8fafc;
+}
+
+.action-option.selected[data-value="prorrogado"] .option-content { color: #d97706; }
+.action-option.selected[data-value="termino"] .option-content { color: #dc2626; }
+.action-option.selected[data-value="manter"] .option-content { color: #059669; }
+
+/* Melhorias no Modal conforme terminos.png */
+.modal-container {
+    max-width: 550px;
+    border-radius: 32px !important; /* Bordas bem arredondadas conforme a imagem */
+}
+
+.modal-header {
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+    text-align: center;
+}
+
+.modal-header > div {
+    width: 100%;
+}
+
+#modalNome {
+    font-size: 1.5rem;
+    text-transform: uppercase;
+    color: #0f172a;
+    margin-bottom: 4px;
+}
+
+#modalInfo {
+    color: #64748b;
+    font-size: 0.875rem;
+}
+
+.modal-body {
+    padding-top: 24px !important;
+}
+
+.decision-section {
+    background: #ffffff;
+    padding: 0;
+    margin-bottom: 32px;
+}
+
+.section-label {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 12px;
+}
+
+.field-label {
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #64748b;
+    letter-spacing: 0.05em;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.form-textarea {
+    width: 100%;
+    border-radius: 12px;
+    border: 1.5px solid #e2e8f0;
+    padding: 12px;
+    font-size: 0.875rem;
+    min-height: 80px;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.form-textarea:focus {
+    border-color: #0f172a;
+}
+
+.btn-save-decision {
+    width: 100%;
+    background: #0f172a;
+    color: white;
+    font-weight: 700;
+    border-radius: 12px;
+    padding: 14px;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 16px;
+}
+
+.btn-save-decision:hover {
+    background: #1e293b;
+}

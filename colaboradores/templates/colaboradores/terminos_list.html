@@ -4,160 +4,82 @@
 {% block titulo %}{{ titulo }}{% endblock %}
 
 {% block extra_head %}
-<style>
-.badge-termino {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
-    font-weight: 700;
-    border-radius: 9999px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-.badge-termino.red { background-color: #fef2f2; color: #b91c1c; }
-.badge-termino.amber { background-color: #fffbeb; color: #b45309; }
-.badge-termino.emerald { background-color: #ecfdf5; color: #047857; }
-.badge-termino.slate { background-color: #f1f5f9; color: #475569; }
-
-/* Modal simplificado */
-.modal-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(15, 23, 42, 0.6);
-    backdrop-filter: blur(4px);
-    z-index: 1000;
-    justify-content: center;
-    align-items: center;
-}
-.modal-overlay.active {
-    display: flex;
-}
-.modal-container {
-    background: white;
-    width: 100%;
-    max-width: 600px;
-    border-radius: 24px;
-    padding: 24px;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-    border-bottom: 1px solid #f1f5f9;
-    padding-bottom: 16px;
-}
-.modal-body {
-    max-height: 70vh;
-    overflow-y: auto;
-}
-.modal-close {
-    background: none;
-    border: none;
-    font-size: 1.25rem;
-    cursor: pointer;
-    color: #64748b;
-}
-
-.history-timeline {
-    border-left: 2px solid #e2e8f0;
-    padding-left: 16px;
-    margin-left: 8px;
-}
-.history-item {
-    position: relative;
-    margin-bottom: 16px;
-}
-.history-item::before {
-    content: '';
-    position: absolute;
-    left: -21px;
-    top: 4px;
-    width: 10px;
-    height: 10px;
-    background: #0f172a;
-    border-radius: 50%;
-}
-</style>
+<link rel="stylesheet" href="{% static 'colaboradores/css/terminos.css' %}">
 {% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div class="page-header-info">
-        <span class="page-eyebrow">Gestão</span>
+        <span class="page-eyebrow">Gestão de Pessoas</span>
         <h1>Controle de Términos</h1>
-        <p>Acompanhe decisões de prorrogação, manutenção e término por colaborador.</p>
+        <p>Acompanhe os prazos de experiência e registre as decisões de prorrogação ou efetivação.</p>
     </div>
 </div>
 
-<div class="card mb-6">
-    <div class="card-body">
-        <form method="get" class="flex flex-col md:flex-row gap-4">
-            <div class="flex-1">
-                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Pesquisar</label>
-                <div class="relative">
-                    <i class="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                    <input type="text" name="search" value="{{ search_query }}" placeholder="Buscar por Nome ou RE..." class="w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 py-2.5 text-sm font-medium outline-none focus:border-slate-900 transition-all">
-                </div>
+<!-- Seção de Filtros -->
+<div class="form-card mb-32">
+    <form method="get" class="form-grid">
+        <div class="form-group">
+            <label>Pesquisar Colaborador</label>
+            <div class="relative">
+                <input type="text" name="search" value="{{ search_query }}" placeholder="Nome ou RE...">
             </div>
-            <div>
-                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Término a partir de</label>
-                <input type="date" name="data_filtro" value="{{ data_filtro }}" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium outline-none focus:border-slate-900 transition-all">
-            </div>
-            <div class="flex items-end">
-                <button type="submit" class="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800">
-                    Filtrar
-                </button>
-            </div>
+        </div>
+        <div class="form-group">
+            <label>Término a partir de</label>
+            <input type="date" name="data_filtro" value="{{ data_filtro }}">
+        </div>
+        <div class="flex items-end gap-8">
+            <button type="submit" class="btn btn-primary">
+                <i class="fa-solid fa-filter"></i> Filtrar
+            </button>
             {% if search_query or data_filtro %}
-            <div class="flex items-end">
-                <a href="{% url 'colaboradores:terminos_list' %}" class="rounded-xl bg-white border border-slate-200 px-6 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50">
-                    Limpar
-                </a>
-            </div>
+            <a href="{% url 'colaboradores:terminos_list' %}" class="btn btn-outline">
+                Limpar
+            </a>
             {% endif %}
-        </form>
-    </div>
+        </div>
+    </form>
 </div>
 
-<div class="card">
-    <div class="table-responsive">
-        <table class="table">
+<!-- Listagem de Términos -->
+<div class="table-card">
+    <div class="table-wrapper">
+        <table class="data-table">
             <thead>
                 <tr>
-                    <th>RE / Nome</th>
-                    <th>Loja</th>
-                    <th>Admissão</th>
-                    <th>Término 1</th>
-                    <th>Término 2</th>
-                    <th>Fase Atual</th>
-                    <th>Status</th>
-                    <th class="text-right">Ação</th>
+                    <th style="width: 25%;">RE / Nome</th>
+                    <th style="width: 20%;">Loja</th>
+                    <th style="width: 10%;">Admissão</th>
+                    <th style="width: 10%;">Término 1</th>
+                    <th style="width: 10%;">Término 2</th>
+                    <th style="width: 10%;">Fase Atual</th>
+                    <th style="width: 15%;">Status</th>
+                    <th style="width: 10%; text-align: right;">Ação</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in page_obj %}
-                <tr>
+                <tr class="clickable-row">
                     <td>
                         <div class="font-bold text-slate-900">{{ item.colaborador.nome }}</div>
                         <div class="text-xs text-slate-500">RE: {{ item.colaborador.re }}</div>
                     </td>
-                    <td><span class="text-sm font-medium">{{ item.colaborador.loja.nome|default:"-" }}</span></td>
+                    <td>
+                        <span class="text-sm font-medium">{{ item.colaborador.loja.nome_referencia|default:"-" }}</span>
+                        {% if not item.colaborador.loja %}
+                            <div class="text-[10px] text-slate-400">CC: {{ item.colaborador.centro_custo }}</div>
+                        {% endif %}
+                    </td>
                     <td class="text-sm">{{ item.colaborador.data_admissao|date:"d/m/Y" }}</td>
-                    <td class="text-sm font-medium {% if item.relevant_date == item.colaborador.termino_1 %}text-slate-900{% else %}text-slate-400{% endif %}">
+                    <td class="text-sm font-medium {% if item.relevant_date == item.colaborador.termino_1 %}text-indigo-600{% else %}text-slate-400{% endif %}">
                         {{ item.colaborador.termino_1|date:"d/m/Y"|default:"-" }}
                     </td>
-                    <td class="text-sm font-medium {% if item.relevant_date == item.colaborador.termino_2 %}text-slate-900{% else %}text-slate-400{% endif %}">
+                    <td class="text-sm font-medium {% if item.relevant_date == item.colaborador.termino_2 %}text-indigo-600{% else %}text-slate-400{% endif %}">
                         {{ item.colaborador.termino_2|date:"d/m/Y"|default:"-" }}
                     </td>
                     <td>
-                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ item.state.tipoTermino }}</span>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-1 rounded-md">{{ item.state.tipoTermino }}</span>
                     </td>
                     <td>
                         {% if 'Término registrado' in item.state.statusControle %}
@@ -178,7 +100,12 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="text-center py-8 text-slate-500">Nenhum colaborador com término próximo encontrado.</td>
+                    <td colspan="8" class="text-center py-40 text-slate-500">
+                        <div class="flex flex-col items-center gap-12">
+                            <i class="fa-solid fa-users-slash text-4xl text-slate-200"></i>
+                            <p>Nenhum colaborador com término próximo encontrado.</p>
+                        </div>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -187,21 +114,21 @@
 
     <!-- Paginação -->
     {% if page_obj.has_other_pages %}
-    <div class="card-footer flex justify-between items-center mt-4 border-t pt-4">
-        <span class="text-sm text-slate-500">
+    <div class="pagination-wrapper">
+        <span class="pagination-info">
             Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
         </span>
-        <div class="flex gap-2">
+        <div class="flex gap-8">
             {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if data_filtro %}&data_filtro={{ data_filtro }}{% endif %}" class="btn btn-outline btn-sm">Anterior</a>
+                <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if data_filtro %}&data_filtro={{ data_filtro }}{% endif %}" class="btn btn-outline">Anterior</a>
             {% else %}
-                <button disabled class="btn btn-outline btn-sm opacity-50 cursor-not-allowed">Anterior</button>
+                <button disabled class="btn btn-outline opacity-50 cursor-not-allowed">Anterior</button>
             {% endif %}
 
             {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if data_filtro %}&data_filtro={{ data_filtro }}{% endif %}" class="btn btn-outline btn-sm">Próxima</a>
+                <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if data_filtro %}&data_filtro={{ data_filtro }}{% endif %}" class="btn btn-outline">Próxima</a>
             {% else %}
-                <button disabled class="btn btn-outline btn-sm opacity-50 cursor-not-allowed">Próxima</button>
+                <button disabled class="btn btn-outline opacity-50 cursor-not-allowed">Próxima</button>
             {% endif %}
         </div>
     </div>
@@ -239,44 +166,47 @@
     <div class="modal-container">
         <div class="modal-header">
             <div>
-                <h3 id="modalNome" class="text-xl font-bold text-slate-900"></h3>
-                <p id="modalInfo" class="text-sm text-slate-500 font-medium"></p>
+                <h3 id="modalNome"></h3>
+                <p id="modalInfo"></p>
             </div>
             <button class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
         </div>
         
-        <div class="modal-body space-y-6">
-            <div id="formSection" class="bg-slate-50 p-4 rounded-xl border border-slate-100 hidden">
-                <h4 class="font-bold text-sm mb-3">Registrar Decisão</h4>
+        <div class="modal-body">
+            <!-- Seção de Decisão -->
+            <div id="formSection" class="decision-section hidden">
+                <h4 class="section-label">Registrar Decisão</h4>
                 <form method="post" action="{% url 'colaboradores:terminos_list' %}">
                     {% csrf_token %}
                     <input type="hidden" name="colaborador_id" id="formColaboradorId">
                     <input type="hidden" name="etapa" id="formEtapa">
                     
-                    <div class="mb-4">
-                        <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-2">Ação</label>
-                        <div id="acoesContainer" class="flex gap-2">
+                    <div class="mb-20">
+                        <label class="field-label">Ação</label>
+                        <div id="acoesContainer" class="action-options">
                             <!-- Injetado via JS -->
                         </div>
                     </div>
                     
-                    <div class="mb-4">
-                        <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-2">Observação Interna</label>
-                        <textarea name="observacao" required rows="3" class="w-full rounded-xl border border-slate-200 p-3 text-sm focus:border-slate-900 outline-none" placeholder="Motivo da decisão..."></textarea>
+                    <div class="mb-20">
+                        <label class="field-label">Observação Interna</label>
+                        <textarea name="observacao" required class="form-textarea" placeholder="Motivo da decisão..."></textarea>
                     </div>
                     
-                    <button type="submit" class="w-full bg-slate-900 text-white font-bold rounded-xl py-3 hover:bg-slate-800 transition">
+                    <button type="submit" class="btn-save-decision">
                         Salvar Decisão
                     </button>
                 </form>
             </div>
 
-            <div id="closedMessage" class="bg-emerald-50 text-emerald-800 p-4 rounded-xl border border-emerald-100 hidden">
+            <!-- Mensagem de Encerrado -->
+            <div id="closedMessage" class="bg-emerald-50 text-emerald-800 p-4 rounded-xl border border-emerald-100 mb-32 hidden">
                 <i class="fa-solid fa-circle-check mr-2"></i> Este acompanhamento já foi encerrado.
             </div>
 
-            <div>
-                <h4 class="font-bold text-sm mb-3">Histórico</h4>
+            <!-- Histórico -->
+            <div class="history-section">
+                <h4 class="section-label">Histórico</h4>
                 <div id="historicoContainer" class="history-timeline">
                     <!-- Injetado via JS -->
                 </div>
@@ -285,95 +215,5 @@
     </div>
 </div>
 
-<script>
-    const colabDataStr = document.getElementById('colaboradores-data').textContent;
-    const colabData = JSON.parse(colabDataStr);
-    const modal = document.getElementById('terminoModal');
-
-    document.querySelectorAll('.open-modal-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const id = e.target.getAttribute('data-colaborador-id');
-            const data = colabData[id];
-            
-            document.getElementById('modalNome').textContent = data.nome;
-            document.getElementById('modalInfo').textContent = `RE: ${data.re} - Fase: ${data.tipoTermino}`;
-            
-            document.getElementById('formColaboradorId').value = id;
-            document.getElementById('formEtapa').value = data.etapaAtual;
-            
-            const formSection = document.getElementById('formSection');
-            const closedMessage = document.getElementById('closedMessage');
-            const acoesContainer = document.getElementById('acoesContainer');
-            
-            if (data.encerrado) {
-                formSection.classList.add('hidden');
-                closedMessage.classList.remove('hidden');
-            } else {
-                formSection.classList.remove('hidden');
-                closedMessage.classList.add('hidden');
-                
-                let acoesHtml = '';
-                if (data.etapaAtual === 1) {
-                    acoesHtml = `
-                        <label class="flex-1 cursor-pointer rounded-xl border border-slate-200 p-3 hover:bg-slate-50 transition text-center">
-                            <input type="radio" name="acao" value="prorrogado" class="hidden peer" required>
-                            <div class="text-sm font-bold text-slate-600 peer-checked:text-amber-600"><i class="fa-solid fa-clock-rotate-left mb-1 block"></i> Prorrogar</div>
-                        </label>
-                        <label class="flex-1 cursor-pointer rounded-xl border border-slate-200 p-3 hover:bg-slate-50 transition text-center">
-                            <input type="radio" name="acao" value="termino" class="hidden peer" required>
-                            <div class="text-sm font-bold text-slate-600 peer-checked:text-red-600"><i class="fa-solid fa-user-xmark mb-1 block"></i> Dar Término</div>
-                        </label>
-                    `;
-                } else {
-                    acoesHtml = `
-                        <label class="flex-1 cursor-pointer rounded-xl border border-slate-200 p-3 hover:bg-slate-50 transition text-center">
-                            <input type="radio" name="acao" value="manter" class="hidden peer" required>
-                            <div class="text-sm font-bold text-slate-600 peer-checked:text-emerald-600"><i class="fa-solid fa-user-check mb-1 block"></i> Manter (Efetivar)</div>
-                        </label>
-                        <label class="flex-1 cursor-pointer rounded-xl border border-slate-200 p-3 hover:bg-slate-50 transition text-center">
-                            <input type="radio" name="acao" value="termino" class="hidden peer" required>
-                            <div class="text-sm font-bold text-slate-600 peer-checked:text-red-600"><i class="fa-solid fa-user-xmark mb-1 block"></i> Dar Término</div>
-                        </label>
-                    `;
-                }
-                
-                // Add some basic active state styling with JS for radio buttons
-                acoesContainer.innerHTML = acoesHtml;
-                const radios = acoesContainer.querySelectorAll('input[type="radio"]');
-                radios.forEach(radio => {
-                    radio.addEventListener('change', () => {
-                        acoesContainer.querySelectorAll('label').forEach(l => l.classList.remove('ring-2', 'ring-slate-900', 'bg-slate-50'));
-                        if (radio.checked) radio.parentElement.classList.add('ring-2', 'ring-slate-900', 'bg-slate-50');
-                    });
-                });
-            }
-            
-            const histContainer = document.getElementById('historicoContainer');
-            if (data.history.length === 0) {
-                histContainer.innerHTML = '<div class="text-sm text-slate-500 italic">Nenhum registro de acompanhamento ainda.</div>';
-            } else {
-                histContainer.innerHTML = data.history.map(h => `
-                    <div class="history-item">
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="text-xs font-bold uppercase tracking-wider text-slate-900">${h.etapa}º Término</span>
-                            <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">${h.acao}</span>
-                        </div>
-                        <p class="text-sm text-slate-700 italic">"${h.obs}"</p>
-                        <p class="text-[10px] text-slate-400 mt-1">${h.data} • Por ${h.por}</p>
-                    </div>
-                `).join('');
-            }
-            
-            modal.classList.add('active');
-        });
-    });
-
-    function closeModal() {
-        modal.classList.remove('active');
-    }
-
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
-    });
-</script>
+<script src="{% static 'colaboradores/js/terminos_modal.js' %}"></script>
 {% endblock %}
