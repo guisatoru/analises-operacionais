@@ -42,14 +42,23 @@
                 {% endfor %}
             </select>
         </div>
+        <div class="form-group">
+            <label>Status Gestão</label>
+            <select name="status_gestao" class="form-control">
+                <option value="">Todos</option>
+                {% for opcao in status_gestao_opcoes %}
+                    <option value="{{ opcao }}" {% if status_gestao_query == opcao %}selected{% endif %}>{{ opcao }}</option>
+                {% endfor %}
+            </select>
+        </div>
         <div class="flex items-end gap-8">
             <button type="submit" class="btn btn-primary">
                 <i class="fa-solid fa-filter"></i> Filtrar
             </button>
-            <a href="{% url 'colaboradores:terminos_export' %}?search={{ search_query }}&data_filtro={{ data_filtro }}&data_fim={{ data_fim }}&coordenador={{ coordenador_query }}" class="btn btn-outline" title="Exportar para Excel">
+            <a href="{% url 'colaboradores:terminos_export' %}?search={{ search_query }}&data_filtro={{ data_filtro }}&data_fim={{ data_fim }}&coordenador={{ coordenador_query }}&status_gestao={{ status_gestao_query }}" class="btn btn-outline" title="Exportar para Excel">
                 <i class="fa-solid fa-file-excel"></i> Exportar
             </a>
-            {% if search_query or data_filtro or data_fim or coordenador_query %}
+            {% if search_query or data_filtro or data_fim or coordenador_query or status_gestao_query %}
             <a href="{% url 'colaboradores:terminos_list' %}" class="btn btn-outline">
                 Limpar
             </a>
@@ -64,12 +73,14 @@
         <table class="data-table">
             <thead>
                 <tr>
-                    <th style="width: 25%;">RE / Nome</th>
-                    <th style="width: 20%;">Loja</th>
-                    <th style="width: 15%;">Coordenador</th>
-                    <th style="width: 10%;">Admissão</th>
-                    <th style="width: 15%;">Término 1</th>
-                    <th style="width: 15%;">Término 2</th>
+                    <th style="width: 20%;">RE / Nome</th>
+                    <th style="width: 15%;">Loja</th>
+                    <th style="width: 12%;">Coordenador</th>
+                    <th style="width: 12%;">Status Gestão</th>
+                    <th style="width: 8%;">Faltas</th>
+                    <th style="width: 8%;">Atest.</th>
+                    <th style="width: 12%;">Término 1</th>
+                    <th style="width: 13%;">Término 2</th>
                 </tr>
             </thead>
             <tbody>
@@ -88,7 +99,15 @@
                     <td>
                         <span class="text-sm">{{ item.colaborador.loja.coordenador|default:"-" }}</span>
                     </td>
-                    <td class="text-sm">{{ item.colaborador.data_admissao|date:"d/m/Y" }}</td>
+                    <td class="text-sm">
+                        {{ item.colaborador.status_gestao|default:"-" }}
+                    </td>
+                    <td class="text-sm text-center">
+                        <span class="{% if item.faltas > 0 %}text-red-600 font-bold{% endif %}">{{ item.faltas }}</span>
+                    </td>
+                    <td class="text-sm text-center">
+                        <span class="{% if item.atestados > 0 %}text-amber-600 font-bold{% endif %}">{{ item.atestados }}</span>
+                    </td>
                     <td>
                         {% with status=item.state.statusControle etapa=item.state.etapaAtual %}
                         <div class="date-highlight 
@@ -132,13 +151,13 @@
         </span>
         <div class="flex gap-8">
             {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if data_filtro %}&data_filtro={{ data_filtro }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}{% if coordenador_query %}&coordenador={{ coordenador_query }}{% endif %}" class="btn btn-outline">Anterior</a>
+                <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if data_filtro %}&data_filtro={{ data_filtro }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}{% if coordenador_query %}&coordenador={{ coordenador_query }}{% endif %}{% if status_gestao_query %}&status_gestao={{ status_gestao_query }}{% endif %}" class="btn btn-outline">Anterior</a>
             {% else %}
                 <button disabled class="btn btn-outline opacity-50 cursor-not-allowed">Anterior</button>
             {% endif %}
 
             {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if data_filtro %}&data_filtro={{ data_filtro }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}{% if coordenador_query %}&coordenador={{ coordenador_query }}{% endif %}" class="btn btn-outline">Próxima</a>
+                <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if data_filtro %}&data_filtro={{ data_filtro }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}{% if coordenador_query %}&coordenador={{ coordenador_query }}{% endif %}{% if status_gestao_query %}&status_gestao={{ status_gestao_query }}{% endif %}" class="btn btn-outline">Próxima</a>
             {% else %}
                 <button disabled class="btn btn-outline opacity-50 cursor-not-allowed">Próxima</button>
             {% endif %}
@@ -157,6 +176,8 @@
             "etapaAtual": {{ item.state.etapaAtual }},
             "tipoTermino": "{{ item.state.tipoTermino }}",
             "encerrado": {% if item.state.encerrado %}true{% else %}false{% endif %},
+            "faltas": "{{ item.faltas }}",
+            "atestados": "{{ item.atestados }}",
             "history": [
                 {% for h in item.history %}
                 {

@@ -45,8 +45,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Preenche histórico
             renderHistorico(data.history);
             
-            // Busca dados da GeoVictoria
-            fetchGeoVictoria(id);
+            // Preenche dados da GeoVictoria (já carregados na view)
+            fillGeoVictoria(data.faltas, data.atestados);
             
             // Abre o modal
             modal.classList.add('active');
@@ -54,36 +54,21 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Função para buscar dados da GeoVictoria via AJAX
-    function fetchGeoVictoria(colaboradorId) {
+    // Função para preencher dados da GeoVictoria
+    function fillGeoVictoria(faltas, atestados) {
         const loading = document.getElementById('geoLoading');
         const dataDiv = document.getElementById('geoData');
         const errorDiv = document.getElementById('geoError');
         const faltasSpan = document.getElementById('geoFaltas');
         const atestadosSpan = document.getElementById('geoAtestados');
 
-        // Reset state
-        loading.classList.remove('hidden');
-        dataDiv.classList.add('hidden');
+        loading.classList.add('hidden');
         errorDiv.classList.add('hidden');
-
-        fetch(`/colaboradores/geovictoria/resumo/${colaboradorId}/`)
-            .then(response => {
-                if (!response.ok) return response.json().then(err => { throw err; });
-                return response.json();
-            })
-            .then(data => {
-                faltasSpan.textContent = data.faltas;
-                atestadosSpan.textContent = data.atestados;
-                
-                loading.classList.add('hidden');
-                dataDiv.classList.remove('hidden');
-            })
-            .catch(err => {
-                loading.classList.add('hidden');
-                errorDiv.textContent = err.error || 'Erro ao consultar GeoVictoria.';
-                errorDiv.classList.remove('hidden');
-            });
+        
+        faltasSpan.textContent = faltas;
+        atestadosSpan.textContent = atestados;
+        
+        dataDiv.classList.remove('hidden');
     }
 
     // Função para renderizar as opções de rádio conforme a etapa

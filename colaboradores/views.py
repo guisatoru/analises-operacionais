@@ -68,6 +68,7 @@ def terminos_list(request):
     data_filtro = request.GET.get('data_filtro', '')
     data_fim = request.GET.get('data_fim', '')
     coordenador_query = request.GET.get('coordenador', '')
+    status_gestao_query = request.GET.get('status_gestao', '')
 
     today = date.today()
     processed_colaboradores = []
@@ -107,6 +108,12 @@ def terminos_list(request):
             if coordenador_query != loja_coordenador:
                 continue
 
+        # Filtro de Status Gestão
+        if status_gestao_query:
+            col_status_gestao = (colaborador.status_gestao or "").strip().upper()
+            if status_gestao_query.upper() != col_status_gestao:
+                continue
+
         if search_query:
             if search_query not in colaborador.nome.lower() and search_query not in colaborador.re.lower():
                 continue
@@ -121,12 +128,39 @@ def terminos_list(request):
     # Sort by the most recent relevant date (closest to today)
     processed_colaboradores.sort(key=lambda x: (x['relevant_date'] is None, x['relevant_date']))
 
-    paginator = Paginator(processed_colaboradores, 50)
+    paginator = Paginator(processed_colaboradores, 10) # Alterado de 50 para 10
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    # Buscar dados da GeoVictoria APENAS para os colaboradores da página atual
+    for item in page_obj:
+        colaborador = item['colaborador']
+        if colaborador.cpf:
+            try:
+                summary = geovictoria.get_timeoff_summary(
+                    colaborador.cpf, 
+                    colaborador.data_admissao, 
+                    today
+                )
+                if summary:
+                    item['faltas'] = summary.get('faltas', 0)
+                    item['atestados'] = summary.get('atestados', 0)
+                else:
+                    item['faltas'] = 0
+                    item['atestados'] = 0
+            except:
+                item['faltas'] = "Erro"
+                item['atestados'] = "Erro"
+        else:
+            item['faltas'] = "-"
+            item['atestados'] = "-"
+
     # Coordenadores únicos para o filtro
     coordenadores = Loja.objects.exclude(coordenador="").values_list('coordenador', flat=True).distinct().order_by('coordenador')
+    
+    # Status Gestão únicos para o filtro
+    status_gestao_unicos = Colaborador.objects.exclude(status='D').exclude(cargo='AUXILIAR ADMINISTRAT').values_list('status_gestao', flat=True)
+    status_gestao_opcoes = sorted(list(set(s.strip().upper() for s in status_gestao_unicos if s and s.strip())))
 
     context = {
         'page_obj': page_obj,
@@ -134,7 +168,9 @@ def terminos_list(request):
         'data_filtro': data_filtro,
         'data_fim': data_fim,
         'coordenador_query': coordenador_query,
+        'status_gestao_query': status_gestao_query,
         'coordenadores': coordenadores,
+        'status_gestao_opcoes': status_gestao_opcoes,
         'titulo': 'Controle de Términos',
     }
     return render(request, 'colaboradores/terminos_list.html', context)
@@ -152,6 +188,7 @@ def exportar_terminos_excel(request):
     data_filtro = request.GET.get('data_filtro', '')
     data_fim = request.GET.get('data_fim', '')
     coordenador_query = request.GET.get('coordenador', '')
+    status_gestao_query = request.GET.get('status_gestao', '')
 
     today = date.today()
     data_rows = []
@@ -191,9 +228,32 @@ def exportar_terminos_excel(request):
             if coordenador_query != loja_coordenador:
                 continue
 
+        # Filtro de Status Gestão
+        if status_gestao_query:
+            col_status_gestao = (colaborador.status_gestao or "").strip().upper()
+            if status_gestao_query.upper() != col_status_gestao:
+                continue
+
         if search_query:
             if search_query not in colaborador.nome.lower() and search_query not in colaborador.re.lower():
                 continue
+
+        # Buscar dados da GeoVictoria para exportação
+        faltas = 0
+        atestados = 0
+        if colaborador.cpf:
+            try:
+                summary = geovictoria.get_timeoff_summary(
+                    colaborador.cpf, 
+                    colaborador.data_admissao, 
+                    today
+                )
+                if summary:
+                    faltas = summary.get('faltas', 0)
+                    atestados = summary.get('atestados', 0)
+            except:
+                faltas = "Erro"
+                atestados = "Erro"
 
         # Última observação do histórico
         ultima_obs = ""
@@ -211,6 +271,9 @@ def exportar_terminos_excel(request):
             'Término 2': colaborador.termino_2.strftime('%d/%m/%Y') if colaborador.termino_2 else "",
             'Fase Atual': state['tipoTermino'],
             'Status': state['statusControle'],
+            'Status Gestão': colaborador.status_gestao or "-",
+            'Faltas': faltas,
+            'Atestados': atestados,
             'Última Obs': ultima_obs,
         })
 
