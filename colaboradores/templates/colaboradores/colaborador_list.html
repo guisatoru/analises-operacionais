@@ -5,186 +5,227 @@
     {{ titulo }}
 {% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'colaboradores/css/colaborador_cards.css' %}" />
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-    <div class="page-header-info">
-        <span class="page-eyebrow">RH & Equipe</span>
-        <h1>{{ titulo }}</h1>
-        <p>Gestão de cadastro vindo da TOTVS para acompanhamento operacional.</p>
+<div class="colaboradores-page-container">
+    <div class="page-header">
+        <div class="page-header-info">
+            <span class="page-eyebrow">RH & Equipe</span>
+            <h1>{{ titulo }}</h1>
+            <p>Gestão de cadastro vindo da TOTVS para acompanhamento operacional.</p>
+        </div>
     </div>
-</div>
 
-<!-- Filtros e Busca -->
-<section class="card filter-card">
-    <form method="GET" class="filter-form">
-        <div class="form-grid" style="margin-bottom: 20px;">
-            <div class="form-group" style="margin-bottom: 0; position: relative;">
-                <label for="filtro-loja-busca">Loja</label>
-                <input 
-                  type="text" 
-                  id="filtro-loja-busca" 
-                  placeholder="Digite para buscar uma loja" 
-                  autocomplete="off"
-                />
-                <select name="loja" id="loja" style="display: none;">
-                    <option value="">Todas</option>
-                    {% for l in lojas %}
-                        <option value="{{ l.id }}" {% if l.id|stringformat:"s" == loja_query %}selected{% endif %}>{{ l.nome_referencia }}</option>
-                    {% endfor %}
-                </select>
-                <div id="loja-sugestoes" class="autocomplete-list"></div>
-            </div>
-            
-            <div class="form-group" style="margin-bottom: 0;">
-                <label for="id-re">Matrícula (RE)</label>
-                <input type="text" name="re" id="id-re" placeholder="Ex: 12345" value="{{ re_query }}">
+    <!-- Filtros e Busca -->
+    <section class="card filter-card compact-filters">
+        <form method="GET" class="filter-form">
+            <div class="form-grid" style="margin-bottom: 16px;">
+                <div class="form-group" style="margin-bottom: 0; position: relative;">
+                    <label for="filtro-loja-busca">Loja</label>
+                    <input 
+                      type="text" 
+                      id="filtro-loja-busca" 
+                      placeholder="Digite para buscar uma loja" 
+                      autocomplete="off"
+                    />
+                    <select name="loja" id="loja" style="display: none;">
+                        <option value="">Todas</option>
+                        {% for l in lojas %}
+                            <option value="{{ l.id }}" {% if l.id|stringformat:"s" == loja_query %}selected{% endif %}>{{ l.nome_referencia }}</option>
+                        {% endfor %}
+                    </select>
+                    <div id="loja-sugestoes" class="autocomplete-list"></div>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="id-re">Matrícula (RE)</label>
+                    <input type="text" name="re" id="id-re" placeholder="Ex: 12345" value="{{ re_query }}">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="id-nome">Nome</label>
+                    <input type="text" name="nome" id="id-nome" placeholder="Buscar por nome..." value="{{ nome_query }}">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="id-cargo">Cargo</label>
+                    <select name="cargo" id="id-cargo">
+                        <option value="">Todos</option>
+                        {% for op in cargos_opcoes %}
+                            <option value="{{ op }}" {% if op == cargo_query %}selected{% endif %}>{{ op }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {% if titulo != 'Colaboradores Demitidos' %}
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="id-status">Status</label>
+                    <select name="status" id="id-status">
+                        <option value="">Todos os Colaboradores</option>
+                        <option value="ativo" {% if status_query == 'ativo' %}selected{% endif %}>Ativos</option>
+                        <option value="A" {% if status_query == 'A' %}selected{% endif %}>Afastado</option>
+                        <option value="F" {% if status_query == 'F' %}selected{% endif %}>Férias</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="id-divergente">Divergência de Loja</label>
+                    <select name="divergente" id="id-divergente">
+                        <option value="">Todos</option>
+                        <option value="S" {% if divergente_query == 'S' %}selected{% endif %}>Apenas Divergentes</option>
+                    </select>
+                </div>
+                {% endif %}
+
             </div>
 
-            <div class="form-group" style="margin-bottom: 0;">
-                <label for="id-nome">Nome</label>
-                <input type="text" name="nome" id="id-nome" placeholder="Buscar por nome..." value="{{ nome_query }}">
+            <div style="display: flex; gap: 8px;">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-filter"></i>
+                    Filtrar
+                </button>
+                {% if loja_query or re_query or nome_query or cargo_query or status_query %}
+                    <a href="?" class="btn btn-outline">
+                        Limpar
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </section>
+
+    <!-- Visualização em Cards (Estilo Compacto e Alinhado) -->
+    <div class="colaboradores-grid">
+        {% for colaborador in page_obj %}
+        <div class="colaborador-card clickable-row {% if titulo == 'Colaboradores Demitidos' %}demitido{% endif %}"
+            onclick="openColaboradorModal({
+                nome: '{{ colaborador.nome|escapejs }}',
+                re: '{{ colaborador.re|escapejs }}',
+                cargo: '{{ colaborador.cargo|escapejs }}',
+                loja: '{{ colaborador.loja.nome_referencia|default:colaborador.centro_custo|escapejs }}',
+                status: '{% if not colaborador.status or colaborador.status == '' %}ATIVO{% elif colaborador.status == 'A' %}AFASTADO{% elif colaborador.status == 'F' %}FÉRIAS{% elif colaborador.status == 'D' %}DEMITIDO{% else %}{{ colaborador.status }}{% endif %}',
+                admissao: '{{ colaborador.data_admissao|date:'d/m/Y' }}',
+                demissao: '{{ colaborador.data_demissao|date:'d/m/Y'|default:'-' }}',
+                termino1: '{{ colaborador.termino_1|date:'d/m/Y'|default:'-' }}',
+                termino2: '{{ colaborador.termino_2|date:'d/m/Y'|default:'-' }}',
+                funcaoGestao: '{{ colaborador.funcao_gestao|default:'-'|escapejs }}',
+                lojaGestao: '{{ colaborador.loja_gestao|default:'-'|escapejs }}',
+                statusGestao: '{{ colaborador.status_gestao|default:'-'|escapejs }}'
+            })"
+        >
+            <div class="card-header-compact">
+                <div class="header-info">
+                    <div class="name-row">
+                        <h3 class="colaborador-name">{{ colaborador.nome }}</h3>
+                        <div class="badge-group">
+                            {% if titulo != 'Colaboradores Demitidos' %}
+                                {% if colaborador.loja_gestao and colaborador.loja and colaborador.loja.nome_gestao %}
+                                    {% if colaborador.loja_gestao == colaborador.loja.nome_gestao %}
+                                        <span class="badge-compact badge-consistent">
+                                            <i class="fa-solid fa-circle-check"></i> Loja consistente
+                                        </span>
+                                    {% else %}
+                                        <span class="badge-compact badge-divergent">
+                                            Loja divergente
+                                        </span>
+                                    {% endif %}
+                                {% elif colaborador.loja_gestao %}
+                                     <span class="badge-compact badge-neutral">Sem De-Para Loja</span>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <span class="colaborador-re-sm">RE: {{ colaborador.re }}</span>
+                </div>
             </div>
 
-            <div class="form-group" style="margin-bottom: 0;">
-                <label for="id-cargo">Cargo</label>
-                <select name="cargo" id="id-cargo">
-                    <option value="">Todos</option>
-                    {% for op in cargos_opcoes %}
-                        <option value="{{ op }}" {% if op == cargo_query %}selected{% endif %}>{{ op }}</option>
-                    {% endfor %}
-                </select>
+            <div class="property-list">
+                {% if titulo != 'Colaboradores Demitidos' %}
+                    <div class="property-row">
+                        <span class="property-label">Loja TOTVS:</span>
+                        <span class="property-value">{{ colaborador.loja.nome_referencia|default:colaborador.centro_custo }}</span>
+                    </div>
+                    <div class="property-row">
+                        <span class="property-label">Loja Gestao:</span>
+                        <span class="property-value">{{ colaborador.loja_gestao|default:"Em branco" }}</span>
+                    </div>
+                    <div class="property-row">
+                        <span class="property-label">Status TOTVS:</span>
+                        <span class="property-value">
+                            {% if not colaborador.status or colaborador.status == '' %}ATIVO{% elif colaborador.status == 'A' %}AFASTADO{% elif colaborador.status == 'F' %}FÉRIAS{% elif colaborador.status == 'D' %}DEMITIDO{% else %}{{ colaborador.status }}{% endif %}
+                        </span>
+                    </div>
+                    <div class="property-row">
+                        <span class="property-label">Status Gestao:</span>
+                        <span class="property-value">{{ colaborador.status_gestao|default:"Em branco" }}</span>
+                    </div>
+                    <div class="property-row">
+                        <span class="property-label">Funcao TOTVS:</span>
+                        <span class="property-value">{{ colaborador.cargo }}</span>
+                    </div>
+                    <div class="property-row">
+                        <span class="property-label">Funcao Gestao:</span>
+                        <span class="property-value">{{ colaborador.funcao_gestao|default:"Em branco" }}</span>
+                    </div>
+                {% else %}
+                    <!-- Layout para Demitidos -->
+                    <div class="property-row">
+                        <span class="property-label">Status TOTVS:</span>
+                        <span class="property-value">Demitido</span>
+                    </div>
+                    <div class="property-row">
+                        <span class="property-label">Status Gestao:</span>
+                        <span class="property-value">{{ colaborador.status_gestao|default:"Em branco" }}</span>
+                    </div>
+                    <div class="property-row">
+                        <span class="property-label">Admissão:</span>
+                        <span class="property-value">{{ colaborador.data_admissao|date:"d/m/Y" }}</span>
+                    </div>
+                    <div class="property-row">
+                        <span class="property-label">Demissão:</span>
+                        <span class="property-value text-danger">{{ colaborador.data_demissao|date:"d/m/Y"|default:"-" }}</span>
+                    </div>
+                {% endif %}
             </div>
-
-            {% if titulo != 'Colaboradores Demitidos' %}
-            <div class="form-group" style="margin-bottom: 0;">
-                <label for="id-status">Status</label>
-                <select name="status" id="id-status">
-                    <option value="">Todos os Colaboradores</option>
-                    <option value="ativo" {% if status_query == 'ativo' %}selected{% endif %}>Ativos</option>
-                    <option value="A" {% if status_query == 'A' %}selected{% endif %}>Afastado</option>
-                    <option value="F" {% if status_query == 'F' %}selected{% endif %}>Férias</option>
-                </select>
-            </div>
-            {% endif %}
         </div>
-
-        <div style="display: flex; gap: 8px;">
-            <button type="submit" class="btn btn-primary">
-                <i class="fa-solid fa-filter"></i>
-                Filtrar
-            </button>
-            {% if loja_query or re_query or nome_query or cargo_query or status_query %}
-                <a href="?" class="btn btn-outline">
-                    Limpar
-                </a>
-            {% endif %}
+        {% empty %}
+        <div class="card w-100 p-40 text-center text-muted">
+            Nenhum colaborador encontrado com os critérios de busca.
         </div>
-    </form>
-</section>
-
-<!-- Tabela de Dados -->
-<div class="card table-card">
-    <div class="table-container">
-        <table class="dense-table">
-            <thead>
-                <tr>
-                    <th style="width: 100px;">RE</th>
-                    <th style="width: 130px;">CPF</th>
-                    <th>Nome do Colaborador</th>
-                    <th>Loja / Centro de Custo</th>
-                    <th>Cargo</th>
-                    <th style="width: 100px;">Status</th>
-                    <th style="width: 120px;">Admissão</th>
-                    {% if titulo == 'Colaboradores Demitidos' %}
-                        <th style="width: 120px;">Demissão</th>
-                    {% endif %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for colaborador in page_obj %}
-                <tr class="clickable-row" 
-                    data-nome="{{ colaborador.nome|escapejs }}"
-                    data-re="{{ colaborador.re|escapejs }}"
-                    data-cargo="{{ colaborador.cargo|escapejs }}"
-                    data-loja="{{ colaborador.loja.nome_referencia|default:colaborador.centro_custo|escapejs }}"
-                    data-status="{% if not colaborador.status or colaborador.status == '' %}Ativo{% elif colaborador.status == 'A' %}Afastado{% elif colaborador.status == 'F' %}Férias{% elif colaborador.status == 'D' %}Demitido{% else %}{{ colaborador.status }}{% endif %}"
-                    data-admissao="{{ colaborador.data_admissao|date:'d/m/Y' }}"
-                    data-demissao="{{ colaborador.data_demissao|date:'d/m/Y'|default:'-' }}"
-                    data-termino1="{{ colaborador.termino_1|date:'d/m/Y'|default:'-' }}"
-                    data-termino2="{{ colaborador.termino_2|date:'d/m/Y'|default:'-' }}"
-                >
-                    <td class="font-mono">{{ colaborador.re }}</td>
-                    <td class="text-sm">{{ colaborador.cpf|default:"-" }}</td>
-                    <td><strong>{{ colaborador.nome }}</strong></td>
-                    <td>
-                        {% if colaborador.loja %}
-                            <span class="inline-flex items-center gap-6">
-                                <i class="fa-solid fa-store text-muted text-xs"></i>
-                                {{ colaborador.loja.nome_referencia }}
-                            </span>
-                        {% else %}
-                            <span class="text-muted text-sm">{{ colaborador.centro_custo }}</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-muted">{{ colaborador.cargo }}</td>
-                    <td>
-                        {% if not colaborador.status or colaborador.status == '' %}
-                            <span class="badge badge-success">Ativo</span>
-                        {% elif colaborador.status == 'A' %}
-                            <span class="badge badge-neutral bg-warning text-warning">Afastado</span>
-                        {% elif colaborador.status == 'F' %}
-                            <span class="badge badge-neutral bg-info text-info">Férias</span>
-                        {% elif colaborador.status == 'D' %}
-                            <span class="badge badge-danger">Demitido</span>
-                        {% else %}
-                            <span class="badge badge-neutral">{{ colaborador.status }}</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ colaborador.data_admissao|date:"d/m/Y" }}</td>
-                    {% if titulo == 'Colaboradores Demitidos' %}
-                        <td class="text-danger">{{ colaborador.data_demissao|date:"d/m/Y"|default:"-" }}</td>
-                    {% endif %}
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="7" class="p-40 text-center text-muted">
-                        Nenhum colaborador encontrado com os critérios de busca.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        {% endfor %}
     </div>
 
     {% if page_obj.has_other_pages %}
-    <div class="pagination-wrapper">
+    <div class="pagination-wrapper" style="border-radius: 16px; margin-bottom: 24px;">
         <span class="pagination-info">
             Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
         </span>
         <div class="pagination-actions">
             {% if page_obj.has_previous %}
-                <a href="?page=1{% if loja_query %}&loja={{ loja_query }}{% endif %}{% if re_query %}&re={{ re_query }}{% endif %}{% if nome_query %}&nome={{ nome_query }}{% endif %}{% if cargo_query %}&cargo={{ cargo_query }}{% endif %}{% if status_query %}&status={{ status_query }}{% endif %}" class="btn btn-outline" title="Primeira página">
+                <a href="?page=1{% if loja_query %}&loja={{ loja_query }}{% endif %}{% if re_query %}&re={{ re_query }}{% endif %}{% if nome_query %}&nome={{ nome_query }}{% endif %}{% if cargo_query %}&cargo={{ cargo_query }}{% endif %}{% if status_query %}&status={{ status_query }}{% endif %}{% if divergente_query %}&divergente={{ divergente_query }}{% endif %}" class="btn btn-outline" title="Primeira página">
                     <i class="fa-solid fa-angles-left"></i>
                 </a>
-                <a href="?page={{ page_obj.previous_page_number }}{% if loja_query %}&loja={{ loja_query }}{% endif %}{% if re_query %}&re={{ re_query }}{% endif %}{% if nome_query %}&nome={{ nome_query }}{% endif %}{% if cargo_query %}&cargo={{ cargo_query }}{% endif %}{% if status_query %}&status={{ status_query }}{% endif %}" class="btn btn-outline">
+                <a href="?page={{ page_obj.previous_page_number }}{% if loja_query %}&loja={{ loja_query }}{% endif %}{% if re_query %}&re={{ re_query }}{% endif %}{% if nome_query %}&nome={{ nome_query }}{% endif %}{% if cargo_query %}&cargo={{ cargo_query }}{% endif %}{% if status_query %}&status={{ status_query }}{% endif %}{% if divergente_query %}&divergente={{ divergente_query }}{% endif %}" class="btn btn-outline">
                     <i class="fa-solid fa-angle-left"></i> Anterior
                 </a>
             {% endif %}
 
             {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}{% if loja_query %}&loja={{ loja_query }}{% endif %}{% if re_query %}&re={{ re_query }}{% endif %}{% if nome_query %}&nome={{ nome_query }}{% endif %}{% if cargo_query %}&cargo={{ cargo_query }}{% endif %}{% if status_query %}&status={{ status_query }}{% endif %}" class="btn btn-outline">
+                <a href="?page={{ page_obj.next_page_number }}{% if loja_query %}&loja={{ loja_query }}{% endif %}{% if re_query %}&re={{ re_query }}{% endif %}{% if nome_query %}&nome={{ nome_query }}{% endif %}{% if cargo_query %}&cargo={{ cargo_query }}{% endif %}{% if status_query %}&status={{ status_query }}{% endif %}{% if divergente_query %}&divergente={{ divergente_query }}{% endif %}" class="btn btn-outline">
                     Próxima <i class="fa-solid fa-angle-right"></i>
                 </a>
-                <a href="?page={{ page_obj.paginator.num_pages }}{% if loja_query %}&loja={{ loja_query }}{% endif %}{% if re_query %}&re={{ re_query }}{% endif %}{% if nome_query %}&nome={{ nome_query }}{% endif %}{% if cargo_query %}&cargo={{ cargo_query }}{% endif %}{% if status_query %}&status={{ status_query }}{% endif %}" class="btn btn-outline" title="Última página">
+                <a href="?page={{ page_obj.paginator.num_pages }}{% if loja_query %}&loja={{ loja_query }}{% endif %}{% if re_query %}&re={{ re_query }}{% endif %}{% if nome_query %}&nome={{ nome_query }}{% endif %}{% if cargo_query %}&cargo={{ cargo_query }}{% endif %}{% if status_query %}&status={{ status_query }}{% endif %}{% if divergente_query %}&divergente={{ divergente_query }}{% endif %}" class="btn btn-outline" title="Última página">
                     <i class="fa-solid fa-angles-right"></i>
                 </a>
             {% endif %}
         </div>
     </div>
     {% endif %}
-</div>
+</div> <!-- Fecha colaboradores-page-container -->
 
-<!-- Modal de Detalhes do Colaborador (Estilo SaaS) -->
+<!-- Modal de Detalhes -->
 <div class="modal-overlay" id="colaboradorModalOverlay" onclick="closeColaboradorModal()">
     <div class="modal-container" onclick="event.stopPropagation()">
         <header class="modal-header">
@@ -244,6 +285,22 @@
                 <div class="detail-item">
                     <span class="detail-label">Término Experiência (2º)</span>
                     <span class="detail-value" id="modal-termino2">-</span>
+                </div>
+
+                <div class="detail-divider"></div>
+
+                <!-- Dados Gestão de Pessoas -->
+                <div class="detail-item">
+                    <span class="detail-label">Função (Gestão)</span>
+                    <span class="detail-value text-primary" id="modal-funcao-gestao">-</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Loja (Gestão)</span>
+                    <span class="detail-value text-primary" id="modal-loja-gestao">-</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Status (Gestão)</span>
+                    <span class="detail-value text-primary" id="modal-status-gestao">-</span>
                 </div>
             </div>
         </div>

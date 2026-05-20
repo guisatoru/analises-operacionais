@@ -13,7 +13,10 @@ function openColaboradorModal(data) {
         'modal-admissao': data.admissao,
         'modal-demissao': data.demissao,
         'modal-termino1': data.termino1,
-        'modal-termino2': data.termino2
+        'modal-termino2': data.termino2,
+        'modal-funcao-gestao': data.funcaoGestao,
+        'modal-loja-gestao': data.lojaGestao,
+        'modal-status-gestao': data.statusGestao
     };
 
     for (const [id, value] of Object.entries(fields)) {
@@ -70,7 +73,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     admissao: row.getAttribute('data-admissao'),
                     demissao: row.getAttribute('data-demissao'),
                     termino1: row.getAttribute('data-termino1'),
-                    termino2: row.getAttribute('data-termino2')
+                    termino2: row.getAttribute('data-termino2'),
+                    funcaoGestao: row.getAttribute('data-funcao-gestao'),
+                    lojaGestao: row.getAttribute('data-loja-gestao'),
+                    statusGestao: row.getAttribute('data-status-gestao')
                 };
                 openColaboradorModal(data);
             }

@@ -10,4 +10,5 @@ urlpatterns = [
     path('terminos/exportar/', views.exportar_terminos_excel, name='terminos_export'),
     path('geovictoria/resumo/<int:colaborador_id>/', views.colaborador_geovictoria_summary, name='geovictoria_summary'),
     path('importar/', views.colaborador_import, name='importar'),
+    path('importar-gestao/', views.gestao_import, name='importar_gestao'),
 ]

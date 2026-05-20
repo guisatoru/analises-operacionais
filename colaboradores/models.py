@@ -26,6 +26,11 @@ class Colaborador(models.Model):
     termino_1 = models.DateField("Término 1", null=True, blank=True)
     termino_2 = models.DateField("Término 2", null=True, blank=True)
 
+    # Campos vindos da planilha de Gestão de Pessoas
+    funcao_gestao = models.CharField("Função (Gestão)", max_length=255, null=True, blank=True)
+    loja_gestao = models.CharField("Loja (Gestão)", max_length=255, null=True, blank=True)
+    status_gestao = models.CharField("Status (Gestão)", max_length=255, null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

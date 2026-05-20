@@ -18,3 +18,22 @@ class ColaboradorImportForm(forms.Form):
         if not nome.endswith(".csv"):
             raise forms.ValidationError("Envie um arquivo com extensão .csv.")
         return f
+
+class GestaoPessoasImportForm(forms.Form):
+    """
+    Formulário para upload da planilha de Gestão de Pessoas (.xlsm).
+    """
+    arquivo = forms.FileField(
+        label="Planilha Gestão de Pessoas",
+        help_text="Formato .xlsm. Aba: 'Relação de funcionários'.",
+        widget=forms.ClearableFileInput(attrs={"accept": ".xlsm"}),
+    )
+
+    def clean_arquivo(self):
+        f = self.cleaned_data.get("arquivo")
+        if not f:
+            return f
+        nome = (f.name or "").lower()
+        if not nome.endswith(".xlsm"):
+            raise forms.ValidationError("Envie um arquivo com extensão .xlsm.")
+        return f

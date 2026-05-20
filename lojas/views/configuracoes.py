@@ -2,7 +2,7 @@
 
 from django.shortcuts import render
 from ..forms import FolhaImportForm
-from colaboradores.forms import ColaboradorImportForm
+from colaboradores.forms import ColaboradorImportForm, GestaoPessoasImportForm
 
 def importacoes(request):
     """
@@ -14,5 +14,6 @@ def importacoes(request):
     return render(request, "lojas/importacoes.html", {
         "folha_form": FolhaImportForm(),
         "colaborador_form": ColaboradorImportForm(),
+        "gestao_form": GestaoPessoasImportForm(),
         "titulo": "Central de Importações"
     })

@@ -3,11 +3,13 @@ from django.core.paginator import Paginator
 from django.contrib import messages
 from django.utils import timezone
 from datetime import date
+from django.db import models, transaction
 from django.db.models import Q
 from .models import Colaborador, ControleTermino
 from lojas.models import Loja
-from .forms import ColaboradorImportForm
+from .forms import ColaboradorImportForm, GestaoPessoasImportForm
 from .services.colaborador_importacao import importar_colaboradores_de_texto
+from .services.gestao_importacao import importar_gestao_pessoas
 
 from django.http import HttpResponse, JsonResponse
 import pandas as pd
@@ -275,6 +277,7 @@ def colaborador_list(request):
     nome_query = request.GET.get('nome', '')
     cargo_query = request.GET.get('cargo', '')
     status_query = request.GET.get('status', '')
+    divergente_query = request.GET.get('divergente', '')
 
     if loja_query:
         colaboradores_qs = colaboradores_qs.filter(loja_id=loja_query)
@@ -295,7 +298,15 @@ def colaborador_list(request):
         else:
             colaboradores_qs = colaboradores_qs.filter(status=status_query)
 
-    paginator = Paginator(colaboradores_qs, 50) # 50 por página
+    if divergente_query == 'S':
+        # Filtra onde loja_gestao é preenchido E (loja é nula OU nome_gestao da loja é diferente)
+        colaboradores_qs = colaboradores_qs.filter(
+            Q(loja_gestao__isnull=False) & ~Q(loja_gestao='')
+        ).filter(
+            Q(loja__isnull=True) | ~Q(loja__nome_gestao=models.F('loja_gestao'))
+        )
+
+    paginator = Paginator(colaboradores_qs, 10) # 10 por página
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -315,6 +326,7 @@ def colaborador_list(request):
         'nome_query': nome_query,
         'cargo_query': cargo_query,
         'status_query': status_query,
+        'divergente_query': divergente_query,
         'titulo': 'Colaboradores'
     }
     return render(request, 'colaboradores/colaborador_list.html', context)
@@ -342,7 +354,7 @@ def demitido_list(request):
     if cargo_query:
         colaboradores_qs = colaboradores_qs.filter(cargo__iexact=cargo_query)
 
-    paginator = Paginator(colaboradores_qs, 50)
+    paginator = Paginator(colaboradores_qs, 10) # 10 por página
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -414,5 +426,53 @@ def colaborador_import(request):
         {
             "form": form,
             "titulo": "Importação de Colaboradores",
+        },
+    )
+
+def gestao_import(request):
+    """
+    Permite escolher a planilha de Gestão de Pessoas para atualizar os colaboradores.
+    """
+    if request.method == "POST":
+        form = GestaoPessoasImportForm(request.POST, request.FILES)
+        if form.is_valid():
+            arquivo = form.cleaned_data["arquivo"]
+            try:
+                resultado = importar_gestao_pessoas(arquivo)
+            except ValueError as exc:
+                messages.error(request, str(exc))
+            except Exception as exc:
+                messages.error(request, f"Erro inesperado: {str(exc)}")
+            else:
+                if resultado["total_planilha"] == 0:
+                    messages.warning(
+                        request,
+                        "Nenhum colaborador válido encontrado na planilha.",
+                    )
+                else:
+                    msg = (
+                        f"Importação Gestão concluída: {resultado['total_planilha']} processados. "
+                        f"{resultado['atualizados']} atualizados, "
+                        f"{resultado['sem_alteracao']} sem alteração. "
+                    )
+                    if resultado["nao_encontrados"] > 0:
+                        msg += f"{resultado['nao_encontrados']} não encontrados no banco."
+                    
+                    if resultado["erros"] > 0:
+                        msg += f" {resultado['erros']} erros ignorados."
+                        messages.warning(request, msg)
+                    else:
+                        messages.success(request, msg)
+                
+                return redirect("importacoes")
+    else:
+        form = GestaoPessoasImportForm()
+
+    return render(
+        request,
+        "colaboradores/colaborador_import.html",
+        {
+            "form": form,
+            "titulo": "Importação de Gestão de Pessoas",
         },
     )

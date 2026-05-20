@@ -17,7 +17,7 @@
     <!-- Importação de Folha -->
     <section class="card">
         <div class="card-header">
-            <h2><i class="fa-solid fa-file-invoice-dollar"></i> Importar Folha TOTVS</h2>
+            <h2><i class="fa-solid fa-file-invoice-dollar"></i> Importar SRD</h2>
         </div>
         <div class="card-body">
             <p class="text-muted mb-24">Faça o upload do arquivo CSV de folha de pagamento para processar verbas e custos.</p>
@@ -32,7 +32,7 @@
                 </div>
                 <button type="submit" class="btn btn-primary">
                     <i class="fa-solid fa-upload"></i>
-                    Processar Folha
+                    Processar SRD
                 </button>
             </form>
         </div>
@@ -41,7 +41,7 @@
     <!-- Importação de Colaboradores -->
     <section class="card">
         <div class="card-header">
-            <h2><i class="fa-solid fa-users-gear"></i> Sincronizar Colaboradores</h2>
+            <h2><i class="fa-solid fa-users-gear"></i> Importar SRA</h2>
         </div>
         <div class="card-body">
             <p class="text-muted mb-24">Atualize a base de funcionários ativos e demitidos a partir do relatório de pessoal.</p>
@@ -56,7 +56,31 @@
                 </div>
                 <button type="submit" class="btn btn-primary">
                     <i class="fa-solid fa-sync"></i>
-                    Sincronizar Agora
+                    Processar SRA
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Importação de Gestão de Pessoas -->
+    <section class="card">
+        <div class="card-header">
+            <h2><i class="fa-solid fa-users-viewfinder"></i> Importar Gestão de Pessoas</h2>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-24">Atualize dados de função, loja e status a partir da planilha de Gestão de Pessoas (.xlsm).</p>
+            
+            <form action="{% url 'colaboradores:importar_gestao' %}" method="post" enctype="multipart/form-data" class="flex flex-col gap-16">
+                {% csrf_token %}
+                <div class="form-group">
+                    {{ gestao_form.arquivo }}
+                    {% if gestao_form.arquivo.errors %}
+                        <div class="error-msg">{{ gestao_form.arquivo.errors }}</div>
+                    {% endif %}
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-file-excel"></i>
+                    Processar Gestão
                 </button>
             </form>
         </div>
