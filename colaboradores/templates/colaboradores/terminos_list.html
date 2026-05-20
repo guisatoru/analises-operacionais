@@ -185,6 +185,27 @@
         </div>
         
         <div class="modal-body">
+            <!-- Seção GeoVictoria -->
+            <div id="geoSection" class="bg-slate-50 p-16 rounded-xl border border-slate-100 mb-20">
+                <h4 class="section-label mb-8"><i class="fa-solid fa-clock mr-4"></i> Dados GeoVictoria</h4>
+                <div id="geoLoading" class="text-sm text-slate-500">
+                    <i class="fa-solid fa-spinner fa-spin mr-4"></i> Consultando faltas e atestados...
+                </div>
+                <div id="geoData" class="hidden">
+                    <div class="grid grid-cols-2 gap-16">
+                        <div class="bg-white p-12 rounded-lg border border-slate-200">
+                            <span class="field-label text-[10px]">Faltas</span>
+                            <span id="geoFaltas" class="text-xl font-bold text-red-600">-</span>
+                        </div>
+                        <div class="bg-white p-12 rounded-lg border border-slate-200">
+                            <span class="field-label text-[10px]">Atestados</span>
+                            <span id="geoAtestados" class="text-xl font-bold text-amber-600">-</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="geoError" class="text-xs text-red-500 hidden"></div>
+            </div>
+
             <!-- Seção de Decisão -->
             <div id="formSection" class="decision-section hidden">
                 <h4 class="section-label">Registrar Decisão</h4>

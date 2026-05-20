@@ -22,6 +22,7 @@ class Colaborador(models.Model):
     data_demissao = models.DateField("Data de Demissão", null=True, blank=True)
     status = models.CharField("Status", max_length=100)
     cargo = models.CharField("Cargo", max_length=150)
+    cpf = models.CharField("CPF", max_length=14, null=True, blank=True)
     termino_1 = models.DateField("Término 1", null=True, blank=True)
     termino_2 = models.DateField("Término 2", null=True, blank=True)
 

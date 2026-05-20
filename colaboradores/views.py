@@ -9,9 +9,10 @@ from lojas.models import Loja
 from .forms import ColaboradorImportForm
 from .services.colaborador_importacao import importar_colaboradores_de_texto
 
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 import pandas as pd
 from io import BytesIO
+from .services import geovictoria
 
 def derive_termino_state(colaborador, reference_date):
     controles = list(colaborador.controles_termino.all())
@@ -232,6 +233,34 @@ def exportar_terminos_excel(request):
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     
     return response
+
+
+def colaborador_geovictoria_summary(request, colaborador_id):
+    """
+    Endpoint AJAX que retorna o resumo de faltas e atestados do colaborador na GeoVictoria.
+    Utiliza o CPF do colaborador como identificador.
+    """
+    colaborador = get_object_or_404(Colaborador, id=colaborador_id)
+    
+    if not colaborador.cpf:
+        return JsonResponse({'error': 'CPF do colaborador não cadastrado. Reimporte os dados da TOTVS.'}, status=400)
+    
+    try:
+        # 1. Buscar resumo desde a admissão até hoje usando o CPF
+        today = date.today()
+        summary = geovictoria.get_timeoff_summary(
+            colaborador.cpf, 
+            colaborador.data_admissao, 
+            today
+        )
+        
+        if not summary:
+            return JsonResponse({'error': 'Não foi possível obter o resumo da GeoVictoria'}, status=500)
+            
+        return JsonResponse(summary)
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 def colaborador_list(request):

@@ -45,11 +45,46 @@ document.addEventListener('DOMContentLoaded', function() {
             // Preenche histórico
             renderHistorico(data.history);
             
+            // Busca dados da GeoVictoria
+            fetchGeoVictoria(id);
+            
             // Abre o modal
             modal.classList.add('active');
             document.body.style.overflow = 'hidden';
         });
     });
+
+    // Função para buscar dados da GeoVictoria via AJAX
+    function fetchGeoVictoria(colaboradorId) {
+        const loading = document.getElementById('geoLoading');
+        const dataDiv = document.getElementById('geoData');
+        const errorDiv = document.getElementById('geoError');
+        const faltasSpan = document.getElementById('geoFaltas');
+        const atestadosSpan = document.getElementById('geoAtestados');
+
+        // Reset state
+        loading.classList.remove('hidden');
+        dataDiv.classList.add('hidden');
+        errorDiv.classList.add('hidden');
+
+        fetch(`/colaboradores/geovictoria/resumo/${colaboradorId}/`)
+            .then(response => {
+                if (!response.ok) return response.json().then(err => { throw err; });
+                return response.json();
+            })
+            .then(data => {
+                faltasSpan.textContent = data.faltas;
+                atestadosSpan.textContent = data.atestados;
+                
+                loading.classList.add('hidden');
+                dataDiv.classList.remove('hidden');
+            })
+            .catch(err => {
+                loading.classList.add('hidden');
+                errorDiv.textContent = err.error || 'Erro ao consultar GeoVictoria.';
+                errorDiv.classList.remove('hidden');
+            });
+    }
 
     // Função para renderizar as opções de rádio conforme a etapa
     function renderAcoes(etapa, container) {

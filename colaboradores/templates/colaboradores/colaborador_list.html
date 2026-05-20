@@ -89,6 +89,7 @@
             <thead>
                 <tr>
                     <th style="width: 100px;">RE</th>
+                    <th style="width: 130px;">CPF</th>
                     <th>Nome do Colaborador</th>
                     <th>Loja / Centro de Custo</th>
                     <th>Cargo</th>
@@ -113,6 +114,7 @@
                     data-termino2="{{ colaborador.termino_2|date:'d/m/Y'|default:'-' }}"
                 >
                     <td class="font-mono">{{ colaborador.re }}</td>
+                    <td class="text-sm">{{ colaborador.cpf|default:"-" }}</td>
                     <td><strong>{{ colaborador.nome }}</strong></td>
                     <td>
                         {% if colaborador.loja %}

@@ -1,4 +1,7 @@
 import pandas as pd
+import csv
+import re
+import io
 from datetime import datetime
 from django.db import transaction
 from lojas.models import Loja
@@ -8,106 +11,142 @@ from lojas.services.folha_constants import (
     SUBSTITUICOES_CENTRO_CUSTO
 )
 
+"""
+Serviço de importação de colaboradores da TOTVS.
+Lida com o formato específico da TOTVS (campos com aspas duplas dobradas e registros terminados em ";;").
+"""
 def parse_data(valor):
     """Converte string de data DD/MM/YYYY para objeto date do Python."""
-    if pd.isna(valor) or not str(valor).strip() or str(valor).strip() == "/  /":
+    if pd.isna(valor):
+        return None
+    v = str(valor).strip()
+    # Se a string não tem números, não é uma data válida
+    if not re.search(r'\d', v):
         return None
     try:
-        # Garante que seja string e limpa espaços
-        data_str = str(valor).strip()
-        return datetime.strptime(data_str, "%d/%m/%Y").date()
+        return datetime.strptime(v, "%d/%m/%Y").date()
     except (ValueError, TypeError):
         return None
 
-def limpar_notacao_cientifica(valor):
-    """
-    Remove notação científica (ex: 1E+12) e garante que o valor seja 
-    tratado como o texto literal da célula.
-    """
+
+def limpar_cpf(valor):
+    """Remove pontuação do CPF e retorna apenas os 11 dígitos."""
     if pd.isna(valor):
-        return ""
-    
-    texto = str(valor).strip()
-    
-    # Se o pandas converteu para float com .0 no final (comum em IDs)
-    if texto.endswith('.0'):
-        texto = texto[:-2]
-        
-    return texto
+        return None
+    digits = "".join(re.findall(r"\d", str(valor)))
+    if not digits:
+        return None
+    return digits.zfill(11)[-11:]
 
 def importar_colaboradores_de_texto(conteudo_csv):
     """
     Lê o CSV da TOTVS e atualiza a tabela de Colaboradores.
-    Trata o formato específico onde as linhas de dados estão envoltas em aspas
-    e as colunas internas possuem aspas duplas dobradas.
+    Suporta quebras de linha dentro de campos e o formato de aspas da TOTVS.
     """
-    import csv
-    from io import StringIO
-    
-    # O arquivo tem um formato estranho: as 2 primeiras linhas são metadados.
-    # A terceira é o cabeçalho. As subsequentes são os dados.
-    linhas = conteudo_csv.splitlines()
-    if len(linhas) < 4:
+    if not conteudo_csv:
         return {'total': 0, 'criados': 0, 'atualizados': 0, 'erros': 0}
 
-    # Pegamos o cabeçalho (linha 3, index 2)
-    # Ex: "Filial,""Foto"",""Cód. Vaga""...
-    cabecalho_bruto = linhas[2].strip()
-    # Remove as aspas externas e substitui "" por "
-    if cabecalho_bruto.startswith('"') and cabecalho_bruto.endswith('";;'):
-        cabecalho_bruto = cabecalho_bruto[1:-3]
-    elif cabecalho_bruto.startswith('"') and cabecalho_bruto.endswith('"'):
-        cabecalho_bruto = cabecalho_bruto[1:-1]
+    # 1. Reconstruir registros que podem estar quebrados em múltiplas linhas
+    linhas_brutas = conteudo_csv.splitlines()
     
-    cabecalho_limpo = cabecalho_bruto.replace('""', '"')
+    # Identifica onde os dados reais começam (pula SRA;; e lines vazias)
+    inicio_dados = 0
+    for idx, l in enumerate(linhas_brutas):
+        if l.strip().startswith('"'):
+            inicio_dados = idx
+            break
+            
+    linhas_reais = linhas_brutas[inicio_dados:]
+    registros_limpos = []
+    buffer_linha = ""
     
-    # Usa o csv reader para processar a linha do cabeçalho corretamente (separada por vírgula dentro das aspas)
-    reader_header = csv.reader([cabecalho_limpo], delimiter=',', quotechar='"')
-    colunas = next(reader_header)
+    for linha in linhas_reais:
+        buffer_linha += linha
+        
+        # O padrão da TOTVS é que cada registro termine com ";;"
+        if linha.endswith('";;'):
+            reg = buffer_linha.strip()
+            # Remove as aspas externas se existirem
+            if reg.startswith('"'):
+                reg = reg[1:]
+            if reg.endswith('";;'):
+                reg = reg[:-3]
+            elif reg.endswith('"'): # Fallback caso o splitlines tenha comido o ;;
+                reg = reg[:-1]
+            
+            # Substitui as aspas duplas dobradas por aspas simples para o csv.reader
+            reg = reg.replace('""', '"')
+            registros_limpos.append(reg)
+            buffer_linha = ""
+
+    # Se não encontrou nenhum registro com ";;", tenta o modo fallback (um por linha)
+    if not registros_limpos and len(linhas_brutas) > 3:
+        for i in range(3, len(linhas_brutas)):
+            reg = linhas_brutas[i].strip()
+            if reg.startswith('"'): reg = reg[1:]
+            if reg.endswith('"'): reg = reg[:-1]
+            if reg.endswith(';;'): reg = reg[:-2]
+            registros_limpos.append(reg.replace('""', '"'))
+
+    if not registros_limpos:
+        return {'total': 0, 'criados': 0, 'atualizados': 0, 'erros': 0}
+
+    # 2. Processar o cabeçalho e os dados
+    # O primeiro registro limpo deve ser o cabeçalho
+    header_raw = registros_limpos[0]
+    reader_header = csv.reader([header_raw], delimiter=',', quotechar='"')
+    try:
+        colunas = next(reader_header)
+    except StopIteration:
+        return {'total': 0, 'criados': 0, 'atualizados': 0, 'erros': 0}
 
     dados_processados = []
-    for i in range(3, len(linhas)):
-        linha_bruta = linhas[i].strip()
-        if not linha_bruta:
-            continue
-        
-        # Limpa a linha de dados
-        if linha_bruta.startswith('"') and linha_bruta.endswith('";;'):
-            linha_bruta = linha_bruta[1:-3]
-        elif linha_bruta.startswith('"') and linha_bruta.endswith('"'):
-            linha_bruta = linha_bruta[1:-1]
-        
-        linha_limpa = linha_bruta.replace('""', '"')
-        
-        # Lê os valores da linha
-        reader_row = csv.reader([linha_limpa], delimiter=',', quotechar='"')
+    for i in range(1, len(registros_limpos)):
+        linha_raw = registros_limpos[i]
+        reader_row = csv.reader([linha_raw], delimiter=',', quotechar='"')
         try:
             valores = next(reader_row)
-            if len(valores) >= len(colunas):
-                # Cria um dicionário mapeando coluna -> valor
-                dados_processados.append(dict(zip(colunas, valores)))
+            # Preenche com vazio se a linha tiver menos colunas que o cabeçalho
+            if len(valores) < len(colunas):
+                valores += [''] * (len(colunas) - len(valores))
+            dados_processados.append(dict(zip(colunas, valores)))
         except:
             continue
 
     df = pd.DataFrame(dados_processados)
-    
-    # Força tipos string para evitar notação científica
+    if df.empty:
+        return {'total': 0, 'criados': 0, 'atualizados': 0, 'erros': 0}
+
+    # Limpeza de strings
     for col in df.columns:
-        df[col] = df[col].astype(str).replace('nan', '')
+        df[col] = df[col].fillna('').astype(str).replace('nan', '').str.strip()
 
-    colunas_necessarias = [
-        'Matricula', 'Nome complet', 'C.C. Movto', 'Data Admis.', 
-        'Dt. Demissao', 'Sit. Folha', 'Desc.Funcao', 'Ven. Exper.1', 'Vc.Exp.2Per.'
-    ]
+    # Mapeamento de colunas
+    colunas_map = {
+        're': 'Matricula',
+        'nome': 'Nome complet',
+        'cc': 'C.C. Movto',
+        'admissao': 'Data Admis.',
+        'demissao': 'Dt. Demissao',
+        'status': 'Sit. Folha',
+        'cargo': 'Desc.Funcao',
+        'term1': 'Ven. Exper.1',
+        'term2': 'Vc.Exp.2Per.',
+    }
     
-    # Valida se as colunas existem
-    faltando = [c for c in colunas_necessarias if c not in df.columns]
-    if faltando:
-        raise ValueError(f"Colunas ausentes no CSV: {', '.join(faltando)}")
+    # Verifica se as colunas essenciais existem
+    for key, col_name in colunas_map.items():
+        if col_name not in df.columns:
+            # Tenta busca parcial caso o nome tenha mudado levemente
+            found = next((c for c in df.columns if col_name.upper() in c.upper()), None)
+            if found:
+                colunas_map[key] = found
+            elif key not in ['demissao', 'term1', 'term2']: # Opcionais
+                raise ValueError(f"Coluna essencial '{col_name}' não encontrada no CSV.")
 
-    # Carrega lojas para cache de busca por centro de custo
-    # Importante: Loja.centro_de_custo no banco pode não estar normalizado para 12 dígitos,
-    # mas o normalizar_centro_custo deve ser usado para bater com o padrão do projeto.
+    coluna_cpf = next((c for c in df.columns if 'CPF' in c.upper()), None)
+
+    # Cache de lojas
     lojas = Loja.objects.all()
     mapa_lojas = {}
     for l in lojas:
@@ -115,59 +154,49 @@ def importar_colaboradores_de_texto(conteudo_csv):
         if cc_norm:
             mapa_lojas[cc_norm] = l
 
-    stats = {
-        'total': len(df),
-        'criados': 0,
-        'atualizados': 0,
-        'erros': 0
-    }
+    stats = {'total': len(df), 'criados': 0, 'atualizados': 0, 'erros': 0}
 
     with transaction.atomic():
         for _, row in df.iterrows():
             try:
-                re = str(row['Matricula']).strip()
-                if not re:
+                re_val = row[colunas_map['re']]
+                if not re_val:
                     continue
 
-                cc_bruto = str(row['C.C. Movto']).strip()
+                cc_bruto = row[colunas_map['cc']]
                 cc_norm = normalizar_centro_custo(cc_bruto)
                 
-                # Aplica substituição de-para se o centro de custo for antigo/legado
                 if cc_norm in SUBSTITUICOES_CENTRO_CUSTO:
                     cc_norm = SUBSTITUICOES_CENTRO_CUSTO[cc_norm]
                 
                 loja = mapa_lojas.get(cc_norm)
 
                 defaults = {
-                    'nome': str(row['Nome complet']).strip()[:255],
+                    'nome': row[colunas_map['nome']][:255],
                     'loja': loja,
                     'centro_custo': cc_bruto[:50],
-                    'data_admissao': parse_data(row['Data Admis.']),
-                    'data_demissao': parse_data(row['Dt. Demissao']),
-                    'status': str(row['Sit. Folha']).strip()[:100],
-                    'cargo': str(row['Desc.Funcao']).strip()[:150],
-                    'termino_1': parse_data(row['Ven. Exper.1']),
-                    'termino_2': parse_data(row['Vc.Exp.2Per.']),
+                    'data_admissao': parse_data(row[colunas_map['admissao']]),
+                    'data_demissao': parse_data(row[colunas_map.get('demissao')]) if 'demissao' in colunas_map else None,
+                    'status': row[colunas_map['status']][:100],
+                    'cargo': row[colunas_map['cargo']][:150],
+                    'cpf': limpar_cpf(row[coluna_cpf]) if coluna_cpf else None,
+                    'termino_1': parse_data(row[colunas_map.get('term1')]) if 'term1' in colunas_map else None,
+                    'termino_2': parse_data(row[colunas_map.get('term2')]) if 'term2' in colunas_map else None,
                 }
 
-                # Se a admissão for nula, o Django vai reclamar (campo obrigatório).
-                # No CSV da TOTVS, quem tem admissão vazia geralmente é lixo.
-                if defaults['data_admissao'] is None:
+                if not defaults['data_admissao']:
                     continue
 
                 obj, created = Colaborador.objects.update_or_create(
-                    re=re,
+                    re=re_val,
                     defaults=defaults
                 )
 
-                if created:
-                    stats['criados'] += 1
-                else:
-                    stats['atualizados'] += 1
+                if created: stats['criados'] += 1
+                else: stats['atualizados'] += 1
 
-            except Exception as e:
+            except Exception:
                 stats['erros'] += 1
-                # Em um comando real, poderíamos logar o erro aqui.
                 continue
 
     return stats
