@@ -19,18 +19,35 @@
         </div>
     </div>
 
-    <!-- Filtros e Busca -->
+    <!-- Filtros e Busca (Reorganizado) -->
     <section class="card filter-card compact-filters">
         <form method="GET" class="filter-form">
+            <!-- Filtros Rápidos (Botões/Chips) -->
+            <div class="flex gap-8 mb-16 wrap">
+                <button type="button" 
+                        class="btn {% if not divergente_query and not so_totvs_query %}btn-primary{% else %}btn-outline{% endif %}"
+                        onclick="window.location.href='?'">
+                    Todos
+                </button>
+                <button type="button" 
+                        class="btn {% if divergente_query == 'S' %}btn-danger{% else %}btn-outline{% endif %}"
+                        onclick="toggleQuickFilter('divergente', 'S')">
+                    Divergências de Loja
+                </button>
+                <button type="button" 
+                        class="btn {% if so_totvs_query == 'S' %}btn-warning{% else %}btn-outline{% endif %}"
+                        onclick="toggleQuickFilter('so_totvs', 'S')">
+                    Apenas TOTVS
+                </button>
+                <input type="hidden" name="divergente" id="quick-divergente" value="{{ divergente_query }}">
+                <input type="hidden" name="so_totvs" id="quick-so_totvs" value="{{ so_totvs_query }}">
+            </div>
+
             <div class="form-grid" style="margin-bottom: 16px;">
-                <div class="form-group" style="margin-bottom: 0; position: relative;">
-                    <label for="filtro-loja-busca">Loja</label>
-                    <input 
-                      type="text" 
-                      id="filtro-loja-busca" 
-                      placeholder="Digite para buscar uma loja" 
-                      autocomplete="off"
-                    />
+                <!-- Coluna TOTVS -->
+                <div class="form-group" style="position: relative;">
+                    <label for="filtro-loja-busca">Loja TOTVS</label>
+                    <input type="text" id="filtro-loja-busca" placeholder="Buscar loja..." autocomplete="off" />
                     <select name="loja" id="loja" style="display: none;">
                         <option value="">Todas</option>
                         {% for l in lojas %}
@@ -39,18 +56,24 @@
                     </select>
                     <div id="loja-sugestoes" class="autocomplete-list"></div>
                 </div>
-                
-                <div class="form-group" style="margin-bottom: 0;">
+
+                <!-- Coluna Gestão -->
+                <div class="form-group">
+                    <label for="id-loja-gestao">Loja Gestão</label>
+                    <input type="text" name="loja_gestao" id="id-loja-gestao" placeholder="Ex: ASSAÍ..." value="{{ loja_gestao_query }}">
+                </div>
+
+                <div class="form-group">
                     <label for="id-re">Matrícula (RE)</label>
                     <input type="text" name="re" id="id-re" placeholder="Ex: 12345" value="{{ re_query }}">
                 </div>
 
-                <div class="form-group" style="margin-bottom: 0;">
+                <div class="form-group">
                     <label for="id-nome">Nome</label>
-                    <input type="text" name="nome" id="id-nome" placeholder="Buscar por nome..." value="{{ nome_query }}">
+                    <input type="text" name="nome" id="id-nome" placeholder="Nome do colaborador..." value="{{ nome_query }}">
                 </div>
 
-                <div class="form-group" style="margin-bottom: 0;">
+                <div class="form-group">
                     <label for="id-cargo">Cargo</label>
                     <select name="cargo" id="id-cargo">
                         <option value="">Todos</option>
@@ -60,38 +83,33 @@
                     </select>
                 </div>
 
-                {% if titulo != 'Colaboradores Demitidos' %}
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label for="id-status">Status</label>
+                <div class="form-group">
+                    <label for="id-status">Status TOTVS</label>
                     <select name="status" id="id-status">
-                        <option value="">Todos os Colaboradores</option>
-                        <option value="ativo" {% if status_query == 'ativo' %}selected{% endif %}>Ativos</option>
+                        <option value="">Todos</option>
+                        <option value="ativo" {% if status_query == 'ativo' %}selected{% endif %}>Ativo (Trabalhando)</option>
                         <option value="A" {% if status_query == 'A' %}selected{% endif %}>Afastado</option>
                         <option value="F" {% if status_query == 'F' %}selected{% endif %}>Férias</option>
                     </select>
                 </div>
 
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label for="id-divergente">Divergência de Loja</label>
-                    <select name="divergente" id="id-divergente">
+                <div class="form-group">
+                    <label for="id-status-gestao">Status Gestão</label>
+                    <select name="status_gestao" id="id-status-gestao">
                         <option value="">Todos</option>
-                        <option value="S" {% if divergente_query == 'S' %}selected{% endif %}>Apenas Divergentes</option>
+                        {% for s in status_gestao_opcoes %}
+                            <option value="{{ s }}" {% if s == status_gestao_query %}selected{% endif %}>{{ s }}</option>
+                        {% endfor %}
                     </select>
                 </div>
-                {% endif %}
-
             </div>
 
             <div style="display: flex; gap: 8px;">
                 <button type="submit" class="btn btn-primary">
-                    <i class="fa-solid fa-filter"></i>
-                    Filtrar
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    Pesquisar
                 </button>
-                {% if loja_query or re_query or nome_query or cargo_query or status_query %}
-                    <a href="?" class="btn btn-outline">
-                        Limpar
-                    </a>
-                {% endif %}
+                <a href="?" class="btn btn-outline">Limpar</a>
             </div>
         </form>
     </section>
@@ -204,19 +222,19 @@
         </span>
         <div class="pagination-actions">
             {% if page_obj.has_previous %}
-                <a href="?page=1{% if loja_query %}&loja={{ loja_query }}{% endif %}{% if re_query %}&re={{ re_query }}{% endif %}{% if nome_query %}&nome={{ nome_query }}{% endif %}{% if cargo_query %}&cargo={{ cargo_query }}{% endif %}{% if status_query %}&status={{ status_query }}{% endif %}{% if divergente_query %}&divergente={{ divergente_query }}{% endif %}" class="btn btn-outline" title="Primeira página">
+                <a href="?page=1{% if loja_query %}&loja={{ loja_query }}{% endif %}{% if loja_gestao_query %}&loja_gestao={{ loja_gestao_query }}{% endif %}{% if re_query %}&re={{ re_query }}{% endif %}{% if nome_query %}&nome={{ nome_query }}{% endif %}{% if cargo_query %}&cargo={{ cargo_query }}{% endif %}{% if status_query %}&status={{ status_query }}{% endif %}{% if status_gestao_query %}&status_gestao={{ status_gestao_query }}{% endif %}{% if divergente_query %}&divergente={{ divergente_query }}{% endif %}{% if so_totvs_query %}&so_totvs={{ so_totvs_query }}{% endif %}" class="btn btn-outline" title="Primeira página">
                     <i class="fa-solid fa-angles-left"></i>
                 </a>
-                <a href="?page={{ page_obj.previous_page_number }}{% if loja_query %}&loja={{ loja_query }}{% endif %}{% if re_query %}&re={{ re_query }}{% endif %}{% if nome_query %}&nome={{ nome_query }}{% endif %}{% if cargo_query %}&cargo={{ cargo_query }}{% endif %}{% if status_query %}&status={{ status_query }}{% endif %}{% if divergente_query %}&divergente={{ divergente_query }}{% endif %}" class="btn btn-outline">
+                <a href="?page={{ page_obj.previous_page_number }}{% if loja_query %}&loja={{ loja_query }}{% endif %}{% if loja_gestao_query %}&loja_gestao={{ loja_gestao_query }}{% endif %}{% if re_query %}&re={{ re_query }}{% endif %}{% if nome_query %}&nome={{ nome_query }}{% endif %}{% if cargo_query %}&cargo={{ cargo_query }}{% endif %}{% if status_query %}&status={{ status_query }}{% endif %}{% if status_gestao_query %}&status_gestao={{ status_gestao_query }}{% endif %}{% if divergente_query %}&divergente={{ divergente_query }}{% endif %}{% if so_totvs_query %}&so_totvs={{ so_totvs_query }}{% endif %}" class="btn btn-outline">
                     <i class="fa-solid fa-angle-left"></i> Anterior
                 </a>
             {% endif %}
 
             {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}{% if loja_query %}&loja={{ loja_query }}{% endif %}{% if re_query %}&re={{ re_query }}{% endif %}{% if nome_query %}&nome={{ nome_query }}{% endif %}{% if cargo_query %}&cargo={{ cargo_query }}{% endif %}{% if status_query %}&status={{ status_query }}{% endif %}{% if divergente_query %}&divergente={{ divergente_query }}{% endif %}" class="btn btn-outline">
+                <a href="?page={{ page_obj.next_page_number }}{% if loja_query %}&loja={{ loja_query }}{% endif %}{% if loja_gestao_query %}&loja_gestao={{ loja_gestao_query }}{% endif %}{% if re_query %}&re={{ re_query }}{% endif %}{% if nome_query %}&nome={{ nome_query }}{% endif %}{% if cargo_query %}&cargo={{ cargo_query }}{% endif %}{% if status_query %}&status={{ status_query }}{% endif %}{% if status_gestao_query %}&status_gestao={{ status_gestao_query }}{% endif %}{% if divergente_query %}&divergente={{ divergente_query }}{% endif %}{% if so_totvs_query %}&so_totvs={{ so_totvs_query }}{% endif %}" class="btn btn-outline">
                     Próxima <i class="fa-solid fa-angle-right"></i>
                 </a>
-                <a href="?page={{ page_obj.paginator.num_pages }}{% if loja_query %}&loja={{ loja_query }}{% endif %}{% if re_query %}&re={{ re_query }}{% endif %}{% if nome_query %}&nome={{ nome_query }}{% endif %}{% if cargo_query %}&cargo={{ cargo_query }}{% endif %}{% if status_query %}&status={{ status_query }}{% endif %}{% if divergente_query %}&divergente={{ divergente_query }}{% endif %}" class="btn btn-outline" title="Última página">
+                <a href="?page={{ page_obj.paginator.num_pages }}{% if loja_query %}&loja={{ loja_query }}{% endif %}{% if loja_gestao_query %}&loja_gestao={{ loja_gestao_query }}{% endif %}{% if re_query %}&re={{ re_query }}{% endif %}{% if nome_query %}&nome={{ nome_query }}{% endif %}{% if cargo_query %}&cargo={{ cargo_query }}{% endif %}{% if status_query %}&status={{ status_query }}{% endif %}{% if status_gestao_query %}&status_gestao={{ status_gestao_query }}{% endif %}{% if divergente_query %}&divergente={{ divergente_query }}{% endif %}{% if so_totvs_query %}&so_totvs={{ so_totvs_query }}{% endif %}" class="btn btn-outline" title="Última página">
                     <i class="fa-solid fa-angles-right"></i>
                 </a>
             {% endif %}
@@ -311,4 +329,21 @@
 {% block extra_js %}
 <script src="{% static 'colaboradores/js/colaborador_modal.js' %}"></script>
 <script src="{% static 'colaboradores/js/colaborador_filters.js' %}"></script>
+<script>
+    function toggleQuickFilter(field, value) {
+        const input = document.getElementById('quick-' + field);
+        const form = input.closest('form');
+        
+        // Se já for o valor atual, limpa (desativa)
+        if (input.value === value) {
+            input.value = '';
+        } else {
+            // Limpa o outro filtro rápido para não dar conflito
+            document.getElementById('quick-divergente').value = '';
+            document.getElementById('quick-so_totvs').value = '';
+            input.value = value;
+        }
+        form.submit();
+    }
+</script>
 {% endblock %}

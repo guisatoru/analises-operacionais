@@ -59,8 +59,8 @@ def terminos_list(request):
             messages.success(request, f"Controle de término para {colaborador.nome} registrado com sucesso!")
         return redirect('colaboradores:terminos_list')
 
-    # Filtrar apenas ativos com alguma data de término preenchida
-    colaboradores_qs = Colaborador.objects.exclude(status='D').filter(
+    # Filtrar apenas ativos com alguma data de término preenchida, excluindo AUXILIAR ADMINISTRAT
+    colaboradores_qs = Colaborador.objects.exclude(status='D').exclude(cargo='AUXILIAR ADMINISTRAT').filter(
         Q(termino_1__isnull=False) | Q(termino_2__isnull=False)
     ).select_related('loja').prefetch_related('controles_termino')
 
@@ -144,7 +144,7 @@ def exportar_terminos_excel(request):
     """
     Exporta a listagem de términos filtrada para um arquivo Excel.
     """
-    colaboradores_qs = Colaborador.objects.exclude(status='D').filter(
+    colaboradores_qs = Colaborador.objects.exclude(status='D').exclude(cargo='AUXILIAR ADMINISTRAT').filter(
         Q(termino_1__isnull=False) | Q(termino_2__isnull=False)
     ).select_related('loja').prefetch_related('controles_termino')
 
@@ -268,20 +268,30 @@ def colaborador_geovictoria_summary(request, colaborador_id):
 def colaborador_list(request):
     """
     Lista todos os colaboradores ativos (status diferente de 'D').
-    Permite filtros avançados.
+    Permite filtros avançados e filtros rápidos.
     """
-    colaboradores_qs = Colaborador.objects.exclude(status='D').select_related('loja')
+    colaboradores_qs = Colaborador.objects.exclude(status='D').exclude(cargo='AUXILIAR ADMINISTRAT').select_related('loja')
     
     loja_query = request.GET.get('loja', '')
     re_query = request.GET.get('re', '')
     nome_query = request.GET.get('nome', '')
     cargo_query = request.GET.get('cargo', '')
     status_query = request.GET.get('status', '')
+    
+    # Novos filtros específicos
+    loja_gestao_query = request.GET.get('loja_gestao', '')
+    status_gestao_query = request.GET.get('status_gestao', '')
+    
+    # Filtros rápidos (Botões)
     divergente_query = request.GET.get('divergente', '')
+    so_totvs_query = request.GET.get('so_totvs', '')
 
     if loja_query:
         colaboradores_qs = colaboradores_qs.filter(loja_id=loja_query)
     
+    if loja_gestao_query:
+        colaboradores_qs = colaboradores_qs.filter(loja_gestao__icontains=loja_gestao_query)
+
     if re_query:
         colaboradores_qs = colaboradores_qs.filter(re__icontains=re_query)
         
@@ -293,40 +303,54 @@ def colaborador_list(request):
         
     if status_query:
         if status_query == 'ativo':
-            # Considera vazio ou valores não específicos como trabalhando
             colaboradores_qs = colaboradores_qs.exclude(status__in=['A', 'F'])
         else:
             colaboradores_qs = colaboradores_qs.filter(status=status_query)
 
+    if status_gestao_query:
+        colaboradores_qs = colaboradores_qs.filter(status_gestao__iexact=status_gestao_query)
+
+    # Lógica do Filtro Rápido: Divergente (Ignora Afastados 'A')
     if divergente_query == 'S':
-        # Filtra onde loja_gestao é preenchido E (loja é nula OU nome_gestao da loja é diferente)
-        colaboradores_qs = colaboradores_qs.filter(
+        colaboradores_qs = colaboradores_qs.exclude(status='A').filter(
             Q(loja_gestao__isnull=False) & ~Q(loja_gestao='')
         ).filter(
             Q(loja__isnull=True) | ~Q(loja__nome_gestao=models.F('loja_gestao'))
         )
 
-    paginator = Paginator(colaboradores_qs, 10) # 10 por página
+    # Lógica do Filtro Rápido: Só TOTVS (Não encontrado na Gestão)
+    if so_totvs_query == 'S':
+        colaboradores_qs = colaboradores_qs.filter(
+            Q(loja_gestao__isnull=True) | Q(loja_gestao='')
+        )
+
+    paginator = Paginator(colaboradores_qs, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
     lojas = Loja.objects.filter(status="ATIVA").order_title() if hasattr(Loja.objects, 'order_title') else Loja.objects.filter(status="ATIVA").order_by('nome_referencia')
     
-    # Obtém cargos únicos para o dropdown de filtros (de colaboradores não demitidos)
-    cargos_unicos = Colaborador.objects.exclude(status='D').values_list('cargo', flat=True).distinct().order_by('cargo')
-    # Remove cargos vazios e limpa os espaços
+    cargos_unicos = Colaborador.objects.exclude(status='D').exclude(cargo='AUXILIAR ADMINISTRAT').values_list('cargo', flat=True).distinct().order_by('cargo')
     cargos_opcoes = sorted(list(set(c.strip() for c in cargos_unicos if c.strip())))
     
+    # Status Gestão Únicos para o filtro (normalizado)
+    status_gestao_unicos = Colaborador.objects.exclude(status='D').exclude(cargo='AUXILIAR ADMINISTRAT').values_list('status_gestao', flat=True)
+    status_gestao_opcoes = sorted(list(set(s.strip().upper() for s in status_gestao_unicos if s and s.strip())))
+
     context = {
         'page_obj': page_obj,
         'lojas': lojas,
         'cargos_opcoes': cargos_opcoes,
+        'status_gestao_opcoes': status_gestao_opcoes,
         'loja_query': loja_query,
+        'loja_gestao_query': loja_gestao_query,
         're_query': re_query,
         'nome_query': nome_query,
         'cargo_query': cargo_query,
         'status_query': status_query,
+        'status_gestao_query': status_gestao_query,
         'divergente_query': divergente_query,
+        'so_totvs_query': so_totvs_query,
         'titulo': 'Colaboradores'
     }
     return render(request, 'colaboradores/colaborador_list.html', context)
@@ -335,7 +359,7 @@ def demitido_list(request):
     """
     Lista apenas os colaboradores demitidos (status igual a 'D').
     """
-    colaboradores_qs = Colaborador.objects.filter(status='D').select_related('loja')
+    colaboradores_qs = Colaborador.objects.filter(status='D').exclude(cargo='AUXILIAR ADMINISTRAT').select_related('loja')
     
     loja_query = request.GET.get('loja', '')
     re_query = request.GET.get('re', '')
@@ -360,7 +384,7 @@ def demitido_list(request):
     
     lojas = Loja.objects.filter(status="ATIVA").order_by('nome_referencia')
     
-    cargos_unicos = Colaborador.objects.filter(status='D').values_list('cargo', flat=True).distinct().order_by('cargo')
+    cargos_unicos = Colaborador.objects.filter(status='D').exclude(cargo='AUXILIAR ADMINISTRAT').values_list('cargo', flat=True).distinct().order_by('cargo')
     cargos_opcoes = sorted(list(set(c.strip() for c in cargos_unicos if c.strip())))
     
     context = {
