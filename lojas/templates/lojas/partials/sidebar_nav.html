@@ -32,7 +32,8 @@
                 <i class="fa-solid fa-chevron-down arrow"></i>
             </button>
             <div class="sidebar-submenu">
-                <a href="{% url 'colaboradores:list' %}" class="sidebar-submenu-link {% if current == 'list' %}active{% endif %}">Colaboradores</a>
+                <a href="{% url 'colaboradores:list' %}" class="sidebar-submenu-link {% if current == 'list' %}active{% endif %}">Ativos</a>
+                <a href="{% url 'colaboradores:terminos_list' %}" class="sidebar-submenu-link {% if current == 'terminos_list' %}active{% endif %}">Términos</a>
                 <a href="{% url 'colaboradores:demitidos_list' %}" class="sidebar-submenu-link {% if current == 'demitidos_list' %}active{% endif %}">Demitidos</a>
             </div>
         </div>

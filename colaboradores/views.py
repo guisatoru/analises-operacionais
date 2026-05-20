@@ -1,10 +1,113 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.core.paginator import Paginator
 from django.contrib import messages
-from .models import Colaborador
+from django.utils import timezone
+from datetime import date
+from django.db.models import Q
+from .models import Colaborador, ControleTermino
 from lojas.models import Loja
 from .forms import ColaboradorImportForm
 from .services.colaborador_importacao import importar_colaboradores_de_texto
+
+def derive_termino_state(colaborador, reference_date):
+    controles = list(colaborador.controles_termino.all())
+    latest_first = next((c for c in controles if c.etapa == 1), None)
+    latest_second = next((c for c in controles if c.etapa == 2), None)
+    
+    first_term_passed = colaborador.termino_1 and colaborador.termino_1 < reference_date
+    
+    if latest_second and latest_second.acao == 'termino':
+        return { 'etapaAtual': 2, 'tipoTermino': '2º Término', 'statusControle': 'Término registrado', 'encerrado': True, 'ultimaAcao': latest_second.acao }
+    if latest_second and latest_second.acao == 'manter':
+        return { 'etapaAtual': 2, 'tipoTermino': '2º Término', 'statusControle': 'Mantido', 'encerrado': True, 'ultimaAcao': latest_second.acao }
+    if latest_first and latest_first.acao == 'termino':
+        return { 'etapaAtual': 1, 'tipoTermino': '1º Término', 'statusControle': 'Término registrado', 'encerrado': True, 'ultimaAcao': latest_first.acao }
+    if latest_first and latest_first.acao == 'prorrogado':
+        return { 'etapaAtual': 2, 'tipoTermino': '2º Término', 'statusControle': 'Prorrogado', 'encerrado': False, 'ultimaAcao': latest_first.acao }
+    if first_term_passed:
+        return { 'etapaAtual': 2, 'tipoTermino': '2º Término', 'statusControle': 'Pendente 2º Término', 'encerrado': False, 'ultimaAcao': None }
+    
+    return { 'etapaAtual': 1, 'tipoTermino': '1º Término', 'statusControle': 'Pendente 1º Término', 'encerrado': False, 'ultimaAcao': None }
+
+def terminos_list(request):
+    """
+    Exibe os colaboradores próximos das datas de término de experiência.
+    """
+    if request.method == "POST":
+        colaborador_id = request.POST.get('colaborador_id')
+        acao = request.POST.get('acao')
+        observacao = request.POST.get('observacao', '')
+        etapa = request.POST.get('etapa')
+        
+        colaborador = get_object_or_404(Colaborador, id=colaborador_id)
+        
+        if acao and etapa:
+            ControleTermino.objects.create(
+                colaborador=colaborador,
+                etapa=int(etapa),
+                acao=acao,
+                observacao=observacao,
+                respondido_por=request.user.username if request.user.is_authenticated else 'Usuário'
+            )
+            messages.success(request, f"Controle de término para {colaborador.nome} registrado com sucesso!")
+        return redirect('colaboradores:terminos_list')
+
+    # Filtrar apenas ativos com alguma data de término preenchida
+    colaboradores_qs = Colaborador.objects.exclude(status='D').filter(
+        Q(termino_1__isnull=False) | Q(termino_2__isnull=False)
+    ).select_related('loja').prefetch_related('controles_termino')
+
+    search_query = request.GET.get('search', '').strip().lower()
+    data_filtro = request.GET.get('data_filtro', '')
+
+    today = date.today()
+    processed_colaboradores = []
+
+    for colaborador in colaboradores_qs:
+        state = derive_termino_state(colaborador, today)
+        
+        # Omitir se o primeiro termo passou, o segundo passou, e não tem histórico (já caducou e não foi controlado)
+        if colaborador.termino_1 and colaborador.termino_1 < today and \
+           colaborador.termino_2 and colaborador.termino_2 < today and \
+           not list(colaborador.controles_termino.all()):
+            continue
+            
+        relevant_date = colaborador.termino_2 if state['etapaAtual'] == 2 else colaborador.termino_1
+        
+        if data_filtro and relevant_date:
+            try:
+                filtro_date = date.fromisoformat(data_filtro)
+                if relevant_date < filtro_date:
+                    continue
+            except ValueError:
+                pass
+                
+        if search_query:
+            if search_query not in colaborador.nome.lower() and search_query not in colaborador.re.lower():
+                continue
+
+        processed_colaboradores.append({
+            'colaborador': colaborador,
+            'state': state,
+            'relevant_date': relevant_date,
+            'history': list(colaborador.controles_termino.all()),
+        })
+
+    # Sort by the most recent relevant date (closest to today)
+    processed_colaboradores.sort(key=lambda x: (x['relevant_date'] is None, x['relevant_date']))
+
+    paginator = Paginator(processed_colaboradores, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'page_obj': page_obj,
+        'search_query': search_query,
+        'data_filtro': data_filtro,
+        'titulo': 'Controle de Términos',
+    }
+    return render(request, 'colaboradores/terminos_list.html', context)
+
 
 def colaborador_list(request):
     """

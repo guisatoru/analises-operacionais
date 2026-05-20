@@ -35,3 +35,32 @@ class Colaborador(models.Model):
 
     def __str__(self):
         return f"{self.re} - {self.nome}"
+
+class ControleTermino(models.Model):
+    """
+    Registra as ações tomadas sobre os términos de experiência (Prorrogação, Término, Manutenção).
+    """
+    ACOES = [
+        ('prorrogado', 'Prorrogado'),
+        ('termino', 'Término'),
+        ('manter', 'Manter'),
+    ]
+
+    colaborador = models.ForeignKey(
+        Colaborador, on_delete=models.CASCADE, related_name='controles_termino'
+    )
+    etapa = models.IntegerField("Etapa do Término (1 ou 2)")
+    acao = models.CharField("Ação", max_length=20, choices=ACOES)
+    observacao = models.TextField("Observação", blank=True)
+    respondido_por = models.CharField("Respondido Por", max_length=255, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Controle de Término"
+        verbose_name_plural = "Controles de Término"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.colaborador.nome} - Etapa {self.etapa} - {self.get_acao_display()}"
