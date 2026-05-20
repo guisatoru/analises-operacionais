@@ -137,6 +137,103 @@ def terminos_list(request):
     return render(request, 'colaboradores/terminos_list.html', context)
 
 
+def exportar_terminos_excel(request):
+    """
+    Exporta a listagem de términos filtrada para um arquivo Excel.
+    """
+    colaboradores_qs = Colaborador.objects.exclude(status='D').filter(
+        Q(termino_1__isnull=False) | Q(termino_2__isnull=False)
+    ).select_related('loja').prefetch_related('controles_termino')
+
+    search_query = request.GET.get('search', '').strip().lower()
+    data_filtro = request.GET.get('data_filtro', '')
+    data_fim = request.GET.get('data_fim', '')
+    coordenador_query = request.GET.get('coordenador', '')
+
+    today = date.today()
+    data_rows = []
+
+    for colaborador in colaboradores_qs:
+        state = derive_termino_state(colaborador, today)
+        
+        # Omitir se o primeiro termo passou, o segundo passou, e não tem histórico (já caducou e não foi controlado)
+        if colaborador.termino_1 and colaborador.termino_1 < today and \
+           colaborador.termino_2 and colaborador.termino_2 < today and \
+           not list(colaborador.controles_termino.all()):
+            continue
+            
+        relevant_date = colaborador.termino_2 if state['etapaAtual'] == 2 else colaborador.termino_1
+        
+        # Filtro de Data Início (A partir de)
+        if data_filtro and relevant_date:
+            try:
+                filtro_date = date.fromisoformat(data_filtro)
+                if relevant_date < filtro_date:
+                    continue
+            except ValueError:
+                pass
+
+        # Filtro de Data Fim (Até)
+        if data_fim and relevant_date:
+            try:
+                fim_date = date.fromisoformat(data_fim)
+                if relevant_date > fim_date:
+                    continue
+            except ValueError:
+                pass
+                
+        # Filtro de Coordenador
+        if coordenador_query:
+            loja_coordenador = colaborador.loja.coordenador if colaborador.loja else ""
+            if coordenador_query != loja_coordenador:
+                continue
+
+        if search_query:
+            if search_query not in colaborador.nome.lower() and search_query not in colaborador.re.lower():
+                continue
+
+        # Última observação do histórico
+        ultima_obs = ""
+        historico = list(colaborador.controles_termino.all())
+        if historico:
+            ultima_obs = historico[0].observacao
+
+        data_rows.append({
+            'RE': colaborador.re,
+            'Nome': colaborador.nome,
+            'Loja': colaborador.loja.nome_referencia if colaborador.loja else colaborador.centro_custo,
+            'Coordenador': colaborador.loja.coordenador if colaborador.loja else "-",
+            'Admissão': colaborador.data_admissao.strftime('%d/%m/%Y') if colaborador.data_admissao else "",
+            'Término 1': colaborador.termino_1.strftime('%d/%m/%Y') if colaborador.termino_1 else "",
+            'Término 2': colaborador.termino_2.strftime('%d/%m/%Y') if colaborador.termino_2 else "",
+            'Fase Atual': state['tipoTermino'],
+            'Status': state['statusControle'],
+            'Última Obs': ultima_obs,
+        })
+
+    if not data_rows:
+        messages.warning(request, "Não há dados para exportar com os filtros selecionados.")
+        return redirect('colaboradores:terminos_list')
+
+    df = pd.DataFrame(data_rows)
+    
+    # Criar o arquivo Excel em memória
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Terminos')
+        
+    output.seek(0)
+    
+    response = HttpResponse(
+        output.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    filename = f"terminos_experiencia_{today.strftime('%d_%m_%Y')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    return response
+
+
 def colaborador_list(request):
     """
     Lista todos os colaboradores ativos (status diferente de 'D').
