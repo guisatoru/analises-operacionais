@@ -139,7 +139,7 @@
                         <h3 class="colaborador-name">{{ colaborador.nome }}</h3>
                         <div class="badge-group">
                             {% if titulo != 'Colaboradores Demitidos' %}
-                                {% if colaborador.loja_gestao and colaborador.loja and colaborador.loja.nome_gestao %}
+                                {% if colaborador.loja_gestao and colaborador.loja %}
                                     {% if not colaborador.is_divergente %}
                                         <span class="badge-compact badge-consistent">
                                             <i class="fa-solid fa-circle-check"></i> Loja consistente
@@ -150,7 +150,7 @@
                                         </span>
                                     {% endif %}
                                 {% elif colaborador.loja_gestao %}
-                                     <span class="badge-compact badge-neutral">Sem De-Para Loja</span>
+                                     <span class="badge-compact badge-neutral">Sem vínculo TOTVS</span>
                                 {% endif %}
                             {% endif %}
                         </div>

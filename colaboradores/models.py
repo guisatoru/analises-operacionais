@@ -40,20 +40,22 @@ class Colaborador(models.Model):
         Verifica se há divergência entre a Loja TOTVS e a Loja Gestão.
         Lojas 'DIA' são consideradas consistentes se ambas as descrições contiverem a palavra 'DIA' isolada.
         """
-        if not self.loja_gestao or not self.loja or not self.loja.nome_gestao:
+        if not self.loja_gestao or not self.loja:
             return False
             
-        nome_totvs = self.loja.nome_gestao
-        nome_gestao = self.loja_gestao
+        # Prioriza o nome de gestão (De-Para), mas aceita o nome de referência como fallback
+        nome_totvs = (self.loja.nome_gestao or self.loja.nome_referencia or "").upper()
+        nome_gestao = self.loja_gestao.upper()
         
-        # Se os nomes forem idênticos, não há divergência
+        # Se os nomes forem idênticos (após normalização), não há divergência
         if nome_totvs == nome_gestao:
             return False
             
         # Caso especial para lojas DIA
         import re
-        is_dia_totvs = bool(re.search(r'\bDIA\b', nome_totvs.upper()))
-        is_dia_gestao = bool(re.search(r'\bDIA\b', nome_gestao.upper()))
+        # Busca a palavra "DIA" isolada em ambos os nomes
+        is_dia_totvs = bool(re.search(r'\bDIA\b', nome_totvs))
+        is_dia_gestao = bool(re.search(r'\bDIA\b', nome_gestao))
         
         if is_dia_totvs and is_dia_gestao:
             return False
