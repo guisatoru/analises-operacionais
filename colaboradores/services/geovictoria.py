@@ -66,14 +66,14 @@ def get_token():
     return token
 
 
-def get_timeoff_summary(cpf, start_date, end_date):
+def get_timeoff_summary(cpfs, start_date, end_date):
     """
-    Busca o resumo de faltas e atestados usando o CPF como identificador.
-    Datas devem estar no formato datetime.
+    Busca o resumo de faltas e atestados usando uma string de CPFs (separados por vírgula).
+    Retorna um dicionário mapeando cada CPF ao seu resumo {faltas, atestados, total}.
     """
     token = get_token()
-    if not token or not cpf:
-        return None
+    if not token or not cpfs:
+        return {}
 
     def format_date(dt):
         return dt.strftime("%Y%m%d000000")
@@ -81,7 +81,7 @@ def get_timeoff_summary(cpf, start_date, end_date):
     body = {
         "StartDate": format_date(start_date),
         "EndDate": format_date(end_date),
-        "UserIds": str(cpf),  # O CPF agora é o identifier direto
+        "UserIds": str(cpfs),  # Pode ser um CPF único ou "cpf1,cpf2,cpf3"
     }
 
     payload = _geovictoria_request("/TimeOff/Get", body=body, token=token)
@@ -100,11 +100,23 @@ def get_timeoff_summary(cpf, start_date, end_date):
             or []
         )
 
-    summary = {"faltas": 0, "atestados": 0, "total": 0}
+    # Inicializa o dicionário de resultados para cada CPF solicitado
+    # Note: A GeoVictoria retorna o identifier no campo 'ExternalId' ou 'Id' ou 'Identifier'
+    # Precisamos agrupar por colaborador.
+    
+    results = {}
+    cpf_list = [c.strip() for c in str(cpfs).split(',')]
+    for c in cpf_list:
+        results[c] = {"faltas": 0, "atestados": 0, "total": 0}
 
     for entry in entries:
+        # A GeoVictoria retorna o CPF no campo 'UserIdentifier' conforme exemplo fornecido
+        entry_cpf = str(entry.get("UserIdentifier", "")).strip()
+        
+        if not entry_cpf or entry_cpf not in results:
+            continue
+
         desc = (entry.get("TimeOffTypeDescription", "") or "").upper()
-        # Normalização simples (remover acentos se necessário, mas upper já ajuda)
 
         # Cálculo de dias (Starts e Ends são strings YYYYMMDD000000)
         starts_str = entry.get("Starts", "")[:8]
@@ -118,10 +130,10 @@ def get_timeoff_summary(cpf, start_date, end_date):
             days = 1
 
         if desc == "FALTA":
-            summary["faltas"] += days
+            results[entry_cpf]["faltas"] += days
         elif "ATESTADO" in desc or "MEDICO" in desc:
-            summary["atestados"] += days
+            results[entry_cpf]["atestados"] += days
 
-        summary["total"] += days
+        results[entry_cpf]["total"] += days
 
-    return summary
+    return results

@@ -132,26 +132,34 @@ def terminos_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    # Buscar dados da GeoVictoria APENAS para os colaboradores da página atual
+    # Buscar dados da GeoVictoria em LOTE para os colaboradores da página atual
+    cpfs_na_pagina = [item['colaborador'].cpf for item in page_obj if item['colaborador'].cpf]
+    
+    geodata_map = {}
+    if cpfs_na_pagina:
+        try:
+            # Pegamos o range de datas baseado na menor data de admissão e hoje
+            # Para simplificar, usamos a data mais antiga de admissão da página
+            min_admissao = min(item['colaborador'].data_admissao for item in page_obj if item['colaborador'].cpf)
+            cpfs_string = ",".join(cpfs_na_pagina)
+            geodata_map = geovictoria.get_timeoff_summary(cpfs_string, min_admissao, today)
+        except Exception as e:
+            print(f"Erro ao buscar lote GeoVictoria: {e}")
+
     for item in page_obj:
         colaborador = item['colaborador']
-        if colaborador.cpf:
-            try:
-                summary = geovictoria.get_timeoff_summary(
-                    colaborador.cpf, 
-                    colaborador.data_admissao, 
-                    today
-                )
-                if summary:
-                    item['faltas'] = summary.get('faltas', 0)
-                    item['atestados'] = summary.get('atestados', 0)
-                else:
-                    item['faltas'] = 0
-                    item['atestados'] = 0
-            except:
-                item['faltas'] = "Erro"
-                item['atestados'] = "Erro"
-        else:
+        # Garantir que o CPF seja comparado como string sem espaços, igual ao que vem da API
+        cpf = str(colaborador.cpf).strip() if colaborador.cpf else None
+        
+        # Inicializa com 0
+        item['faltas'] = 0
+        item['atestados'] = 0
+
+        if cpf and geodata_map and cpf in geodata_map:
+            summary = geodata_map[cpf]
+            item['faltas'] = summary.get('faltas', 0)
+            item['atestados'] = summary.get('atestados', 0)
+        elif not cpf:
             item['faltas'] = "-"
             item['atestados'] = "-"
 
@@ -238,22 +246,44 @@ def exportar_terminos_excel(request):
             if search_query not in colaborador.nome.lower() and search_query not in colaborador.re.lower():
                 continue
 
-        # Buscar dados da GeoVictoria para exportação
+        processed_colaboradores.append({
+            'colaborador': colaborador,
+            'state': state,
+        })
+
+    if not processed_colaboradores:
+        messages.warning(request, "Não há dados para exportar com os filtros selecionados.")
+        return redirect('colaboradores:terminos_list')
+
+    # Buscar dados da GeoVictoria em lotes de 50 CPFs para não estourar limite de URL/Body
+    cpfs_totais = [str(item['colaborador'].cpf).strip() for item in processed_colaboradores if item['colaborador'].cpf]
+    geodata_map = {}
+    
+    if cpfs_totais:
+        # Pega a data de admissão mais antiga do lote filtrado
+        min_admissao = min(item['colaborador'].data_admissao for item in processed_colaboradores if item['colaborador'].cpf)
+        
+        # Divide em chunks de 50 CPFs
+        chunk_size = 50
+        for i in range(0, len(cpfs_totais), chunk_size):
+            chunk = cpfs_totais[i:i + chunk_size]
+            try:
+                chunk_data = geovictoria.get_timeoff_summary(",".join(chunk), min_admissao, today)
+                geodata_map.update(chunk_data)
+            except Exception as e:
+                print(f"Erro ao buscar lote exportação: {e}")
+
+    for item in processed_colaboradores:
+        colaborador = item['colaborador']
+        state = item['state']
+        cpf = str(colaborador.cpf).strip() if colaborador.cpf else None
+        
+        # Buscar dados do mapa carregado
         faltas = 0
         atestados = 0
-        if colaborador.cpf:
-            try:
-                summary = geovictoria.get_timeoff_summary(
-                    colaborador.cpf, 
-                    colaborador.data_admissao, 
-                    today
-                )
-                if summary:
-                    faltas = summary.get('faltas', 0)
-                    atestados = summary.get('atestados', 0)
-            except:
-                faltas = "Erro"
-                atestados = "Erro"
+        if cpf and cpf in geodata_map:
+            faltas = geodata_map[cpf].get('faltas', 0)
+            atestados = geodata_map[cpf].get('atestados', 0)
 
         # Última observação do histórico
         ultima_obs = ""
