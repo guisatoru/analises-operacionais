@@ -38,73 +38,7 @@
                 </button>
             </div>
 
-            <div class="sidebar-content">
-                
-                <!-- Seção: Principal -->
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title">Principal</div>
-                    <nav class="sidebar-menu">
-                        <a href="{% url 'inicio' %}" class="{% if request.resolver_match.url_name == 'inicio' %}active{% endif %}">
-                            <i class="fa-solid fa-house"></i>
-                            <span>Dashboard</span>
-                        </a>
-                        <a href="{% url 'lista_lojas' %}" class="{% if request.resolver_match.url_name == 'lista_lojas' %}active{% endif %}">
-                            <i class="fa-solid fa-store"></i>
-                            <span>Lojas</span>
-                        </a>
-                    </nav>
-                </div>
-
-                <!-- Seção: RH & Colaboradores -->
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title">RH & Equipe</div>
-                    <nav class="sidebar-menu">
-                        <a href="{% url 'colaboradores:list' %}" class="{% if request.resolver_match.view_name == 'colaboradores:list' %}active{% endif %}">
-                            <i class="fa-solid fa-users"></i>
-                            <span>Ativos</span>
-                        </a>
-                        <a href="{% url 'colaboradores:demitidos_list' %}" class="{% if request.resolver_match.view_name == 'colaboradores:demitidos_list' %}active{% endif %}">
-                            <i class="fa-solid fa-user-slash"></i>
-                            <span>Demitidos</span>
-                        </a>
-                    </nav>
-                </div>
-
-                <!-- Seção: Operacional -->
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title">Operacional</div>
-                    <nav class="sidebar-menu">
-                        <a href="{% url 'lista_escopos' %}" class="{% if request.resolver_match.url_name == 'lista_escopos' %}active{% endif %}">
-                            <i class="fa-solid fa-calendar-days"></i>
-                            <span>Escopos</span>
-                        </a>
-                        <a href="{% url 'importar_folha' %}" class="{% if request.resolver_match.url_name == 'importar_folha' %}active{% endif %}">
-                            <i class="fa-solid fa-file-import"></i>
-                            <span>Importar Folha</span>
-                        </a>
-                        <a href="{% url 'colaboradores:importar' %}" class="{% if request.resolver_match.view_name == 'colaboradores:importar' %}active{% endif %}">
-                            <i class="fa-solid fa-users-gear"></i>
-                            <span>Importar Equipe</span>
-                        </a>
-                        <a href="{% url 'lista_folha_duplicadas' %}" class="{% if request.resolver_match.url_name == 'lista_folha_duplicadas' %}active{% endif %}">
-                            <i class="fa-solid fa-triangle-exclamation"></i>
-                            <span>Duplicadas</span>
-                        </a>
-                    </nav>
-                </div>
-
-                <!-- Seção: Análise -->
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title">Análise</div>
-                    <nav class="sidebar-menu">
-                        <a href="{% url 'comparativo_loja' %}" class="{% if request.resolver_match.url_name == 'comparativo_loja' %}active{% endif %}">
-                            <i class="fa-solid fa-chart-line"></i>
-                            <span>Comparativo</span>
-                        </a>
-                    </nav>
-                </div>
-
-            </div>
+            {% include "lojas/partials/sidebar_nav.html" %}
         </aside>
 
         <!-- Conteúdo Principal -->

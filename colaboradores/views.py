@@ -147,7 +147,7 @@ def colaborador_import(request):
                         else:
                             messages.success(request, msg)
                     
-                    return redirect("colaboradores:importar")
+                    return redirect("importacoes")
     else:
         form = ColaboradorImportForm()
 

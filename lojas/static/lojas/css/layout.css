@@ -129,10 +129,15 @@ body {
 .sidebar-menu {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
 }
 
-.sidebar-menu a {
+.sidebar-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-link {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -145,30 +150,67 @@ body {
     font-size: 0.875rem;
     white-space: nowrap;
     position: relative;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    width: 100%;
+    text-align: left;
 }
 
-.sidebar-menu a:hover {
+.sidebar-link:hover {
     background-color: #f9fafb;
     color: var(--primary-color);
 }
 
-.sidebar-menu a.active {
+.sidebar-link.active {
     background-color: var(--primary-color);
     color: white !important;
     box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
 }
 
-.sidebar-menu a.active::after {
-    content: "\f105";
-    font-family: "Font Awesome 6 Free";
-    font-weight: 900;
-    position: absolute;
-    right: 16px;
+.sidebar-link .arrow {
+    margin-left: auto;
     font-size: 0.75rem;
+    transition: transform 0.3s;
 }
 
-.sidebar.collapsed .sidebar-menu a.active::after {
+.sidebar-link[aria-expanded="true"] .arrow {
+    transform: rotate(180deg);
+}
+
+.sidebar-submenu {
     display: none;
+    flex-direction: column;
+    gap: 2px;
+    padding-left: 36px;
+    margin-top: 4px;
+    margin-bottom: 8px;
+}
+
+.sidebar-submenu.show {
+    display: flex;
+}
+
+.sidebar-submenu-link {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    color: #6b7280;
+    text-decoration: none;
+    font-size: 0.8125rem;
+    border-radius: 8px;
+    transition: var(--transition);
+}
+
+.sidebar-submenu-link:hover {
+    color: var(--primary-color);
+    background: #f9fafb;
+}
+
+.sidebar-submenu-link.active {
+    color: var(--primary-color);
+    font-weight: 600;
+    background: #f5f3ff;
 }
 
 .sidebar-menu i {
@@ -177,8 +219,13 @@ body {
     text-align: center;
 }
 
-.sidebar.collapsed .sidebar-menu span {
+.sidebar.collapsed .sidebar-menu span,
+.sidebar.collapsed .sidebar-link .arrow {
     display: none;
+}
+
+.sidebar.collapsed .sidebar-submenu {
+    display: none !important;
 }
 
 /* Ajuste do Conteúdo Principal */

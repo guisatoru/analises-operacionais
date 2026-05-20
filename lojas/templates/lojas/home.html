@@ -86,7 +86,7 @@
     </a>
 
     <!-- Importar Folha -->
-    <a href="{% url 'importar_folha' %}" class="section-card">
+    <a href="{% url 'importacoes' %}" class="section-card">
         <div class="section-header">
             <div class="section-icon icon-import">
                 <i class="fa-solid fa-file-import"></i>
@@ -101,7 +101,7 @@
     </a>
 
     <!-- Importar Equipe -->
-    <a href="{% url 'colaboradores:importar' %}" class="section-card">
+    <a href="{% url 'importacoes' %}" class="section-card">
         <div class="section-header">
             <div class="section-icon icon-import">
                 <i class="fa-solid fa-users-gear"></i>
@@ -121,7 +121,7 @@
             <div class="section-icon icon-auditoria">
                 <i class="fa-solid fa-triangle-exclamation"></i>
             </div>
-            <span class="section-title">Auditoria</span>
+            <span class="section-title">Duplicadas</span>
         </div>
         <p class="section-description">Verificação de duplicidades na folha e inconsistências de dados.</p>
         <div class="section-footer">
@@ -136,7 +136,7 @@
             <div class="section-icon icon-analise">
                 <i class="fa-solid fa-chart-line"></i>
             </div>
-            <span class="section-title">Comparativo</span>
+            <span class="section-title">Raio-X</span>
         </div>
         <p class="section-description">Análise detalhada comparando o orçado versus o realizado.</p>
         <div class="section-footer">
@@ -151,3 +151,4 @@ O bloco abaixo foi removido para focar nos cards de seções conforme solicitado
 {% endcomment %}
 
 {% endblock %}
+dblock %}

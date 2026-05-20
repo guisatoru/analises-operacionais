@@ -14,6 +14,7 @@ from .escopos import (
     escopo_list,
 )
 from .folha_import import folha_import
+from .configuracoes import importacoes
 from .home import home
 from .loja_insalubridade import loja_config_insalubridade
 from .stores import (

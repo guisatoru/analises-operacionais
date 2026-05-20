@@ -25,9 +25,8 @@ urlpatterns = [
     path("escopos/api/item/save/", views.api_item_escopo_save, name="api_item_escopo_save"),
     path("escopos/api/item/<int:pk>/delete/", views.api_item_escopo_delete, name="api_item_escopo_delete"),
     path("folhas/importar/", views.folha_import, name="importar_folha"),
-    path(
-        "folhas/duplicadas/", views.folha_duplicadas_list, name="lista_folha_duplicadas"
-    ),
+    path("folhas/duplicadas/", views.folha_duplicadas_list, name="lista_folha_duplicadas"),
+    path("importacoes/", views.importacoes, name="importacoes"),
     path("comparativo/", views.comparativo_loja, name="comparativo_loja"),
     path("select2/", include("django_select2.urls")),
 ]

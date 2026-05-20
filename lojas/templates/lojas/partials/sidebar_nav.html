@@ -1,24 +1,64 @@
 {% with current=request.resolver_match.url_name %}
-<nav aria-label="Navegação principal">
-    <ul>
-        <li>
-            <a href="{% url 'inicio' %}"{% if current == 'inicio' %} aria-current="page"{% endif %}>Início</a>
-        </li>
-        <li>
-            <a href="{% url 'lista_lojas' %}"{% if current == 'lista_lojas' or current == 'nova_loja' or current == 'editar_loja' or current == 'excluir_loja' or current == 'detalhe_loja' or current == 'loja_config_insalubridade' %} aria-current="page"{% endif %}>Lojas</a>
-        </li>
-        <li>
-            <a href="{% url 'lista_escopos' %}"{% if current == 'lista_escopos' or current == 'novo_escopo' or current == 'editar_escopo' or current == 'excluir_escopo' or current == 'escopo_duplicar_proximo_mes' %} aria-current="page"{% endif %}>Escopos</a>
-        </li>
-        <li>
-            <a href="{% url 'importar_folha' %}"{% if current == 'importar_folha' %} aria-current="page"{% endif %}>Importar folha</a>
-        </li>
-        <li>
-            <a href="{% url 'lista_folha_duplicadas' %}"{% if current == 'lista_folha_duplicadas' %} aria-current="page"{% endif %}>Duplicadas folha</a>
-        </li>
-        <li>
-            <a href="{% url 'comparativo_loja' %}"{% if current == 'comparativo_loja' %} aria-current="page"{% endif %}>Comparativo</a>
-        </li>
-    </ul>
-</nav>
+{% with app=request.resolver_match.app_name %}
+<div class="sidebar-content">
+    
+    <div class="sidebar-menu">
+        <!-- Home -->
+        <div class="sidebar-item">
+            <a href="{% url 'inicio' %}" class="sidebar-link {% if current == 'inicio' %}active{% endif %}">
+                <i class="fa-solid fa-house"></i>
+                <span>Home</span>
+            </a>
+        </div>
+
+        <!-- Contratos -->
+        <div class="sidebar-item">
+            <button class="sidebar-link {% if current == 'lista_lojas' or current == 'nova_loja' or current == 'editar_loja' or current == 'detalhe_loja' or current == 'lista_escopos' or current == 'novo_escopo' %}active{% endif %}" data-toggle="submenu" aria-expanded="false">
+                <i class="fa-solid fa-file-contract"></i>
+                <span>Contratos</span>
+                <i class="fa-solid fa-chevron-down arrow"></i>
+            </button>
+            <div class="sidebar-submenu">
+                <a href="{% url 'lista_lojas' %}" class="sidebar-submenu-link {% if current == 'lista_lojas' or current == 'nova_loja' or current == 'editar_loja' or current == 'detalhe_loja' %}active{% endif %}">Lojas</a>
+                <a href="{% url 'lista_escopos' %}" class="sidebar-submenu-link {% if current == 'lista_escopos' or current == 'novo_escopo' %}active{% endif %}">Escopos</a>
+            </div>
+        </div>
+
+        <!-- Colaboradores -->
+        <div class="sidebar-item">
+            <button class="sidebar-link {% if app == 'colaboradores' %}active{% endif %}" data-toggle="submenu" aria-expanded="false">
+                <i class="fa-solid fa-users"></i>
+                <span>Colaboradores</span>
+                <i class="fa-solid fa-chevron-down arrow"></i>
+            </button>
+            <div class="sidebar-submenu">
+                <a href="{% url 'colaboradores:list' %}" class="sidebar-submenu-link {% if current == 'list' %}active{% endif %}">Colaboradores</a>
+                <a href="{% url 'colaboradores:demitidos_list' %}" class="sidebar-submenu-link {% if current == 'demitidos_list' %}active{% endif %}">Demitidos</a>
+            </div>
+        </div>
+
+        <!-- Análise -->
+        <div class="sidebar-item">
+            <button class="sidebar-link {% if current == 'comparativo_loja' or current == 'lista_folha_duplicadas' %}active{% endif %}" data-toggle="submenu" aria-expanded="false">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>Análise</span>
+                <i class="fa-solid fa-chevron-down arrow"></i>
+            </button>
+            <div class="sidebar-submenu">
+                <a href="{% url 'comparativo_loja' %}" class="sidebar-submenu-link {% if current == 'comparativo_loja' %}active{% endif %}">Raio-X</a>
+                <a href="{% url 'lista_folha_duplicadas' %}" class="sidebar-submenu-link {% if current == 'lista_folha_duplicadas' %}active{% endif %}">Duplicadas</a>
+            </div>
+        </div>
+
+        <!-- Configurações -->
+        <div class="sidebar-item">
+            <a href="{% url 'importacoes' %}" class="sidebar-link {% if current == 'importacoes' %}active{% endif %}">
+                <i class="fa-solid fa-gear"></i>
+                <span>Importações</span>
+            </a>
+        </div>
+    </div>
+
+</div>
+{% endwith %}
 {% endwith %}

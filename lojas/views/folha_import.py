@@ -68,7 +68,7 @@ def folha_import(request):
                                 "Veja o detalhe nas tabelas abaixo."
                             ),
                         )
-                    return redirect("importar_folha")
+                    return redirect("importacoes")
     else:
         form = FolhaImportForm()
 

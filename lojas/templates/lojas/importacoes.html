@@ -1,0 +1,71 @@
+{% extends "lojas/base.html" %}
+{% load static %}
+
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-header-info">
+        <span class="page-eyebrow">Configurações</span>
+        <h1>Central de Importações</h1>
+        <p>Realize o upload dos arquivos da TOTVS para atualizar a base de dados.</p>
+    </div>
+</div>
+
+<div class="grid-dashboard-layout">
+    
+    <!-- Importação de Folha -->
+    <section class="card">
+        <div class="card-header">
+            <h2><i class="fa-solid fa-file-invoice-dollar"></i> Importar Folha TOTVS</h2>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-24">Faça o upload do arquivo CSV de folha de pagamento para processar verbas e custos.</p>
+            
+            <form action="{% url 'importar_folha' %}" method="post" enctype="multipart/form-data" class="flex flex-col gap-16">
+                {% csrf_token %}
+                <div class="form-group">
+                    {{ folha_form.arquivo }}
+                    {% if folha_form.arquivo.errors %}
+                        <div class="error-msg">{{ folha_form.arquivo.errors }}</div>
+                    {% endif %}
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-upload"></i>
+                    Processar Folha
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Importação de Colaboradores -->
+    <section class="card">
+        <div class="card-header">
+            <h2><i class="fa-solid fa-users-gear"></i> Sincronizar Colaboradores</h2>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-24">Atualize a base de funcionários ativos e demitidos a partir do relatório de pessoal.</p>
+            
+            <form action="{% url 'colaboradores:importar' %}" method="post" enctype="multipart/form-data" class="flex flex-col gap-16">
+                {% csrf_token %}
+                <div class="form-group">
+                    {{ colaborador_form.arquivo }}
+                    {% if colaborador_form.arquivo.errors %}
+                        <div class="error-msg">{{ colaborador_form.arquivo.errors }}</div>
+                    {% endif %}
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-sync"></i>
+                    Sincronizar Agora
+                </button>
+            </form>
+        </div>
+    </section>
+
+</div>
+
+<style>
+    .mb-24 { margin-bottom: 24px; }
+    .text-muted { color: #6b7280; font-size: 0.875rem; }
+</style>
+{% endblock %}
