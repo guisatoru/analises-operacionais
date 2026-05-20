@@ -46,6 +46,9 @@
             <button type="submit" class="btn btn-primary">
                 <i class="fa-solid fa-filter"></i> Filtrar
             </button>
+            <a href="{% url 'colaboradores:terminos_export' %}?search={{ search_query }}&data_filtro={{ data_filtro }}&data_fim={{ data_fim }}&coordenador={{ coordenador_query }}" class="btn btn-outline" title="Exportar para Excel">
+                <i class="fa-solid fa-file-excel"></i> Exportar
+            </a>
             {% if search_query or data_filtro or data_fim or coordenador_query %}
             <a href="{% url 'colaboradores:terminos_list' %}" class="btn btn-outline">
                 Limpar

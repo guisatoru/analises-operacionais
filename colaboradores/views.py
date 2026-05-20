@@ -9,6 +9,10 @@ from lojas.models import Loja
 from .forms import ColaboradorImportForm
 from .services.colaborador_importacao import importar_colaboradores_de_texto
 
+from django.http import HttpResponse
+import pandas as pd
+from io import BytesIO
+
 def derive_termino_state(colaborador, reference_date):
     controles = list(colaborador.controles_termino.all())
     latest_first = next((c for c in controles if c.etapa == 1), None)
