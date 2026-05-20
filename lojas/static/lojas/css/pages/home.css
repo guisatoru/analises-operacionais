@@ -1,14 +1,84 @@
 /* Dashboard Principal - Estilos Adicionais */
 
-.kpi-icon.icon-team {
-    background: #ecfdf5;
-    color: #10b981;
+.section-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
 }
 
-.kpi-icon.icon-escopos {
-    background: #fff7ed;
-    color: #f97316;
+.section-card {
+    background: white;
+    padding: 24px;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    text-decoration: none;
+    color: inherit;
+    border: 1px solid #f3f4f6;
 }
+
+.section-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border-color: #6366f1;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.section-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+.section-card:hover .section-icon {
+    background: #e0e7ff;
+    color: #4f46e5;
+}
+
+.section-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.section-description {
+    font-size: 0.875rem;
+    color: #6b7280;
+    line-height: 1.5;
+    flex-grow: 1;
+}
+
+.section-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #4f46e5;
+}
+
+/* Cores específicas para ícones */
+.icon-lojas { background: #eff6ff; color: #3b82f6; }
+.icon-equipe { background: #ecfdf5; color: #10b981; }
+.icon-escopos { background: #fff7ed; color: #f97316; }
+.icon-import { background: #f5f3ff; color: #8b5cf6; }
+.icon-auditoria { background: #fef2f2; color: #ef4444; }
+.icon-analise { background: #fdf2f8; color: #ec4899; }
 
 .grid-dashboard-layout {
     display: grid;
@@ -66,6 +136,9 @@
 }
 
 @media (max-width: 640px) {
+    .section-grid {
+        grid-template-columns: 1fr;
+    }
     .dashboard-actions-grid {
         grid-template-columns: 1fr;
     }

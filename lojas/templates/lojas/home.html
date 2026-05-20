@@ -23,90 +23,131 @@
     </div>
 </div>
 
-<!-- Grid de KPIs (Estilo Referência) -->
-<div class="kpi-grid">
-    <div class="kpi-card">
-        <div class="kpi-header">
-            <span class="kpi-title">Lojas Ativas</span>
-            <div class="kpi-icon">
+<!-- Grid de Seções -->
+<div class="section-grid">
+    <!-- Lojas -->
+    <a href="{% url 'lista_lojas' %}" class="section-card">
+        <div class="section-header">
+            <div class="section-icon icon-lojas">
                 <i class="fa-solid fa-store"></i>
             </div>
+            <span class="section-title">Lojas</span>
         </div>
-        <div class="kpi-value">{{ total_lojas }}</div>
-        <div class="kpi-trend trend-up">
-            <i class="fa-solid fa-arrow-up"></i>
-            <span>Estável</span>
+        <p class="section-description">Gestão do cadastro de lojas, unidades e configurações de insalubridade.</p>
+        <div class="section-footer">
+            <span>Acessar</span>
+            <i class="fa-solid fa-arrow-right"></i>
         </div>
-    </div>
+    </a>
 
-    <div class="kpi-card">
-        <div class="kpi-header">
-            <span class="kpi-title">Equipe Ativa</span>
-            <div class="kpi-icon icon-team">
+    <!-- Ativos -->
+    <a href="{% url 'colaboradores:list' %}" class="section-card">
+        <div class="section-header">
+            <div class="section-icon icon-equipe">
                 <i class="fa-solid fa-users"></i>
             </div>
+            <span class="section-title">Colaboradores Ativos</span>
         </div>
-        <div class="kpi-value">{{ total_colaboradores }}</div>
-        <div class="kpi-trend trend-up">
-            <i class="fa-solid fa-arrow-up"></i>
-            <span>12% este mês</span>
+        <p class="section-description">Consulta e gestão da equipe ativa em todas as unidades.</p>
+        <div class="section-footer">
+            <span>Acessar</span>
+            <i class="fa-solid fa-arrow-right"></i>
         </div>
-    </div>
+    </a>
 
-    <div class="kpi-card">
-        <div class="kpi-header">
-            <span class="kpi-title">Escopos Cadastrados</span>
-            <div class="kpi-icon icon-escopos">
+    <!-- Demitidos -->
+    <a href="{% url 'colaboradores:demitidos_list' %}" class="section-card">
+        <div class="section-header">
+            <div class="section-icon icon-equipe">
+                <i class="fa-solid fa-user-slash"></i>
+            </div>
+            <span class="section-title">Demitidos</span>
+        </div>
+        <p class="section-description">Histórico de colaboradores desligados e movimentações de pessoal.</p>
+        <div class="section-footer">
+            <span>Acessar</span>
+            <i class="fa-solid fa-arrow-right"></i>
+        </div>
+    </a>
+
+    <!-- Escopos -->
+    <a href="{% url 'lista_escopos' %}" class="section-card">
+        <div class="section-header">
+            <div class="section-icon icon-escopos">
                 <i class="fa-solid fa-calendar-check"></i>
             </div>
+            <span class="section-title">Escopos</span>
         </div>
-        <div class="kpi-value">{{ total_escopos }}</div>
-        <div class="kpi-trend trend-up">
-            <i class="fa-solid fa-circle-check"></i>
-            <span>Atualizado</span>
+        <p class="section-description">Definição e acompanhamento do escopo operacional mensal por loja.</p>
+        <div class="section-footer">
+            <span>Acessar</span>
+            <i class="fa-solid fa-arrow-right"></i>
         </div>
-    </div>
+    </a>
+
+    <!-- Importar Folha -->
+    <a href="{% url 'importar_folha' %}" class="section-card">
+        <div class="section-header">
+            <div class="section-icon icon-import">
+                <i class="fa-solid fa-file-import"></i>
+            </div>
+            <span class="section-title">Importar Folha</span>
+        </div>
+        <p class="section-description">Upload e processamento dos arquivos de folha de pagamento TOTVS.</p>
+        <div class="section-footer">
+            <span>Acessar</span>
+            <i class="fa-solid fa-arrow-right"></i>
+        </div>
+    </a>
+
+    <!-- Importar Equipe -->
+    <a href="{% url 'colaboradores:importar' %}" class="section-card">
+        <div class="section-header">
+            <div class="section-icon icon-import">
+                <i class="fa-solid fa-users-gear"></i>
+            </div>
+            <span class="section-title">Sincronizar Equipe</span>
+        </div>
+        <p class="section-description">Atualização da base de colaboradores a partir de planilhas externas.</p>
+        <div class="section-footer">
+            <span>Acessar</span>
+            <i class="fa-solid fa-arrow-right"></i>
+        </div>
+    </a>
+
+    <!-- Duplicadas -->
+    <a href="{% url 'lista_folha_duplicadas' %}" class="section-card">
+        <div class="section-header">
+            <div class="section-icon icon-auditoria">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <span class="section-title">Auditoria</span>
+        </div>
+        <p class="section-description">Verificação de duplicidades na folha e inconsistências de dados.</p>
+        <div class="section-footer">
+            <span>Acessar</span>
+            <i class="fa-solid fa-arrow-right"></i>
+        </div>
+    </a>
+
+    <!-- Comparativo -->
+    <a href="{% url 'comparativo_loja' %}" class="section-card">
+        <div class="section-header">
+            <div class="section-icon icon-analise">
+                <i class="fa-solid fa-chart-line"></i>
+            </div>
+            <span class="section-title">Comparativo</span>
+        </div>
+        <p class="section-description">Análise detalhada comparando o orçado versus o realizado.</p>
+        <div class="section-footer">
+            <span>Acessar</span>
+            <i class="fa-solid fa-arrow-right"></i>
+        </div>
+    </a>
 </div>
 
-<div class="grid-dashboard-layout">
-    
-    <!-- Seção de Ações Rápidas -->
-    <section class="card">
-        <div class="card-header">
-            <h2>Ações Rápidas</h2>
-        </div>
-        <div class="card-body">
-            <div class="dashboard-actions-grid">
-                <a href="{% url 'importar_folha' %}" class="btn btn-outline btn-dashboard-action">
-                    <i class="fa-solid fa-file-import"></i>
-                    Importar Folha TOTVS
-                </a>
-                <a href="{% url 'colaboradores:importar' %}" class="btn btn-outline btn-dashboard-action">
-                    <i class="fa-solid fa-users-gear"></i>
-                    Sincronizar Equipe
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <!-- Auditoria e Riscos -->
-    <section class="card">
-        <div class="card-header">
-            <h2>Auditoria</h2>
-        </div>
-        <div class="card-body">
-            <div class="flex flex-col gap-16">
-                <div class="auditoria-alert">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                    <div>
-                        <div class="auditoria-alert-title">Duplicadas na Folha</div>
-                        <a href="{% url 'lista_folha_duplicadas' %}" class="auditoria-alert-link">Verificar agora</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-</div>
+{% comment %}
+O bloco abaixo foi removido para focar nos cards de seções conforme solicitado.
+{% endcomment %}
 
 {% endblock %}
