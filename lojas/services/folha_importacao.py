@@ -354,97 +354,86 @@ def _linha_para_detalhe_sem_loja(d):
 def importar_folha_de_texto(conteudo_utf8, arquivo_origem, dry_run=False):
     """
     Processa o CSV e grava LinhaFolha (transação única).
-    Retorna dict com totais e mensagens operacionais.
+    Otimizado para performance com Pandas e bulk_create em lote maior.
     """
     dados = processar_csv_para_linhas(conteudo_utf8, arquivo_origem)
     if not dados:
         return {
-            "processadas": 0,
-            "gravadas": 0,
-            "ignoradas_duplicadas": 0,
-            "sem_loja": 0,
-            "dry_run": dry_run,
-            "detalhes_duplicadas": [],
-            "detalhes_sem_loja": [],
-            "detalhes_duplicadas_truncado": False,
+            "processadas": 0, "gravadas": 0, "ignoradas_duplicadas": 0,
+            "sem_loja": 0, "dry_run": dry_run, "detalhes_duplicadas": [],
+            "detalhes_sem_loja": [], "detalhes_duplicadas_truncado": False,
             "detalhes_sem_loja_truncado": False,
         }
 
-    # Remove duplicatas dentro do mesmo CSV (mantém a primeira ocorrência)
-    visto = set()
-    unicos = []
-    duplicadas_no_arquivo = 0
+    # 1. Filtro em Memória com Pandas (Performance interna)
+    df_dados = pd.DataFrame(dados)
+    # Identifica o que é único no arquivo
+    df_unicos = df_dados.drop_duplicates(
+        subset=["matricula", "verba_id", "valor", "dt_arq", "centro_custo"],
+        keep="first"
+    )
+    
+    # O que sobrou são as duplicadas internas do arquivo
+    df_duplicadas_arquivo = df_dados[df_dados.index.isin(df_dados.index.difference(df_unicos.index))]
+    
+    duplicadas_no_arquivo = len(df_duplicadas_arquivo)
     detalhes_duplicadas = []
     para_gravar_duplicadas = []
-    for d in dados:
-        k = _chave_unica(d)
-        if k in visto:
-            duplicadas_no_arquivo += 1
-            para_gravar_duplicadas.append(
-                _dict_para_linha_folha_duplicada(d, "REPETIDA_NO_ARQUIVO")
-            )
-            if len(detalhes_duplicadas) < LIMITE_DETALHES_DUPLICADAS:
-                detalhes_duplicadas.append(
-                    _linha_para_detalhe_duplicada(d, "repetida_no_mesmo_arquivo")
-                )
-            continue
-        visto.add(k)
-        unicos.append(d)
 
-    matriculas = {d["matricula"] for d in unicos}
-    dt_arqs = {d["dt_arq"] for d in unicos}
-    existentes = set()
-    for tup in LinhaFolha.objects.filter(
-        matricula__in=matriculas,
-        dt_arq__in=dt_arqs,
-    ).values_list("matricula", "verba_id", "valor", "dt_arq", "centro_custo"):
-        existentes.add(
-            (
-                tup[0],
-                tup[1],
-                _normalizar_valor_chave(tup[2]),
-                tup[3],
-                tup[4],
-            )
-        )
+    # Prepara duplicadas internas para detalhamento e gravação
+    for _, d in df_duplicadas_arquivo.iterrows():
+        if len(detalhes_duplicadas) < LIMITE_DETALHES_DUPLICADAS:
+            detalhes_duplicadas.append(_linha_para_detalhe_duplicada(d, "repetida_no_mesmo_arquivo"))
+        para_gravar_duplicadas.append(_dict_para_linha_folha_duplicada(d, "REPETIDA_NO_ARQUIVO"))
+
+    # 2. Busca eficiente no Banco usando o novo Super-Índice
+    matriculas = df_unicos["matricula"].unique().tolist()
+    dt_arqs = df_unicos["dt_arq"].unique().tolist()
+    
+    # Carrega o que já existe no banco de dados para comparar
+    existentes = set(
+        LinhaFolha.objects.filter(matricula__in=matriculas, dt_arq__in=dt_arqs)
+        .values_list("matricula", "verba_id", "valor", "dt_arq", "centro_custo")
+    )
+    
+    # Carrega duplicadas já registradas para evitar "duplicada da duplicada"
+    dups_existentes = set(
+        LinhaFolhaDuplicada.objects.filter(matricula__in=matriculas, dt_arq__in=dt_arqs)
+        .values_list("matricula", "verba_id", "valor", "dt_arq", "centro_custo")
+    )
 
     para_gravar = []
     detalhes_sem_loja = []
     ignoradas_duplicadas = duplicadas_no_arquivo
-    for d in unicos:
-        k = _chave_unica(d)
+
+    for _, d in df_unicos.iterrows():
+        # Chave para comparação (normalizando o valor decimal)
+        k = (d["matricula"], d["verba_id"], _normalizar_valor_chave(d["valor"]), d["dt_arq"], d["centro_custo"])
+        
         if k in existentes:
             ignoradas_duplicadas += 1
-            para_gravar_duplicadas.append(
-                _dict_para_linha_folha_duplicada(d, "JA_EXISTIA_NO_BANCO")
-            )
+            # Só grava no histórico de duplicadas se ainda não estiver lá
+            if k not in dups_existentes:
+                para_gravar_duplicadas.append(_dict_para_linha_folha_duplicada(d, "JA_EXISTIA_NO_BANCO"))
+            
             if len(detalhes_duplicadas) < LIMITE_DETALHES_DUPLICADAS:
-                detalhes_duplicadas.append(
-                    _linha_para_detalhe_duplicada(d, "ja_existia_no_banco")
-                )
+                detalhes_duplicadas.append(_linha_para_detalhe_duplicada(d, "ja_existia_no_banco"))
             continue
+            
         if d["loja_id"] is None and len(detalhes_sem_loja) < LIMITE_DETALHES_SEM_LOJA:
             detalhes_sem_loja.append(_linha_para_detalhe_sem_loja(d))
+            
         para_gravar.append(
             LinhaFolha(
-                matricula=d["matricula"],
-                verba_id=d["verba_id"],
-                codigo_verba=d["codigo_verba"],
-                valor=d["valor"],
-                dt_arq=d["dt_arq"],
-                dt_pagamento=d["dt_pagamento"],
-                centro_custo=d["centro_custo"],
-                centro_custo_real=d["centro_custo_real"],
-                loja_id=d["loja_id"],
-                categoria=d["categoria"],
-                arquivo_origem=d["arquivo_origem"],
+                matricula=d["matricula"], verba_id=d["verba_id"], codigo_verba=d["codigo_verba"],
+                valor=d["valor"], dt_arq=d["dt_arq"], dt_pagamento=d["dt_pagamento"],
+                centro_custo=d["centro_custo"], centro_custo_real=d["centro_custo_real"],
+                loja_id=d["loja_id"], categoria=d["categoria"], arquivo_origem=d["arquivo_origem"]
             )
         )
 
     sem_loja = sum(1 for obj in para_gravar if obj.loja_id is None)
-    trunc_dup = ignoradas_duplicadas > len(detalhes_duplicadas)
-    trunc_sem = sem_loja > len(detalhes_sem_loja)
-
+    
     resumo = {
         "processadas": len(dados),
         "gravadas": len(para_gravar),
@@ -453,19 +442,17 @@ def importar_folha_de_texto(conteudo_utf8, arquivo_origem, dry_run=False):
         "dry_run": dry_run,
         "detalhes_duplicadas": detalhes_duplicadas,
         "detalhes_sem_loja": detalhes_sem_loja,
-        "detalhes_duplicadas_truncado": trunc_dup,
-        "detalhes_sem_loja_truncado": trunc_sem,
+        "detalhes_duplicadas_truncado": ignoradas_duplicadas > len(detalhes_duplicadas),
+        "detalhes_sem_loja_truncado": sem_loja > len(detalhes_sem_loja),
     }
 
     if dry_run:
         return resumo
 
+    # 3. Gravação em Lote Otimizada (batch_size=2000)
     with transaction.atomic():
-        LinhaFolha.objects.bulk_create(para_gravar, batch_size=500)
+        LinhaFolha.objects.bulk_create(para_gravar, batch_size=2000)
         if para_gravar_duplicadas:
-            LinhaFolhaDuplicada.objects.bulk_create(
-                para_gravar_duplicadas,
-                batch_size=500,
-            )
+            LinhaFolhaDuplicada.objects.bulk_create(para_gravar_duplicadas, batch_size=2000)
 
     return resumo

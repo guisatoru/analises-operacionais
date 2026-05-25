@@ -61,6 +61,9 @@ def importar_gestao_pessoas(arquivo_excel):
     # Remove duplicatas mantendo a primeira ocorrência (a que NÃO é TRANSFERIDO, se existir)
     df_unico = df.drop_duplicates(subset=[col_re], keep='first')
 
+    # 1. Carregar colaboradores atuais para memória
+    colaboradores_atuais = {c.re: c for c in Colaborador.objects.all()}
+    
     stats = {
         'total_planilha': len(df_unico), 
         'atualizados': 0, 
@@ -69,45 +72,55 @@ def importar_gestao_pessoas(arquivo_excel):
         'erros': 0
     }
 
-    with transaction.atomic():
-        for _, row in df_unico.iterrows():
-            re_val = row[col_re]
-            try:
-                colaborador = Colaborador.objects.filter(re=re_val).first()
-                if not colaborador:
-                    stats['nao_encontrados'] += 1
-                    continue
+    para_atualizar = []
 
-                funcao_val = str(row[col_funcao]).strip() if pd.notna(row[col_funcao]) else None
-                loja_val = str(row[col_loja]).strip() if pd.notna(row[col_loja]) else None
-                status_val = str(row[col_status]).strip() if pd.notna(row[col_status]) else None
-
-                changed = False
-                
-                # Normaliza valores nulos para comparação (None vs string vazia)
-                def get_val(v):
-                    return v if v else ""
-
-                if get_val(colaborador.funcao_gestao) != get_val(funcao_val):
-                    colaborador.funcao_gestao = funcao_val
-                    changed = True
-                
-                if get_val(colaborador.loja_gestao) != get_val(loja_val):
-                    colaborador.loja_gestao = loja_val
-                    changed = True
-                    
-                if get_val(colaborador.status_gestao) != get_val(status_val):
-                    colaborador.status_gestao = status_val
-                    changed = True
-
-                if changed:
-                    colaborador.save()
-                    stats['atualizados'] += 1
-                else:
-                    stats['sem_alteracao'] += 1
-
-            except Exception:
-                stats['erros'] += 1
+    for _, row in df_unico.iterrows():
+        re_val = row[col_re]
+        try:
+            colaborador = colaboradores_atuais.get(re_val)
+            if not colaborador:
+                stats['nao_encontrados'] += 1
                 continue
+
+            funcao_val = str(row[col_funcao]).strip() if pd.notna(row[col_funcao]) else None
+            loja_val = str(row[col_loja]).strip() if pd.notna(row[col_loja]) else None
+            status_val = str(row[col_status]).strip() if pd.notna(row[col_status]) else None
+
+            changed = False
+            
+            # Normaliza valores nulos para comparação
+            def get_val(v):
+                return v if v else ""
+
+            if get_val(colaborador.funcao_gestao) != get_val(funcao_val):
+                colaborador.funcao_gestao = funcao_val
+                changed = True
+            
+            if get_val(colaborador.loja_gestao) != get_val(loja_val):
+                colaborador.loja_gestao = loja_val
+                changed = True
+                
+            if get_val(colaborador.status_gestao) != get_val(status_val):
+                colaborador.status_gestao = status_val
+                changed = True
+
+            if changed:
+                para_atualizar.append(colaborador)
+                stats['atualizados'] += 1
+            else:
+                stats['sem_alteracao'] += 1
+
+        except Exception:
+            stats['erros'] += 1
+            continue
+
+    # 2. Gravação em massa
+    if para_atualizar:
+        with transaction.atomic():
+            Colaborador.objects.bulk_update(
+                para_atualizar, 
+                ['funcao_gestao', 'loja_gestao', 'status_gestao'], 
+                batch_size=2000
+            )
 
     return stats

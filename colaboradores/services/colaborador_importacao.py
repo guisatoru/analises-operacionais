@@ -154,49 +154,75 @@ def importar_colaboradores_de_texto(conteudo_csv):
         if cc_norm:
             mapa_lojas[cc_norm] = l
 
+    # 1. Carregar todos os colaboradores atuais para memória (Busca Ultra-Rápida)
+    colaboradores_atuais = {c.re: c for c in Colaborador.objects.all()}
+    
     stats = {'total': len(df), 'criados': 0, 'atualizados': 0, 'erros': 0}
+    para_criar = []
+    para_atualizar = []
 
-    with transaction.atomic():
-        for _, row in df.iterrows():
-            try:
-                re_val = row[colunas_map['re']]
-                if not re_val:
-                    continue
-
-                cc_bruto = row[colunas_map['cc']]
-                cc_norm = normalizar_centro_custo(cc_bruto)
-                
-                if cc_norm in SUBSTITUICOES_CENTRO_CUSTO:
-                    cc_norm = SUBSTITUICOES_CENTRO_CUSTO[cc_norm]
-                
-                loja = mapa_lojas.get(cc_norm)
-
-                defaults = {
-                    'nome': row[colunas_map['nome']][:255],
-                    'loja': loja,
-                    'centro_custo': cc_bruto[:50],
-                    'data_admissao': parse_data(row[colunas_map['admissao']]),
-                    'data_demissao': parse_data(row[colunas_map.get('demissao')]) if 'demissao' in colunas_map else None,
-                    'status': row[colunas_map['status']][:100],
-                    'cargo': row[colunas_map['cargo']][:150],
-                    'cpf': limpar_cpf(row[coluna_cpf]) if coluna_cpf else None,
-                    'termino_1': parse_data(row[colunas_map.get('term1')]) if 'term1' in colunas_map else None,
-                    'termino_2': parse_data(row[colunas_map.get('term2')]) if 'term2' in colunas_map else None,
-                }
-
-                if not defaults['data_admissao']:
-                    continue
-
-                obj, created = Colaborador.objects.update_or_create(
-                    re=re_val,
-                    defaults=defaults
-                )
-
-                if created: stats['criados'] += 1
-                else: stats['atualizados'] += 1
-
-            except Exception:
-                stats['erros'] += 1
+    for _, row in df.iterrows():
+        try:
+            re_val = row[colunas_map['re']]
+            if not re_val:
                 continue
+
+            cc_bruto = row[colunas_map['cc']]
+            cc_norm = normalizar_centro_custo(cc_bruto)
+            
+            if cc_norm in SUBSTITUICOES_CENTRO_CUSTO:
+                cc_norm = SUBSTITUICOES_CENTRO_CUSTO[cc_norm]
+            
+            loja = mapa_lojas.get(cc_norm)
+
+            dados_novos = {
+                'nome': row[colunas_map['nome']][:255],
+                'loja': loja,
+                'centro_custo': cc_bruto[:50],
+                'data_admissao': parse_data(row[colunas_map['admissao']]),
+                'data_demissao': parse_data(row[colunas_map.get('demissao')]) if 'demissao' in colunas_map else None,
+                'status': row[colunas_map['status']][:100],
+                'cargo': row[colunas_map['cargo']][:150],
+                'cpf': limpar_cpf(row[coluna_cpf]) if coluna_cpf else None,
+                'termino_1': parse_data(row[colunas_map.get('term1')]) if 'term1' in colunas_map else None,
+                'termino_2': parse_data(row[colunas_map.get('term2')]) if 'term2' in colunas_map else None,
+            }
+
+            if not dados_novos['data_admissao']:
+                continue
+
+            colaborador = colaboradores_atuais.get(re_val)
+
+            if not colaborador:
+                # Novo colaborador
+                para_criar.append(Colaborador(re=re_val, **dados_novos))
+                stats['criados'] += 1
+            else:
+                # Colaborador existente: verifica se houve mudança antes de atualizar
+                mudou = False
+                for campo, valor in dados_novos.items():
+                    if getattr(colaborador, campo) != valor:
+                        setattr(colaborador, campo, valor)
+                        mudou = True
+                
+                if mudou:
+                    para_atualizar.append(colaborador)
+                    stats['atualizados'] += 1
+
+        except Exception:
+            stats['erros'] += 1
+            continue
+
+    # 2. Executar as operações em massa (Bulk Operations)
+    with transaction.atomic():
+        if para_criar:
+            Colaborador.objects.bulk_create(para_criar, batch_size=2000)
+        
+        if para_atualizar:
+            campos_para_update = [
+                'nome', 'loja', 'centro_custo', 'data_admissao', 'data_demissao',
+                'status', 'cargo', 'cpf', 'termino_1', 'termino_2'
+            ]
+            Colaborador.objects.bulk_update(para_atualizar, campos_para_update, batch_size=2000)
 
     return stats

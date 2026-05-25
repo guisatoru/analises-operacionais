@@ -195,6 +195,9 @@ class Cargo(models.Model):
         verbose_name = "Cargo"
         verbose_name_plural = "Cargos"
         ordering = ["nome"]
+        indexes = [
+            models.Index(fields=["nome"]),
+        ]
 
     def __str__(self):
         return self.nome
@@ -671,6 +674,7 @@ class LinhaFolha(models.Model):
             models.Index(fields=["dt_arq", "loja"]),
             models.Index(fields=["matricula", "dt_arq"]),
             models.Index(fields=["codigo_verba", "matricula", "dt_arq"]),
+            models.Index(fields=["matricula", "valor", "dt_arq", "verba"]),
         ]
 
     def __str__(self):
