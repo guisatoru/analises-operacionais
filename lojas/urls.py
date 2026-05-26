@@ -1,6 +1,6 @@
 from django.urls import include, path
-
-from . import views
+from . import views  # Isso importa lojas/views/__init__.py
+from .views import configuracoes  # Isso importa lojas/views/configuracoes.py
 
 urlpatterns = [
     path("", views.home, name="inicio"),
@@ -26,7 +26,13 @@ urlpatterns = [
     path("escopos/api/item/<int:pk>/delete/", views.api_item_escopo_delete, name="api_item_escopo_delete"),
     path("folhas/importar/", views.folha_import, name="importar_folha"),
     path("folhas/duplicadas/", views.folha_duplicadas_list, name="lista_folha_duplicadas"),
-    path("importacoes/", views.importacoes, name="importacoes"),
+    
+    # ========== NOVAS URLs (usando configuracoes) ==========
+    path("importacoes/", configuracoes.importacoes, name="importacoes"),
+    path("colaboradores/importar/", configuracoes.colaborador_import_async, name="colaborador_import"),
+    path("import-progress/<str:import_id>/", configuracoes.import_progress, name="import_progress"),
+    path("import-status/<str:import_id>/", configuracoes.import_status_api, name="import_status_api"),
+    
     path("comparativo/", views.comparativo_loja, name="comparativo_loja"),
     path("select2/", include("django_select2.urls")),
 ]

@@ -46,7 +46,7 @@
         <div class="card-body">
             <p class="text-muted mb-24">Atualize a base de funcionários ativos e demitidos a partir do relatório de pessoal.</p>
             
-            <form action="{% url 'colaboradores:importar' %}" method="post" enctype="multipart/form-data" class="flex flex-col gap-16">
+            <form action="{% url 'colaborador_import' %}" method="post" enctype="multipart/form-data" class="flex flex-col gap-16">
                 {% csrf_token %}
                 <div class="form-group">
                     {{ colaborador_form.arquivo }}

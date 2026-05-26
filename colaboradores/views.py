@@ -199,6 +199,7 @@ def exportar_terminos_excel(request):
     status_gestao_query = request.GET.get('status_gestao', '')
 
     today = date.today()
+    processed_colaboradores = []
     data_rows = []
 
     for colaborador in colaboradores_qs:

@@ -6,7 +6,6 @@ cliente, quadro, status e centro de custo.
 ## Pré-requisitos
 
 - Python 3.11+ (testado com 3.14)
-- Banco PostgreSQL — neste projeto usamos o Supabase
 
 ## Instalação
 
