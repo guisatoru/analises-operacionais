@@ -10,6 +10,13 @@ from lojas.models import Loja
 from .forms import ColaboradorImportForm, GestaoPessoasImportForm
 from .services.colaborador_importacao import importar_colaboradores_de_texto
 from .services.gestao_importacao import importar_gestao_pessoas
+import threading
+from .services.geovictoria_sync import (
+    sincronizar_colaboradores, 
+    obter_dados_geovictoria_cache,
+    set_progresso_sync,
+    get_progresso_sync,
+)
 
 from django.http import HttpResponse, JsonResponse
 import pandas as pd
@@ -59,7 +66,6 @@ def terminos_list(request):
             messages.success(request, f"Controle de término para {colaborador.nome} registrado com sucesso!")
         return redirect('colaboradores:terminos_list')
 
-    # Filtrar apenas ativos com alguma data de término preenchida, excluindo AUXILIAR ADMINISTRAT
     colaboradores_qs = Colaborador.objects.exclude(status='D').exclude(cargo='AUXILIAR ADMINISTRAT').filter(
         Q(termino_1__isnull=False) | Q(termino_2__isnull=False)
     ).select_related('loja').prefetch_related('controles_termino')
@@ -76,7 +82,6 @@ def terminos_list(request):
     for colaborador in colaboradores_qs:
         state = derive_termino_state(colaborador, today)
         
-        # Omitir se o primeiro termo passou, o segundo passou, e não tem histórico (já caducou e não foi controlado)
         if colaborador.termino_1 and colaborador.termino_1 < today and \
            colaborador.termino_2 and colaborador.termino_2 < today and \
            not list(colaborador.controles_termino.all()):
@@ -84,7 +89,6 @@ def terminos_list(request):
             
         relevant_date = colaborador.termino_2 if state['etapaAtual'] == 2 else colaborador.termino_1
         
-        # Filtro de Data Início (A partir de)
         if data_filtro and relevant_date:
             try:
                 filtro_date = date.fromisoformat(data_filtro)
@@ -93,7 +97,6 @@ def terminos_list(request):
             except ValueError:
                 pass
 
-        # Filtro de Data Fim (Até)
         if data_fim and relevant_date:
             try:
                 fim_date = date.fromisoformat(data_fim)
@@ -102,13 +105,11 @@ def terminos_list(request):
             except ValueError:
                 pass
                 
-        # Filtro de Coordenador
         if coordenador_query:
             loja_coordenador = colaborador.loja.coordenador if colaborador.loja else ""
             if coordenador_query != loja_coordenador:
                 continue
 
-        # Filtro de Status Gestão
         if status_gestao_query:
             col_status_gestao = (colaborador.status_gestao or "").strip().upper()
             if status_gestao_query.upper() != col_status_gestao:
@@ -125,33 +126,59 @@ def terminos_list(request):
             'history': list(colaborador.controles_termino.all()),
         })
 
-    # Sort by the most recent relevant date (closest to today)
-    processed_colaboradores.sort(key=lambda x: (x['relevant_date'] is None, x['relevant_date']))
+    # ============================================
+    # 🆕 LÓGICA UNIFICADA: Cache ou fallback
+    # ============================================
+    geodata_cache = obter_dados_geovictoria_cache()
+    cache_info = None
+    
+    if geodata_cache:
+        # USA CACHE (dados já sincronizados)
+        geodata_map = geodata_cache["dados"]
+        cache_info = {
+            "sincronizado_em": geodata_cache.get("sincronizado_em"),
+            "total_sucesso": geodata_cache.get("sucesso", 0),
+            "total_erros": geodata_cache.get("erros", 0),
+        }
+    else:
+        # FALLBACK: busca apenas da página atual (comportamento antigo)
+        geodata_map = {}
+        
+    # Parâmetro de ordenação
+    ordenar_por = request.GET.get('ordenar', 'data')
+    
+    # Ordenação global (só funciona com cache)
+    if ordenar_por == 'faltas' and geodata_map:
+        processed_colaboradores.sort(
+            key=lambda x: (
+                geodata_map.get(
+                    str(x['colaborador'].cpf).strip(), {}
+                ).get('faltas', 0) if x['colaborador'].cpf else 0
+            ),
+            reverse=True
+        )
+    elif ordenar_por == 'atestados' and geodata_map:
+        processed_colaboradores.sort(
+            key=lambda x: (
+                geodata_map.get(
+                    str(x['colaborador'].cpf).strip(), {}
+                ).get('atestados', 0) if x['colaborador'].cpf else 0
+            ),
+            reverse=True
+        )
+    else:
+        # Ordenação padrão por data
+        processed_colaboradores.sort(key=lambda x: (x['relevant_date'] is None, x['relevant_date']))
 
-    paginator = Paginator(processed_colaboradores, 10) # Alterado de 50 para 10
+    paginator = Paginator(processed_colaboradores, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    # Buscar dados da GeoVictoria em LOTE para os colaboradores da página atual
-    cpfs_na_pagina = [item['colaborador'].cpf for item in page_obj if item['colaborador'].cpf]
-    
-    geodata_map = {}
-    if cpfs_na_pagina:
-        try:
-            # Pegamos o range de datas baseado na menor data de admissão e hoje
-            # Para simplificar, usamos a data mais antiga de admissão da página
-            min_admissao = min(item['colaborador'].data_admissao for item in page_obj if item['colaborador'].cpf)
-            cpfs_string = ",".join(cpfs_na_pagina)
-            geodata_map = geovictoria.get_timeoff_summary(cpfs_string, min_admissao, today)
-        except Exception as e:
-            print(f"Erro ao buscar lote GeoVictoria: {e}")
-
+    # Preenche faltas/atestados nos itens da página
     for item in page_obj:
         colaborador = item['colaborador']
-        # Garantir que o CPF seja comparado como string sem espaços, igual ao que vem da API
         cpf = str(colaborador.cpf).strip() if colaborador.cpf else None
         
-        # Inicializa com 0
         item['faltas'] = 0
         item['atestados'] = 0
 
@@ -179,10 +206,11 @@ def terminos_list(request):
         'status_gestao_query': status_gestao_query,
         'coordenadores': coordenadores,
         'status_gestao_opcoes': status_gestao_opcoes,
+        'cache_info': cache_info,
+        'ordenar_por': ordenar_por,
         'titulo': 'Controle de Términos',
     }
     return render(request, 'colaboradores/terminos_list.html', context)
-
 
 def exportar_terminos_excel(request):
     """
@@ -657,3 +685,126 @@ def gestao_import(request):
             "titulo": "Importação de Gestão de Pessoas",
         },
     )
+
+def sync_geovictoria(request):
+    """
+    Dispara a sincronização da GeoVictoria APENAS para os colaboradores
+    que aparecem na listagem de términos com os filtros atuais.
+    """
+    # 🆕 Recebe os filtros da query string
+    search_query = request.GET.get('search', '').strip().lower()
+    data_filtro = request.GET.get('data_filtro', '')
+    data_fim = request.GET.get('data_fim', '')
+    coordenador_query = request.GET.get('coordenador', '')
+    status_gestao_query = request.GET.get('status_gestao', '')
+    
+    # Busca os mesmos colaboradores que a view terminos_list
+    colaboradores_qs = Colaborador.objects.exclude(
+        status='D'
+    ).exclude(
+        cargo='AUXILIAR ADMINISTRAT'
+    ).filter(
+        Q(termino_1__isnull=False) | Q(termino_2__isnull=False)
+    ).select_related('loja')
+    
+    # Aplica os mesmos filtros
+    today = date.today()
+    cpfs_para_sincronizar = []
+    
+    for colaborador in colaboradores_qs:
+        state = derive_termino_state(colaborador, today)
+        
+        # Aplica filtros (mesma lógica da terminos_list)
+        if colaborador.termino_1 and colaborador.termino_1 < today and \
+           colaborador.termino_2 and colaborador.termino_2 < today and \
+           not list(colaborador.controles_termino.all()):
+            continue
+            
+        relevant_date = colaborador.termino_2 if state['etapaAtual'] == 2 else colaborador.termino_1
+        
+        if data_filtro and relevant_date:
+            try:
+                filtro_date = date.fromisoformat(data_filtro)
+                if relevant_date < filtro_date:
+                    continue
+            except ValueError:
+                pass
+
+        if data_fim and relevant_date:
+            try:
+                fim_date = date.fromisoformat(data_fim)
+                if relevant_date > fim_date:
+                    continue
+            except ValueError:
+                pass
+                
+        if coordenador_query:
+            loja_coordenador = colaborador.loja.coordenador if colaborador.loja else ""
+            if coordenador_query != loja_coordenador:
+                continue
+
+        if status_gestao_query:
+            col_status_gestao = (colaborador.status_gestao or "").strip().upper()
+            if status_gestao_query.upper() != col_status_gestao:
+                continue
+
+        if search_query:
+            if search_query not in colaborador.nome.lower() and search_query not in colaborador.re.lower():
+                continue
+        
+        # Adiciona CPF à lista de sincronização
+        if colaborador.cpf:
+            cpfs_para_sincronizar.append({
+                "cpf": str(colaborador.cpf).strip(),
+                "admissao": colaborador.data_admissao,
+                "id": colaborador.id,
+            })
+    
+    # Inicializa progresso
+    set_progresso_sync(0, f"Iniciando sincronização de {len(cpfs_para_sincronizar)} colaboradores...", "processing")
+    
+    # Dispara em thread separada
+    thread = threading.Thread(
+        target=_sync_geovictoria_background,
+        args=(cpfs_para_sincronizar,),
+        daemon=True,
+    )
+    thread.start()
+    
+    return JsonResponse({
+        "status": "started",
+        "message": f"Sincronizando {len(cpfs_para_sincronizar)} colaboradores...",
+        "total": len(cpfs_para_sincronizar),
+    })
+
+
+def _sync_geovictoria_background(cpfs_para_sincronizar):
+    """
+    Executa a sincronização em background.
+    """
+    def atualizar_progresso(progresso, mensagem):
+        set_progresso_sync(progresso, mensagem, "processing")
+    
+    try:
+        resultado = sincronizar_colaboradores(
+            cpfs_com_admissao=cpfs_para_sincronizar,
+            progress_callback=atualizar_progresso
+        )
+        
+        set_progresso_sync(
+            100,
+            f"Sincronização concluída! {resultado['sucesso']} sucessos, {resultado['erros']} erros.",
+            "completed"
+        )
+    except Exception as e:
+        set_progresso_sync(0, f"Erro: {str(e)}", "error")
+
+
+def sync_geovictoria_progress(request):
+    """
+    Retorna o progresso da sincronização.
+    """
+    progresso = get_progresso_sync()
+    if not progresso:
+        return JsonResponse({"status": "not_found"}, status=404)
+    return JsonResponse(progresso)

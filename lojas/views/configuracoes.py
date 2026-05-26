@@ -12,7 +12,6 @@ from ..forms import FolhaImportForm
 from colaboradores.forms import ColaboradorImportForm, GestaoPessoasImportForm
 from colaboradores.services.colaborador_importacao import importar_colaboradores_de_texto
 
-
 def importacoes(request):
     """
     Exibe uma página unificada com formulários de importação de folha e colaboradores.
