@@ -173,6 +173,7 @@
         "{{ item.colaborador.id }}": {
             "nome": "{{ item.colaborador.nome|escapejs }}",
             "re": "{{ item.colaborador.re }}",
+            "admissao": "{{ item.colaborador.data_admissao|date:'d/m/Y'|default:'-' }}",
             "etapaAtual": {{ item.state.etapaAtual }},
             "tipoTermino": "{{ item.state.tipoTermino }}",
             "encerrado": {% if item.state.encerrado %}true{% else %}false{% endif %},

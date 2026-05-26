@@ -1,5 +1,6 @@
 {% extends 'lojas/base.html' %}
 {% load static %}
+{% load colaborador_tags %}
 
 {% block titulo %}
     {{ titulo }}
@@ -29,6 +30,12 @@
                         onclick="window.location.href='?'">
                     Todos
                 </button>
+                <button type="button" 
+                        class="btn {% if status_divergente_query == 'S' %}btn-danger{% else %}btn-outline{% endif %}"
+                        onclick="toggleQuickFilter('status_divergente', 'S')">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Status Divergente
+                </button>
+                <input type="hidden" name="status_divergente" id="quick-status_divergente" value="{{ status_divergente_query }}">
                 <button type="button" 
                         class="btn {% if divergente_query == 'S' %}btn-danger{% else %}btn-outline{% endif %}"
                         onclick="toggleQuickFilter('divergente', 'S')">
@@ -222,19 +229,19 @@
         </span>
         <div class="pagination-actions">
             {% if page_obj.has_previous %}
-                <a href="?page=1{% if loja_query %}&loja={{ loja_query }}{% endif %}{% if loja_gestao_query %}&loja_gestao={{ loja_gestao_query }}{% endif %}{% if re_query %}&re={{ re_query }}{% endif %}{% if nome_query %}&nome={{ nome_query }}{% endif %}{% if cargo_query %}&cargo={{ cargo_query }}{% endif %}{% if status_query %}&status={{ status_query }}{% endif %}{% if status_gestao_query %}&status_gestao={{ status_gestao_query }}{% endif %}{% if divergente_query %}&divergente={{ divergente_query }}{% endif %}{% if so_totvs_query %}&so_totvs={{ so_totvs_query }}{% endif %}" class="btn btn-outline" title="Primeira página">
+                <a href="?{% query_params page=1 %}" class="btn btn-outline" title="Primeira página">
                     <i class="fa-solid fa-angles-left"></i>
                 </a>
-                <a href="?page={{ page_obj.previous_page_number }}{% if loja_query %}&loja={{ loja_query }}{% endif %}{% if loja_gestao_query %}&loja_gestao={{ loja_gestao_query }}{% endif %}{% if re_query %}&re={{ re_query }}{% endif %}{% if nome_query %}&nome={{ nome_query }}{% endif %}{% if cargo_query %}&cargo={{ cargo_query }}{% endif %}{% if status_query %}&status={{ status_query }}{% endif %}{% if status_gestao_query %}&status_gestao={{ status_gestao_query }}{% endif %}{% if divergente_query %}&divergente={{ divergente_query }}{% endif %}{% if so_totvs_query %}&so_totvs={{ so_totvs_query }}{% endif %}" class="btn btn-outline">
+                <a href="?{% query_params page=page_obj.previous_page_number %}" class="btn btn-outline">
                     <i class="fa-solid fa-angle-left"></i> Anterior
                 </a>
             {% endif %}
 
             {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}{% if loja_query %}&loja={{ loja_query }}{% endif %}{% if loja_gestao_query %}&loja_gestao={{ loja_gestao_query }}{% endif %}{% if re_query %}&re={{ re_query }}{% endif %}{% if nome_query %}&nome={{ nome_query }}{% endif %}{% if cargo_query %}&cargo={{ cargo_query }}{% endif %}{% if status_query %}&status={{ status_query }}{% endif %}{% if status_gestao_query %}&status_gestao={{ status_gestao_query }}{% endif %}{% if divergente_query %}&divergente={{ divergente_query }}{% endif %}{% if so_totvs_query %}&so_totvs={{ so_totvs_query }}{% endif %}" class="btn btn-outline">
+                <a href="?{% query_params page=page_obj.next_page_number %}" class="btn btn-outline">
                     Próxima <i class="fa-solid fa-angle-right"></i>
                 </a>
-                <a href="?page={{ page_obj.paginator.num_pages }}{% if loja_query %}&loja={{ loja_query }}{% endif %}{% if loja_gestao_query %}&loja_gestao={{ loja_gestao_query }}{% endif %}{% if re_query %}&re={{ re_query }}{% endif %}{% if nome_query %}&nome={{ nome_query }}{% endif %}{% if cargo_query %}&cargo={{ cargo_query }}{% endif %}{% if status_query %}&status={{ status_query }}{% endif %}{% if status_gestao_query %}&status_gestao={{ status_gestao_query }}{% endif %}{% if divergente_query %}&divergente={{ divergente_query }}{% endif %}{% if so_totvs_query %}&so_totvs={{ so_totvs_query }}{% endif %}" class="btn btn-outline" title="Última página">
+                <a href="?{% query_params page=page_obj.paginator.num_pages %}" class="btn btn-outline" title="Última página">
                     <i class="fa-solid fa-angles-right"></i>
                 </a>
             {% endif %}

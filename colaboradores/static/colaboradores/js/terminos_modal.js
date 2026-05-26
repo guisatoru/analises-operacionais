@@ -21,7 +21,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Preenche cabeçalho
             document.getElementById('modalNome').textContent = data.nome;
-            document.getElementById('modalInfo').textContent = `RE: ${data.re} - Fase: ${data.tipoTermino}`;
+            document.getElementById('modalInfo').innerHTML = `
+                RE: ${data.re} | 
+                <span class="text-slate-500">
+                    <i class="fa-solid fa-calendar-plus mr-1"></i>Admissão: ${data.admissao || '-'}
+                </span> | 
+                Fase: ${data.tipoTermino}
+            `;
             
             // Preenche formulário
             document.getElementById('formColaboradorId').value = id;

@@ -364,22 +364,27 @@ def colaborador_list(request):
     Lista todos os colaboradores ativos (status diferente de 'D').
     Permite filtros avançados e filtros rápidos.
     """
-    colaboradores_qs = Colaborador.objects.exclude(status='D').exclude(cargo='AUXILIAR ADMINISTRAT').select_related('loja')
+    colaboradores_qs = Colaborador.objects.exclude(
+        status='D'
+    ).exclude(
+        cargo='AUXILIAR ADMINISTRAT'
+    ).select_related('loja')
     
     loja_query = request.GET.get('loja', '')
     re_query = request.GET.get('re', '')
     nome_query = request.GET.get('nome', '')
     cargo_query = request.GET.get('cargo', '')
     status_query = request.GET.get('status', '')
-    
-    # Novos filtros específicos
     loja_gestao_query = request.GET.get('loja_gestao', '')
     status_gestao_query = request.GET.get('status_gestao', '')
-    
-    # Filtros rápidos (Botões)
     divergente_query = request.GET.get('divergente', '')
     so_totvs_query = request.GET.get('so_totvs', '')
+    
+    # 🆕 NOVO FILTRO UNIFICADO
+    status_divergente_query = request.GET.get('status_divergente', '')
 
+    # ... (todos os filtros existentes continuam iguais) ...
+    
     if loja_query:
         colaboradores_qs = colaboradores_qs.filter(loja_id=loja_query)
     
@@ -404,21 +409,30 @@ def colaborador_list(request):
     if status_gestao_query:
         colaboradores_qs = colaboradores_qs.filter(status_gestao__iexact=status_gestao_query)
 
-    # Lógica do Filtro Rápido: Divergente (Ignora Afastados 'A')
+    # Lógica do Filtro Rápido: Divergente (Loja)
     if divergente_query == 'S':
-        # 1. Filtra quem tem loja_gestao preenchida e não está afastado
         colaboradores_qs = colaboradores_qs.exclude(status='A').filter(
             Q(loja_gestao__isnull=False) & ~Q(loja_gestao='')
         )
-        
-        # 2. Identifica divergências usando a propriedade do modelo
         ids_divergentes = [c.id for c in colaboradores_qs if c.is_divergente]
         colaboradores_qs = colaboradores_qs.filter(id__in=ids_divergentes)
 
-    # Lógica do Filtro Rápido: Só TOTVS (Não encontrado na Gestão)
+    # Lógica do Filtro Rápido: Só TOTVS
     if so_totvs_query == 'S':
         colaboradores_qs = colaboradores_qs.filter(
             Q(loja_gestao__isnull=True) | Q(loja_gestao='')
+        )
+
+    # 🆕 LÓGICA DO FILTRO UNIFICADO: Status Divergente
+    if status_divergente_query == 'S':
+        # Para ATIVOS: Status TOTVS ATIVO mas Gestão diz DESLIGADO/DEMITIDO
+        # ou Status TOTVS não está ATIVO mas Gestão diz que está
+        colaboradores_qs = colaboradores_qs.filter(
+            # ATIVO na TOTVS mas DESLIGADO/DEMITIDO na Gestão
+            (Q(status__in=['', 'A', 'F']) & 
+             (Q(status_gestao__icontains='DESLIG') | 
+              Q(status_gestao__icontains='DEMIT') |
+              Q(status_gestao__icontains='ENCERRADO'))) 
         )
 
     paginator = Paginator(colaboradores_qs, 10)
@@ -430,9 +444,20 @@ def colaborador_list(request):
     cargos_unicos = Colaborador.objects.exclude(status='D').exclude(cargo='AUXILIAR ADMINISTRAT').values_list('cargo', flat=True).distinct().order_by('cargo')
     cargos_opcoes = sorted(list(set(c.strip() for c in cargos_unicos if c.strip())))
     
-    # Status Gestão Únicos para o filtro (normalizado)
     status_gestao_unicos = Colaborador.objects.exclude(status='D').exclude(cargo='AUXILIAR ADMINISTRAT').values_list('status_gestao', flat=True)
     status_gestao_opcoes = sorted(list(set(s.strip().upper() for s in status_gestao_unicos if s and s.strip())))
+
+    # 🆕 Contagem de divergentes
+    total_status_divergentes = Colaborador.objects.exclude(
+        status='D'
+    ).exclude(
+        cargo='AUXILIAR ADMINISTRAT'
+    ).filter(
+        Q(status__in=['', 'A', 'F']) & 
+        (Q(status_gestao__icontains='DESLIG') | 
+         Q(status_gestao__icontains='DEMIT') |
+         Q(status_gestao__icontains='ENCERRADO'))
+    ).count()
 
     context = {
         'page_obj': page_obj,
@@ -448,6 +473,8 @@ def colaborador_list(request):
         'status_gestao_query': status_gestao_query,
         'divergente_query': divergente_query,
         'so_totvs_query': so_totvs_query,
+        'status_divergente_query': status_divergente_query,  # 🆕
+        'total_status_divergentes': total_status_divergentes,  # 🆕
         'titulo': 'Colaboradores'
     }
     return render(request, 'colaboradores/colaborador_list.html', context)
@@ -456,12 +483,19 @@ def demitido_list(request):
     """
     Lista apenas os colaboradores demitidos (status igual a 'D').
     """
-    colaboradores_qs = Colaborador.objects.filter(status='D').exclude(cargo='AUXILIAR ADMINISTRAT').select_related('loja')
+    colaboradores_qs = Colaborador.objects.filter(
+        status='D'
+    ).exclude(
+        cargo='AUXILIAR ADMINISTRAT'
+    ).select_related('loja')
     
     loja_query = request.GET.get('loja', '')
     re_query = request.GET.get('re', '')
     nome_query = request.GET.get('nome', '')
     cargo_query = request.GET.get('cargo', '')
+    
+    # 🆕 Mesmo parâmetro: status_divergente
+    status_divergente_query = request.GET.get('status_divergente', '')
 
     if loja_query:
         colaboradores_qs = colaboradores_qs.filter(loja_id=loja_query)
@@ -475,14 +509,38 @@ def demitido_list(request):
     if cargo_query:
         colaboradores_qs = colaboradores_qs.filter(cargo__iexact=cargo_query)
 
-    paginator = Paginator(colaboradores_qs, 10) # 10 por página
+    # 🆕 LÓGICA: Status Divergente para DEMITIDOS
+    if status_divergente_query == 'S':
+        # Demitido na TOTVS mas NÃO está como DESLIGADO/DEMITIDO na Gestão
+        colaboradores_qs = colaboradores_qs.filter(
+            Q(status_gestao__isnull=True) |
+            Q(status_gestao='') |
+            ( ~Q(status_gestao__icontains='DEMIT'))
+        )
+
+    paginator = Paginator(colaboradores_qs, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
     lojas = Loja.objects.filter(status="ATIVA").order_by('nome_referencia')
     
-    cargos_unicos = Colaborador.objects.filter(status='D').exclude(cargo='AUXILIAR ADMINISTRAT').values_list('cargo', flat=True).distinct().order_by('cargo')
+    cargos_unicos = Colaborador.objects.filter(
+        status='D'
+    ).exclude(
+        cargo='AUXILIAR ADMINISTRAT'
+    ).values_list('cargo', flat=True).distinct().order_by('cargo')
     cargos_opcoes = sorted(list(set(c.strip() for c in cargos_unicos if c.strip())))
+    
+    # 🆕 Contagem de divergentes
+    total_status_divergentes = Colaborador.objects.filter(
+        status='D'
+    ).exclude(
+        cargo='AUXILIAR ADMINISTRAT'
+    ).filter(
+        Q(status_gestao__isnull=True) |
+        Q(status_gestao='') |
+        (~Q(status_gestao__icontains='DEMIT') )
+    ).count()
     
     context = {
         'page_obj': page_obj,
@@ -492,6 +550,8 @@ def demitido_list(request):
         're_query': re_query,
         'nome_query': nome_query,
         'cargo_query': cargo_query,
+        'status_divergente_query': status_divergente_query,  # 🆕
+        'total_status_divergentes': total_status_divergentes,  # 🆕
         'titulo': 'Colaboradores Demitidos'
     }
     return render(request, 'colaboradores/colaborador_list.html', context)
