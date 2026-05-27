@@ -28,7 +28,15 @@ class Colaborador(models.Model):
 
     # Campos vindos da planilha de Gestão de Pessoas
     funcao_gestao = models.CharField("Função (Gestão)", max_length=255, null=True, blank=True)
-    loja_gestao = models.CharField("Loja (Gestão)", max_length=255, null=True, blank=True)
+    loja_gestao = models.ForeignKey(
+        Loja,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="colaboradores_loja_gestao",
+        verbose_name="Loja (Gestão)",
+        db_column="loja_gestao",
+    )
     status_gestao = models.CharField("Status (Gestão)", max_length=255, null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -37,30 +45,12 @@ class Colaborador(models.Model):
     @property
     def is_divergente(self):
         """
-        Verifica se há divergência entre a Loja TOTVS e a Loja Gestão.
-        Lojas 'DIA' são consideradas consistentes se ambas as descrições contiverem a palavra 'DIA' isolada.
+        Compara os IDs porque a importação da Gestão já resolve o nome da planilha contra o cadastro de lojas.
         """
         if not self.loja_gestao or not self.loja:
             return False
-            
-        # Prioriza o nome de gestão (De-Para), mas aceita o nome de referência como fallback
-        nome_totvs = (self.loja.nome_gestao or self.loja.nome_referencia or "").upper()
-        nome_gestao = self.loja_gestao.upper()
-        
-        # Se os nomes forem idênticos (após normalização), não há divergência
-        if nome_totvs == nome_gestao:
-            return False
-            
-        # Caso especial para lojas DIA
-        import re
-        # Busca a palavra "DIA" isolada em ambos os nomes
-        is_dia_totvs = bool(re.search(r'\bDIA\b', nome_totvs))
-        is_dia_gestao = bool(re.search(r'\bDIA\b', nome_gestao))
-        
-        if is_dia_totvs and is_dia_gestao:
-            return False
-            
-        return True
+
+        return self.loja_id != self.loja_gestao_id
 
     class Meta:
         verbose_name = "Colaborador"

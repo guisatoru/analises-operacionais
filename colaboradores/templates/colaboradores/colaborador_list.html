@@ -136,7 +136,7 @@
                 termino1: '{{ colaborador.termino_1|date:'d/m/Y'|default:'-' }}',
                 termino2: '{{ colaborador.termino_2|date:'d/m/Y'|default:'-' }}',
                 funcaoGestao: '{{ colaborador.funcao_gestao|default:'-'|escapejs }}',
-                lojaGestao: '{{ colaborador.loja_gestao|default:'-'|escapejs }}',
+                lojaGestao: '{{ colaborador.loja_gestao.nome_gestao|default:colaborador.loja_gestao.nome_referencia|default:'-'|escapejs }}',
                 statusGestao: '{{ colaborador.status_gestao|default:'-'|escapejs }}'
             })"
         >
@@ -174,7 +174,7 @@
                     </div>
                     <div class="property-row">
                         <span class="property-label">Loja Gestao:</span>
-                        <span class="property-value">{{ colaborador.loja_gestao|default:"Em branco" }}</span>
+                        <span class="property-value">{{ colaborador.loja_gestao.nome_gestao|default:colaborador.loja_gestao.nome_referencia|default:"Em branco" }}</span>
                     </div>
                     <div class="property-row">
                         <span class="property-label">Status TOTVS:</span>

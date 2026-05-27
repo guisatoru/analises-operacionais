@@ -396,7 +396,7 @@ def colaborador_list(request):
         status='D'
     ).exclude(
         cargo='AUXILIAR ADMINISTRAT'
-    ).select_related('loja')
+    ).select_related('loja', 'loja_gestao')
     
     loja_query = request.GET.get('loja', '')
     re_query = request.GET.get('re', '')
@@ -417,7 +417,10 @@ def colaborador_list(request):
         colaboradores_qs = colaboradores_qs.filter(loja_id=loja_query)
     
     if loja_gestao_query:
-        colaboradores_qs = colaboradores_qs.filter(loja_gestao__icontains=loja_gestao_query)
+        colaboradores_qs = colaboradores_qs.filter(
+            Q(loja_gestao__nome_gestao__icontains=loja_gestao_query)
+            | Q(loja_gestao__nome_referencia__icontains=loja_gestao_query)
+        )
 
     if re_query:
         colaboradores_qs = colaboradores_qs.filter(re__icontains=re_query)
@@ -440,7 +443,7 @@ def colaborador_list(request):
     # Lógica do Filtro Rápido: Divergente (Loja)
     if divergente_query == 'S':
         colaboradores_qs = colaboradores_qs.exclude(status='A').filter(
-            Q(loja_gestao__isnull=False) & ~Q(loja_gestao='')
+            loja_gestao__isnull=False
         )
         ids_divergentes = [c.id for c in colaboradores_qs if c.is_divergente]
         colaboradores_qs = colaboradores_qs.filter(id__in=ids_divergentes)
@@ -448,7 +451,7 @@ def colaborador_list(request):
     # Lógica do Filtro Rápido: Só TOTVS
     if so_totvs_query == 'S':
         colaboradores_qs = colaboradores_qs.filter(
-            Q(loja_gestao__isnull=True) | Q(loja_gestao='')
+            loja_gestao__isnull=True
         )
 
     # 🆕 LÓGICA DO FILTRO UNIFICADO: Status Divergente
@@ -663,12 +666,26 @@ def gestao_import(request):
                         f"Importação Gestão concluída: {resultado['total_planilha']} processados. "
                         f"{resultado['atualizados']} atualizados, "
                         f"{resultado['sem_alteracao']} sem alteração. "
+                        f"{resultado['lojas_gestao_encontradas']} lojas vinculadas pelo nome da Gestão. "
                     )
                     if resultado["nao_encontrados"] > 0:
                         msg += f"{resultado['nao_encontrados']} não encontrados no banco."
+
+                    if resultado["lojas_gestao_nao_encontradas"] > 0:
+                        msg += f" {resultado['lojas_gestao_nao_encontradas']} lojas da Gestão sem correspondência."
+
+                    if resultado["lojas_gestao_duplicadas"] > 0:
+                        msg += f" {resultado['lojas_gestao_duplicadas']} nomes de Gestão duplicados no cadastro de lojas."
                     
-                    if resultado["erros"] > 0:
-                        msg += f" {resultado['erros']} erros ignorados."
+                    tem_alerta_importacao = (
+                        resultado["erros"] > 0
+                        or resultado["lojas_gestao_nao_encontradas"] > 0
+                        or resultado["lojas_gestao_duplicadas"] > 0
+                    )
+
+                    if tem_alerta_importacao:
+                        if resultado["erros"] > 0:
+                            msg += f" {resultado['erros']} erros ignorados."
                         messages.warning(request, msg)
                     else:
                         messages.success(request, msg)

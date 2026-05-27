@@ -1,6 +1,39 @@
 import pandas as pd
 from django.db import transaction
 from colaboradores.models import Colaborador
+from lojas.models import Loja
+
+
+def normalizar_nome_loja_gestao(valor):
+    """
+    Mantém a comparação previsível porque a planilha e o cadastro podem ter espaços ou caixa diferente.
+    """
+    if pd.isna(valor):
+        return ""
+    return str(valor).strip().upper()
+
+
+def criar_mapa_lojas_por_nome_gestao():
+    """
+    Busca o ID da loja pelo nome de Gestão para o colaborador não depender apenas do texto da planilha.
+    """
+    lojas_por_nome = {}
+    nomes_duplicados = set()
+
+    for loja in Loja.objects.exclude(nome_gestao=""):
+        nome_normalizado = normalizar_nome_loja_gestao(loja.nome_gestao)
+        if not nome_normalizado:
+            continue
+
+        if nome_normalizado in lojas_por_nome:
+            nomes_duplicados.add(nome_normalizado)
+            lojas_por_nome.pop(nome_normalizado, None)
+            continue
+
+        if nome_normalizado not in nomes_duplicados:
+            lojas_por_nome[nome_normalizado] = loja
+
+    return lojas_por_nome, nomes_duplicados
 
 def importar_gestao_pessoas(arquivo_excel):
     """
@@ -63,13 +96,17 @@ def importar_gestao_pessoas(arquivo_excel):
 
     # 1. Carregar colaboradores atuais para memória
     colaboradores_atuais = {c.re: c for c in Colaborador.objects.all()}
+    lojas_por_nome_gestao, nomes_gestao_duplicados = criar_mapa_lojas_por_nome_gestao()
     
     stats = {
         'total_planilha': len(df_unico), 
         'atualizados': 0, 
         'sem_alteracao': 0, 
         'nao_encontrados': 0, 
-        'erros': 0
+        'erros': 0,
+        'lojas_gestao_encontradas': 0,
+        'lojas_gestao_nao_encontradas': 0,
+        'lojas_gestao_duplicadas': len(nomes_gestao_duplicados),
     }
 
     para_atualizar = []
@@ -85,6 +122,15 @@ def importar_gestao_pessoas(arquivo_excel):
             funcao_val = str(row[col_funcao]).strip() if pd.notna(row[col_funcao]) else None
             loja_val = str(row[col_loja]).strip() if pd.notna(row[col_loja]) else None
             status_val = str(row[col_status]).strip() if pd.notna(row[col_status]) else None
+            loja_gestao = None
+            nome_loja_normalizado = normalizar_nome_loja_gestao(loja_val)
+
+            if nome_loja_normalizado:
+                loja_gestao = lojas_por_nome_gestao.get(nome_loja_normalizado)
+                if loja_gestao:
+                    stats['lojas_gestao_encontradas'] += 1
+                else:
+                    stats['lojas_gestao_nao_encontradas'] += 1
 
             changed = False
             
@@ -96,8 +142,9 @@ def importar_gestao_pessoas(arquivo_excel):
                 colaborador.funcao_gestao = funcao_val
                 changed = True
             
-            if get_val(colaborador.loja_gestao) != get_val(loja_val):
-                colaborador.loja_gestao = loja_val
+            loja_gestao_id = loja_gestao.id if loja_gestao else None
+            if colaborador.loja_gestao_id != loja_gestao_id:
+                colaborador.loja_gestao = loja_gestao
                 changed = True
                 
             if get_val(colaborador.status_gestao) != get_val(status_val):
