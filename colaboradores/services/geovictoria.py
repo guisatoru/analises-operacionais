@@ -137,3 +137,27 @@ def get_timeoff_summary(cpfs, start_date, end_date):
         results[entry_cpf]["total"] += days
 
     return results
+
+
+def listar_usuarios_completos():
+    """
+    Busca a lista completa de usuários para cruzar RE e centro de custo da GeoVictoria.
+    """
+    token = get_token()
+    if not token:
+        raise Exception("Token da GeoVictoria não encontrado. Verifique usuário e senha no .env.")
+
+    payload = _geovictoria_request("/User/ListComplete", body={}, token=token)
+
+    if isinstance(payload, list):
+        return payload
+
+    return (
+        payload.get("Users")
+        or payload.get("users")
+        or payload.get("Data")
+        or payload.get("data")
+        or payload.get("Result")
+        or payload.get("result")
+        or []
+    )

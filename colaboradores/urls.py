@@ -11,6 +11,9 @@ urlpatterns = [
     path('geovictoria/resumo/<int:colaborador_id>/', views.colaborador_geovictoria_summary, name='geovictoria_summary'),
     path('importar/', views.colaborador_import, name='importar'),
     path('importar-gestao/', views.gestao_import, name='importar_gestao'),
+    path('sync-lojas-geovictoria/', views.sync_lojas_geovictoria, name='sync_lojas_geovictoria'),
+    path('sync-lojas-geovictoria-progress/', views.sync_lojas_geovictoria_progress, name='sync_lojas_geovictoria_progress'),
+    path('sync-lojas-geovictoria/pendencias/<str:tipo>/', views.exportar_pendencias_lojas_geovictoria, name='sync_lojas_geovictoria_pendencias'),
     path('sync-geovictoria/', views.sync_geovictoria, name='sync_geovictoria'),
     path('sync-geovictoria-progress/', views.sync_geovictoria_progress, name='sync_geovictoria_progress'),
 ]

@@ -18,6 +18,7 @@ def store_list(request):
     panel_name = request.GET.get("quadro", "").strip()
     status_value = request.GET.get("status", "").strip()
     cost_center = request.GET.get("centro_de_custo", "").strip()
+    store_code = request.GET.get("codigo_loja", "").strip()
 
     if search_text:
 
@@ -43,6 +44,8 @@ def store_list(request):
         stores = stores.filter(status=status_value)
     if cost_center:
         stores = stores.filter(centro_de_custo__icontains=cost_center)
+    if store_code and store_code.isdigit():
+        stores = stores.filter(codigo_loja=store_code)
 
     paginator = Paginator(stores, 25)
     page_number = request.GET.get("page")
@@ -65,6 +68,7 @@ def store_list(request):
         "quadro": panel_name,
         "status": status_value,
         "centro_custo": cost_center,
+        "codigo_loja": store_code,
         "status_choices": STATUS_CHOICES,
     }
     return render(request, "lojas/loja_list.html", context)

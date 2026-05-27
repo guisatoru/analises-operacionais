@@ -37,6 +37,14 @@ class Colaborador(models.Model):
         verbose_name="Loja (Gestão)",
         db_column="loja_gestao",
     )
+    loja_geo = models.ForeignKey(
+        Loja,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="colaboradores_loja_geo",
+        verbose_name="Loja (GeoVictoria)",
+    )
     status_gestao = models.CharField("Status (Gestão)", max_length=255, null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -45,15 +53,33 @@ class Colaborador(models.Model):
     @property
     def is_divergente(self):
         """
-        Compara os IDs porque a importação da Gestão já resolve o nome da planilha contra o cadastro de lojas.
+        Compara as lojas externas preenchidas contra a loja TOTVS para destacar divergências reais.
         """
-        if not self.loja_id or not self.loja_gestao_id:
+        if not self.loja_id:
             return False
 
         if self.loja and self.loja.dispensa_gestao_pessoas:
             return False
 
+        return self.loja_gestao_divergente or self.loja_geo_divergente
+
+    @property
+    def loja_gestao_divergente(self):
+        """
+        Evita marcar divergência quando a Gestão está em branco e só compara quando existe ID dos dois lados.
+        """
+        if not self.loja_id or not self.loja_gestao_id:
+            return False
         return self.loja_id != self.loja_gestao_id
+
+    @property
+    def loja_geo_divergente(self):
+        """
+        Evita marcar divergência quando a GeoVictoria está em branco e só compara quando existe ID dos dois lados.
+        """
+        if not self.loja_id or not self.loja_geo_id:
+            return False
+        return self.loja_id != self.loja_geo_id
 
     class Meta:
         verbose_name = "Colaborador"

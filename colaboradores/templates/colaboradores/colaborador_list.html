@@ -22,7 +22,7 @@
 
     <!-- Filtros e Busca (Reorganizado) -->
     <section class="card filter-card compact-filters">
-        <form method="GET" class="filter-form">
+        <form method="GET" class="filter-form" id="colaboradores-filter-form">
             <!-- Filtros Rápidos (Botões/Chips) -->
             <div class="flex gap-8 mb-16 wrap">
                 <button type="button" 
@@ -121,6 +121,30 @@
         </form>
     </section>
 
+    <section class="geo-sync-panel">
+        <button type="button" id="btn-sync-lojas-geo" class="btn btn-outline">
+            <i class="fa-solid fa-cloud-arrow-down"></i>
+            Sincronizar lojas GeoVictoria
+        </button>
+
+        <div class="geo-sync-status">
+            Atualiza a Loja GeoVictoria dos colaboradores ativos usando RE e centro de custo da API.
+        </div>
+    </section>
+
+    <section id="geo-sync-progress-container" class="geo-sync-progress hidden">
+        <div class="geo-sync-progress-header">
+            <span id="geo-sync-progress-text">Sincronizando...</span>
+            <strong id="geo-sync-progress-percent">0%</strong>
+        </div>
+        <div class="geo-sync-progress-track">
+            <div id="geo-sync-progress-bar" class="geo-sync-progress-bar"></div>
+        </div>
+        <div id="geo-sync-report-links" class="geo-sync-report-links hidden">
+            <a href="{% url 'colaboradores:sync_lojas_geovictoria_pendencias' 'todas' %}">Baixar pendências da sincronização</a>
+        </div>
+    </section>
+
     <!-- Visualização em Cards (Estilo Compacto e Alinhado) -->
     <div class="colaboradores-grid">
         {% for colaborador in page_obj %}
@@ -137,6 +161,7 @@
                 termino2: '{{ colaborador.termino_2|date:'d/m/Y'|default:'-' }}',
                 funcaoGestao: '{{ colaborador.funcao_gestao|default:'-'|escapejs }}',
                 lojaGestao: '{% if colaborador.loja_gestao %}{% if colaborador.loja_gestao.nome_gestao %}{{ colaborador.loja_gestao.nome_gestao|escapejs }}{% else %}{{ colaborador.loja_gestao.nome_referencia|escapejs }}{% endif %}{% else %}-{% endif %}',
+                lojaGeo: '{% if colaborador.loja_geo %}{{ colaborador.loja_geo.nome_referencia|escapejs }}{% else %}-{% endif %}',
                 statusGestao: '{{ colaborador.status_gestao|default:'-'|escapejs }}'
             })"
         >
@@ -147,17 +172,30 @@
                         <div class="badge-group">
                             {% if titulo != 'Colaboradores Demitidos' %}
                                 {% if colaborador.loja_gestao and colaborador.loja %}
-                                    {% if not colaborador.is_divergente %}
+                                    {% if not colaborador.loja_gestao_divergente %}
                                         <span class="badge-compact badge-consistent">
-                                            <i class="fa-solid fa-circle-check"></i> Loja consistente
+                                                <i class="fa-solid fa-circle-check"></i> Gestão OK
                                         </span>
                                     {% else %}
                                         <span class="badge-compact badge-divergent">
-                                            Loja divergente
+                                            Gestão diferente
                                         </span>
                                     {% endif %}
+                                {% elif colaborador.loja %}
+                                    <span class="badge-compact badge-neutral">Gestão em branco</span>
                                 {% elif colaborador.loja_gestao %}
                                      <span class="badge-compact badge-neutral">Sem vínculo TOTVS</span>
+                                {% endif %}
+                                {% if colaborador.loja and colaborador.loja_geo %}
+                                    {% if colaborador.loja_geo_divergente %}
+                                        <span class="badge-compact badge-divergent">Geo diferente</span>
+                                    {% else %}
+                                        <span class="badge-compact badge-consistent">
+                                            <i class="fa-solid fa-circle-check"></i> Geo OK
+                                        </span>
+                                    {% endif %}
+                                {% elif colaborador.loja %}
+                                    <span class="badge-compact badge-neutral">Geo em branco</span>
                                 {% endif %}
                             {% endif %}
                         </div>
@@ -191,6 +229,10 @@
                         <span class="property-value">
                             {% if not colaborador.status or colaborador.status == '' %}ATIVO{% elif colaborador.status == 'A' %}AFASTADO{% elif colaborador.status == 'F' %}FÉRIAS{% elif colaborador.status == 'D' %}DEMITIDO{% else %}{{ colaborador.status }}{% endif %}
                         </span>
+                    </div>
+                    <div class="property-row">
+                        <span class="property-label">Loja Geo:</span>
+                        <span class="property-value">{% if colaborador.loja_geo %}{{ colaborador.loja_geo.nome_referencia }}{% else %}Em branco{% endif %}</span>
                     </div>
                     <div class="property-row">
                         <span class="property-label">Status Gestao:</span>
@@ -334,6 +376,10 @@
                     <span class="detail-value text-primary" id="modal-loja-gestao">-</span>
                 </div>
                 <div class="detail-item">
+                    <span class="detail-label">Loja (GeoVictoria)</span>
+                    <span class="detail-value text-primary" id="modal-loja-geo">-</span>
+                </div>
+                <div class="detail-item">
                     <span class="detail-label">Status (Gestão)</span>
                     <span class="detail-value text-primary" id="modal-status-gestao">-</span>
                 </div>
@@ -346,6 +392,7 @@
 {% block extra_js %}
 <script src="{% static 'colaboradores/js/colaborador_modal.js' %}"></script>
 <script src="{% static 'colaboradores/js/colaborador_filters.js' %}"></script>
+<script src="{% static 'colaboradores/js/loja_geo_sync.js' %}"></script>
 <script>
     function toggleQuickFilter(field, value) {
         const input = document.getElementById('quick-' + field);

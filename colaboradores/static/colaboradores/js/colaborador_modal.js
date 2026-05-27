@@ -16,6 +16,7 @@ function openColaboradorModal(data) {
         'modal-termino2': data.termino2,
         'modal-funcao-gestao': data.funcaoGestao,
         'modal-loja-gestao': data.lojaGestao,
+        'modal-loja-geo': data.lojaGeo,
         'modal-status-gestao': data.statusGestao
     };
 

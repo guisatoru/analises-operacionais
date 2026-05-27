@@ -17,10 +17,17 @@ from .services.geovictoria_sync import (
     set_progresso_sync,
     get_progresso_sync,
 )
+from .services.geovictoria_lojas_sync import (
+    get_progresso_sync_lojas,
+    get_resultado_sync_lojas,
+    set_progresso_sync_lojas,
+    sincronizar_lojas_geo_colaboradores,
+)
 
 from django.http import HttpResponse, JsonResponse
 import pandas as pd
 from io import BytesIO
+import csv
 from .services import geovictoria
 
 def derive_termino_state(colaborador, reference_date):
@@ -396,7 +403,7 @@ def colaborador_list(request):
         status='D'
     ).exclude(
         cargo='AUXILIAR ADMINISTRAT'
-    ).select_related('loja', 'loja_gestao')
+    ).select_related('loja', 'loja_gestao', 'loja_geo')
     
     loja_query = request.GET.get('loja', '')
     re_query = request.GET.get('re', '')
@@ -446,7 +453,8 @@ def colaborador_list(request):
             loja__dispensa_gestao_pessoas=True,
         ).filter(
             loja__isnull=False,
-            loja_gestao__isnull=False,
+        ).filter(
+            Q(loja_gestao__isnull=False) | Q(loja_geo__isnull=False)
         )
         ids_divergentes = [c.id for c in colaboradores_qs if c.is_divergente]
         colaboradores_qs = colaboradores_qs.filter(id__in=ids_divergentes)
@@ -708,6 +716,206 @@ def gestao_import(request):
             "titulo": "Importação de Gestão de Pessoas",
         },
     )
+
+
+def sync_lojas_geovictoria(request):
+    """
+    Dispara a sincronização da loja GeoVictoria para os colaboradores ativos filtrados.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Método não permitido."}, status=405)
+
+    colaboradores_qs = Colaborador.objects.exclude(
+        status='D'
+    ).exclude(
+        cargo='AUXILIAR ADMINISTRAT'
+    ).select_related('loja', 'loja_gestao', 'loja_geo')
+
+    loja_query = request.POST.get('loja', '')
+    re_query = request.POST.get('re', '')
+    nome_query = request.POST.get('nome', '')
+    cargo_query = request.POST.get('cargo', '')
+    status_query = request.POST.get('status', '')
+    loja_gestao_query = request.POST.get('loja_gestao', '')
+    status_gestao_query = request.POST.get('status_gestao', '')
+    divergente_query = request.POST.get('divergente', '')
+    so_totvs_query = request.POST.get('so_totvs', '')
+    status_divergente_query = request.POST.get('status_divergente', '')
+
+    if loja_query:
+        colaboradores_qs = colaboradores_qs.filter(loja_id=loja_query)
+
+    if loja_gestao_query:
+        colaboradores_qs = colaboradores_qs.filter(
+            Q(loja_gestao__nome_gestao__icontains=loja_gestao_query)
+            | Q(loja_gestao__nome_referencia__icontains=loja_gestao_query)
+        )
+
+    if re_query:
+        colaboradores_qs = colaboradores_qs.filter(re__icontains=re_query)
+
+    if nome_query:
+        colaboradores_qs = colaboradores_qs.filter(nome__icontains=nome_query)
+
+    if cargo_query:
+        colaboradores_qs = colaboradores_qs.filter(cargo__iexact=cargo_query)
+
+    if status_query:
+        if status_query == 'ativo':
+            colaboradores_qs = colaboradores_qs.exclude(status__in=['A', 'F'])
+        else:
+            colaboradores_qs = colaboradores_qs.filter(status=status_query)
+
+    if status_gestao_query:
+        colaboradores_qs = colaboradores_qs.filter(status_gestao__iexact=status_gestao_query)
+
+    if divergente_query == 'S':
+        colaboradores_qs = colaboradores_qs.exclude(status='A').exclude(
+            loja__dispensa_gestao_pessoas=True,
+        ).filter(
+            loja__isnull=False,
+        ).filter(
+            Q(loja_gestao__isnull=False) | Q(loja_geo__isnull=False)
+        )
+        ids_divergentes = [c.id for c in colaboradores_qs if c.is_divergente]
+        colaboradores_qs = colaboradores_qs.filter(id__in=ids_divergentes)
+
+    if so_totvs_query == 'S':
+        colaboradores_qs = colaboradores_qs.exclude(
+            loja__dispensa_gestao_pessoas=True,
+        ).filter(
+            loja__isnull=False,
+            loja_gestao__isnull=True
+        )
+
+    if status_divergente_query == 'S':
+        colaboradores_qs = colaboradores_qs.filter(
+            Q(status__in=['', 'A', 'F'])
+            & (
+                Q(status_gestao__icontains='DESLIG')
+                | Q(status_gestao__icontains='DEMIT')
+                | Q(status_gestao__icontains='ENCERRADO')
+            )
+        )
+
+    colaboradores = list(colaboradores_qs)
+    set_progresso_sync_lojas(
+        0,
+        f"Iniciando sincronização de {len(colaboradores)} colaboradores ativos...",
+        "processing",
+    )
+
+    thread = threading.Thread(
+        target=_sync_lojas_geovictoria_background,
+        args=(colaboradores,),
+        daemon=True,
+    )
+    thread.start()
+
+    return JsonResponse({
+        "status": "started",
+        "message": f"Sincronizando loja GeoVictoria de {len(colaboradores)} colaboradores...",
+        "total": len(colaboradores),
+    })
+
+
+def _sync_lojas_geovictoria_background(colaboradores):
+    """
+    Executa a sincronização de loja GeoVictoria em background.
+    """
+    def atualizar_progresso(progresso, mensagem):
+        set_progresso_sync_lojas(progresso, mensagem, "processing")
+
+    try:
+        resultado = sincronizar_lojas_geo_colaboradores(
+            colaboradores,
+            progress_callback=atualizar_progresso,
+        )
+        set_progresso_sync_lojas(
+            100,
+            (
+                f"Concluído: {resultado['atualizados']} atualizados, "
+                f"{resultado['sem_re_geo']} sem RE na GeoVictoria, "
+                f"{resultado['sem_loja']} sem loja para o centro de custo."
+            ),
+            "completed",
+        )
+    except Exception as exc:
+        set_progresso_sync_lojas(0, f"Erro: {str(exc)}", "error")
+
+
+def sync_lojas_geovictoria_progress(request):
+    """
+    Retorna o progresso da sincronização de loja GeoVictoria.
+    """
+    progresso = get_progresso_sync_lojas()
+    if not progresso:
+        return JsonResponse({"status": "not_found"}, status=404)
+    return JsonResponse(progresso)
+
+
+def exportar_pendencias_lojas_geovictoria(request, tipo):
+    """
+    Exporta as pendências da última sincronização para facilitar a conferência manual.
+    """
+    resultado = get_resultado_sync_lojas()
+    if not resultado:
+        return HttpResponse(
+            "Nenhum resultado de sincronização encontrado. Rode a sincronização novamente.",
+            status=404,
+            content_type="text/plain; charset=utf-8",
+        )
+
+    detalhes_por_tipo = {
+        "sem-re": resultado.get("detalhes_sem_re_geo", []),
+        "sem-centro-custo": resultado.get("detalhes_sem_centro_custo", []),
+        "sem-loja": resultado.get("detalhes_sem_loja", []),
+    }
+
+    if tipo == "todas":
+        linhas = []
+        for nome_tipo, detalhes in detalhes_por_tipo.items():
+            for detalhe in detalhes:
+                linha = {"tipo_pendencia": nome_tipo}
+                linha.update(detalhe)
+                linhas.append(linha)
+    else:
+        linhas = detalhes_por_tipo.get(tipo)
+        if linhas is not None:
+            linhas = [
+                {"tipo_pendencia": tipo, **linha}
+                for linha in linhas
+            ]
+
+    if linhas is None:
+        return HttpResponse(
+            "Tipo de pendência inválido.",
+            status=400,
+            content_type="text/plain; charset=utf-8",
+        )
+
+    response = HttpResponse(content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="pendencias_loja_geo_{tipo}.csv"'
+    response.write("\ufeff")
+
+    colunas = [
+        "tipo_pendencia",
+        "re",
+        "nome",
+        "loja_totvs",
+        "centro_custo_totvs",
+        "geo_id",
+        "geo_nome",
+        "geo_last_name",
+        "geo_cost_center_code",
+        "motivo",
+    ]
+    writer = csv.DictWriter(response, fieldnames=colunas, extrasaction="ignore", delimiter=";")
+    writer.writeheader()
+    writer.writerows(linhas)
+
+    return response
+
 
 def sync_geovictoria(request):
     """

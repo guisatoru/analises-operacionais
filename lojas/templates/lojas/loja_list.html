@@ -29,6 +29,11 @@
         </div>
 
         <div class="form-group">
+            <label for="id-codigo-loja">Código da Loja</label>
+            <input type="number" name="codigo_loja" id="id-codigo-loja" value="{{ codigo_loja }}" placeholder="Código...">
+        </div>
+
+        <div class="form-group">
             <label for="id-cliente">Cliente</label>
             <select name="cliente" id="id-cliente">
                 <option value="">Todos</option>
@@ -71,6 +76,7 @@
                 <tr>
                     <th style="width: 180px;">Ações</th>
                     <th>Nome Referência</th>
+                    <th>Código Loja</th>
                     <th>Centro de Custo</th>
                     <th>Cliente</th>
                     <th>Quadro</th>
@@ -92,6 +98,7 @@
                             </div>
                         </td>
                         <td><strong>{{ loja.nome_referencia }}</strong></td>
+                        <td style="font-family: monospace;">{{ loja.codigo_loja|default:"-" }}</td>
                         <td style="font-family: monospace;">{{ loja.centro_de_custo }}</td>
                         <td style="color: var(--text-muted);">{{ loja.cliente|default:"—" }}</td>
                         <td style="font-weight: 500;">{{ loja.quadro }}</td>
@@ -105,7 +112,7 @@
                     </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" style="padding: 40px; text-align: center; color: var(--text-muted);">
+                    <td colspan="7" style="padding: 40px; text-align: center; color: var(--text-muted);">
                         Nenhuma loja encontrada com os filtros atuais.
                     </td>
                 </tr>
@@ -119,12 +126,12 @@
         <span class="pagination-info">Página {{ lojas.number }} de {{ lojas.paginator.num_pages }}</span>
         <div class="pagination-actions">
             {% if lojas.has_previous %}
-                <a class="btn btn-outline" href="?page={{ lojas.previous_page_number }}{% if busca %}&busca={{ busca }}{% endif %}{% if centro_custo %}&centro_de_custo={{ centro_custo }}{% endif %}{% if cliente %}&cliente={{ cliente }}{% endif %}{% if quadro %}&quadro={{ quadro }}{% endif %}{% if status %}&status={{ status }}{% endif %}">
+                <a class="btn btn-outline" href="?page={{ lojas.previous_page_number }}{% if busca %}&busca={{ busca }}{% endif %}{% if centro_custo %}&centro_de_custo={{ centro_custo }}{% endif %}{% if codigo_loja %}&codigo_loja={{ codigo_loja }}{% endif %}{% if cliente %}&cliente={{ cliente }}{% endif %}{% if quadro %}&quadro={{ quadro }}{% endif %}{% if status %}&status={{ status }}{% endif %}">
                     <i class="fa-solid fa-angle-left"></i> Anterior
                 </a>
             {% endif %}
             {% if lojas.has_next %}
-                <a class="btn btn-outline" href="?page={{ lojas.next_page_number }}{% if busca %}&busca={{ busca }}{% endif %}{% if centro_custo %}&centro_de_custo={{ centro_custo }}{% endif %}{% if cliente %}&cliente={{ cliente }}{% endif %}{% if quadro %}&quadro={{ quadro }}{% endif %}{% if status %}&status={{ status }}{% endif %}">
+                <a class="btn btn-outline" href="?page={{ lojas.next_page_number }}{% if busca %}&busca={{ busca }}{% endif %}{% if centro_custo %}&centro_de_custo={{ centro_custo }}{% endif %}{% if codigo_loja %}&codigo_loja={{ codigo_loja }}{% endif %}{% if cliente %}&cliente={{ cliente }}{% endif %}{% if quadro %}&quadro={{ quadro }}{% endif %}{% if status %}&status={{ status }}{% endif %}">
                     Próxima <i class="fa-solid fa-angle-right"></i>
                 </a>
             {% endif %}
