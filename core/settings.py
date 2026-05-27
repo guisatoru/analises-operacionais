@@ -11,6 +11,9 @@ from decouple import Csv, config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# core/settings.py
+
+STATIC_URL = '/static/'
 
 # Configurações lidas do arquivo .env (use .env.example como modelo).
 SECRET_KEY = config(
@@ -18,7 +21,17 @@ SECRET_KEY = config(
     default="django-insecure-troque-esta-chave-em-producao",
 )
 DEBUG = config("DEBUG", default=False, cast=bool)
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*", cast=Csv())
+DEFAULT_ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "10.1.1.53",
+]
+
+ALLOWED_HOSTS = DEFAULT_ALLOWED_HOSTS + config(
+    "ALLOWED_HOSTS",
+    default="*",
+    cast=Csv(),
+)
 
 
 INSTALLED_APPS = [
