@@ -47,7 +47,10 @@ class Colaborador(models.Model):
         """
         Compara os IDs porque a importação da Gestão já resolve o nome da planilha contra o cadastro de lojas.
         """
-        if not self.loja_gestao or not self.loja:
+        if not self.loja_id or not self.loja_gestao_id:
+            return False
+
+        if self.loja and self.loja.dispensa_gestao_pessoas:
             return False
 
         return self.loja_id != self.loja_gestao_id

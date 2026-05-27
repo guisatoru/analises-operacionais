@@ -87,6 +87,11 @@ class Loja(models.Model):
         max_length=120,
         blank=True,
     )
+    dispensa_gestao_pessoas = models.BooleanField(
+        "Dispensa Gestão de Pessoas",
+        default=False,
+        help_text="Marque quando a loja/centro de custo não tiver correspondência direta na planilha de Gestão de Pessoas.",
+    )
     nome_totvs = models.CharField(
         "Nome TOTVS",
         max_length=120,

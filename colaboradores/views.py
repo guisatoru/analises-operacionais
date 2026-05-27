@@ -442,15 +442,21 @@ def colaborador_list(request):
 
     # Lógica do Filtro Rápido: Divergente (Loja)
     if divergente_query == 'S':
-        colaboradores_qs = colaboradores_qs.exclude(status='A').filter(
-            loja_gestao__isnull=False
+        colaboradores_qs = colaboradores_qs.exclude(status='A').exclude(
+            loja__dispensa_gestao_pessoas=True,
+        ).filter(
+            loja__isnull=False,
+            loja_gestao__isnull=False,
         )
         ids_divergentes = [c.id for c in colaboradores_qs if c.is_divergente]
         colaboradores_qs = colaboradores_qs.filter(id__in=ids_divergentes)
 
     # Lógica do Filtro Rápido: Só TOTVS
     if so_totvs_query == 'S':
-        colaboradores_qs = colaboradores_qs.filter(
+        colaboradores_qs = colaboradores_qs.exclude(
+            loja__dispensa_gestao_pessoas=True,
+        ).filter(
+            loja__isnull=False,
             loja_gestao__isnull=True
         )
 

@@ -129,14 +129,14 @@
                 nome: '{{ colaborador.nome|escapejs }}',
                 re: '{{ colaborador.re|escapejs }}',
                 cargo: '{{ colaborador.cargo|escapejs }}',
-                loja: '{{ colaborador.loja.nome_referencia|default:colaborador.centro_custo|escapejs }}',
+                loja: '{% if colaborador.loja %}{{ colaborador.loja.nome_referencia|escapejs }}{% else %}{{ colaborador.centro_custo|escapejs }}{% endif %}',
                 status: '{% if not colaborador.status or colaborador.status == '' %}ATIVO{% elif colaborador.status == 'A' %}AFASTADO{% elif colaborador.status == 'F' %}FÉRIAS{% elif colaborador.status == 'D' %}DEMITIDO{% else %}{{ colaborador.status }}{% endif %}',
                 admissao: '{{ colaborador.data_admissao|date:'d/m/Y' }}',
                 demissao: '{{ colaborador.data_demissao|date:'d/m/Y'|default:'-' }}',
                 termino1: '{{ colaborador.termino_1|date:'d/m/Y'|default:'-' }}',
                 termino2: '{{ colaborador.termino_2|date:'d/m/Y'|default:'-' }}',
                 funcaoGestao: '{{ colaborador.funcao_gestao|default:'-'|escapejs }}',
-                lojaGestao: '{{ colaborador.loja_gestao.nome_gestao|default:colaborador.loja_gestao.nome_referencia|default:'-'|escapejs }}',
+                lojaGestao: '{% if colaborador.loja_gestao %}{% if colaborador.loja_gestao.nome_gestao %}{{ colaborador.loja_gestao.nome_gestao|escapejs }}{% else %}{{ colaborador.loja_gestao.nome_referencia|escapejs }}{% endif %}{% else %}-{% endif %}',
                 statusGestao: '{{ colaborador.status_gestao|default:'-'|escapejs }}'
             })"
         >
@@ -170,11 +170,21 @@
                 {% if titulo != 'Colaboradores Demitidos' %}
                     <div class="property-row">
                         <span class="property-label">Loja TOTVS:</span>
-                        <span class="property-value">{{ colaborador.loja.nome_referencia|default:colaborador.centro_custo }}</span>
+                        <span class="property-value">{% if colaborador.loja %}{{ colaborador.loja.nome_referencia }}{% else %}{{ colaborador.centro_custo }}{% endif %}</span>
                     </div>
                     <div class="property-row">
                         <span class="property-label">Loja Gestao:</span>
-                        <span class="property-value">{{ colaborador.loja_gestao.nome_gestao|default:colaborador.loja_gestao.nome_referencia|default:"Em branco" }}</span>
+                        <span class="property-value">
+                            {% if colaborador.loja_gestao %}
+                                {% if colaborador.loja_gestao.nome_gestao %}
+                                    {{ colaborador.loja_gestao.nome_gestao }}
+                                {% else %}
+                                    {{ colaborador.loja_gestao.nome_referencia }}
+                                {% endif %}
+                            {% else %}
+                                Em branco
+                            {% endif %}
+                        </span>
                     </div>
                     <div class="property-row">
                         <span class="property-label">Status TOTVS:</span>
