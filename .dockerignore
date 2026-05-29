@@ -1,0 +1,10 @@
+.git
+.vscode
+venv
+__pycache__
+*.pyc
+.env
+db.sqlite3
+db_backup_antes_docker.sqlite3
+backup_lojas_e_usuarios.json
+node_modules

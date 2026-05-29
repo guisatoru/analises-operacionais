@@ -34,5 +34,4 @@ staticfiles/
 # Sistema operacional
 .DS_Store
 Thumbs.db
-
 # Migrations não devem ser ignoradas; mantemos elas no Git
