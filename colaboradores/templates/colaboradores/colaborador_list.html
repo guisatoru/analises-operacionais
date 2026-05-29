@@ -26,7 +26,7 @@
             <!-- Filtros Rápidos (Botões/Chips) -->
             <div class="flex gap-8 mb-16 wrap">
                 <button type="button" 
-                        class="btn {% if not divergente_query and not so_totvs_query %}btn-primary{% else %}btn-outline{% endif %}"
+                        class="btn {% if not status_divergente_query and not divergente_query and not funcao_divergente_query and not so_totvs_query %}btn-primary{% else %}btn-outline{% endif %}"
                         onclick="window.location.href='?'">
                     Todos
                 </button>
@@ -36,6 +36,12 @@
                     <i class="fa-solid fa-triangle-exclamation"></i> Status Divergente
                 </button>
                 <input type="hidden" name="status_divergente" id="quick-status_divergente" value="{{ status_divergente_query }}">
+                {% if not pagina_demitidos %}
+                <button type="button"
+                        class="btn {% if funcao_divergente_query == 'S' %}btn-danger{% else %}btn-outline{% endif %}"
+                        onclick="toggleQuickFilter('funcao_divergente', 'S')">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Função Divergente
+                </button>
                 <button type="button" 
                         class="btn {% if divergente_query == 'S' %}btn-danger{% else %}btn-outline{% endif %}"
                         onclick="toggleQuickFilter('divergente', 'S')">
@@ -46,8 +52,10 @@
                         onclick="toggleQuickFilter('so_totvs', 'S')">
                     Apenas TOTVS
                 </button>
+                <input type="hidden" name="funcao_divergente" id="quick-funcao_divergente" value="{{ funcao_divergente_query }}">
                 <input type="hidden" name="divergente" id="quick-divergente" value="{{ divergente_query }}">
                 <input type="hidden" name="so_totvs" id="quick-so_totvs" value="{{ so_totvs_query }}">
+                {% endif %}
             </div>
 
             <div class="form-grid" style="margin-bottom: 16px;">
@@ -64,11 +72,13 @@
                     <div id="loja-sugestoes" class="autocomplete-list"></div>
                 </div>
 
+                {% if not pagina_demitidos %}
                 <!-- Coluna Gestão -->
                 <div class="form-group">
                     <label for="id-loja-gestao">Loja Gestão</label>
                     <input type="text" name="loja_gestao" id="id-loja-gestao" placeholder="Ex: ASSAÍ..." value="{{ loja_gestao_query }}">
                 </div>
+                {% endif %}
 
                 <div class="form-group">
                     <label for="id-re">Matrícula (RE)</label>
@@ -90,6 +100,7 @@
                     </select>
                 </div>
 
+                {% if not pagina_demitidos %}
                 <div class="form-group">
                     <label for="id-status">Status TOTVS</label>
                     <select name="status" id="id-status">
@@ -109,6 +120,7 @@
                         {% endfor %}
                     </select>
                 </div>
+                {% endif %}
             </div>
 
             <div style="display: flex; gap: 8px;">
@@ -121,6 +133,7 @@
         </form>
     </section>
 
+    {% if not pagina_demitidos %}
     <section class="geo-sync-panel">
         <button type="button" id="btn-sync-lojas-geo" class="btn btn-outline">
             <i class="fa-solid fa-cloud-arrow-down"></i>
@@ -144,11 +157,12 @@
             <a href="{% url 'colaboradores:sync_lojas_geovictoria_pendencias' 'todas' %}">Baixar pendências da sincronização</a>
         </div>
     </section>
+    {% endif %}
 
     <!-- Visualização em Cards (Estilo Compacto e Alinhado) -->
     <div class="colaboradores-grid">
         {% for colaborador in page_obj %}
-        <div class="colaborador-card clickable-row {% if titulo == 'Colaboradores Demitidos' %}demitido{% endif %}"
+        <div class="colaborador-card clickable-row {% if pagina_demitidos %}demitido{% endif %}"
             onclick="openColaboradorModal({
                 nome: '{{ colaborador.nome|escapejs }}',
                 re: '{{ colaborador.re|escapejs }}',
@@ -170,7 +184,7 @@
                     <div class="name-row">
                         <h3 class="colaborador-name">{{ colaborador.nome }}</h3>
                         <div class="badge-group">
-                            {% if titulo != 'Colaboradores Demitidos' %}
+                            {% if not pagina_demitidos %}
                                 {% if colaborador.loja_gestao and colaborador.loja %}
                                     {% if not colaborador.loja_gestao_divergente %}
                                         <span class="badge-compact badge-consistent">
@@ -205,7 +219,7 @@
             </div>
 
             <div class="property-list">
-                {% if titulo != 'Colaboradores Demitidos' %}
+                {% if not pagina_demitidos %}
                     <div class="property-row">
                         <span class="property-label">Loja TOTVS:</span>
                         <span class="property-value">{% if colaborador.loja %}{{ colaborador.loja.nome_referencia }}{% else %}{{ colaborador.centro_custo }}{% endif %}</span>
@@ -392,22 +406,7 @@
 {% block extra_js %}
 <script src="{% static 'colaboradores/js/colaborador_modal.js' %}"></script>
 <script src="{% static 'colaboradores/js/colaborador_filters.js' %}"></script>
+{% if not pagina_demitidos %}
 <script src="{% static 'colaboradores/js/loja_geo_sync.js' %}"></script>
-<script>
-    function toggleQuickFilter(field, value) {
-        const input = document.getElementById('quick-' + field);
-        const form = input.closest('form');
-        
-        // Se já for o valor atual, limpa (desativa)
-        if (input.value === value) {
-            input.value = '';
-        } else {
-            // Limpa o outro filtro rápido para não dar conflito
-            document.getElementById('quick-divergente').value = '';
-            document.getElementById('quick-so_totvs').value = '';
-            input.value = value;
-        }
-        form.submit();
-    }
-</script>
+{% endif %}
 {% endblock %}

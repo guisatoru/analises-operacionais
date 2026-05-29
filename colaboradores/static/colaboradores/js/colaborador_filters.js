@@ -1,3 +1,37 @@
+function toggleQuickFilter(field, value) {
+    const input = document.getElementById("quick-" + field);
+
+    if (!input) {
+        return;
+    }
+
+    const form = input.closest("form");
+    const quickFilterFields = [
+        "status_divergente",
+        "funcao_divergente",
+        "divergente",
+        "so_totvs",
+    ];
+
+    if (input.value === value) {
+        input.value = "";
+    } else {
+        quickFilterFields.forEach(function (filterField) {
+            const filterInput = document.getElementById("quick-" + filterField);
+
+            if (filterInput && filterField !== field) {
+                filterInput.value = "";
+            }
+        });
+
+        input.value = value;
+    }
+
+    if (form) {
+        form.submit();
+    }
+}
+
 document.addEventListener("DOMContentLoaded", function () {
     const inputBusca = document.getElementById("filtro-loja-busca");
     const selectLoja = document.getElementById("loja");

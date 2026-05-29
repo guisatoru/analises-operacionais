@@ -11,6 +11,7 @@ from .forms import ColaboradorImportForm, GestaoPessoasImportForm
 from .services.colaborador_importacao import importar_colaboradores_de_texto
 from .services.gestao_importacao import importar_gestao_pessoas
 import threading
+import unicodedata
 from .services.geovictoria_sync import (
     sincronizar_colaboradores, 
     obter_dados_geovictoria_cache,
@@ -29,6 +30,65 @@ import pandas as pd
 from io import BytesIO
 import csv
 from .services import geovictoria
+
+
+FUNCAO_GRUPOS_EQUIVALENTES = {
+    "LIDER": ["LIDER"],
+    "ENCARR": ["ENCARR", "ENCARREG"],
+    "AUX": ["AUX", "AUXILIAR"],
+    "LIMPEZA": ["LIMPEZA"],
+    "OPERADOR": ["OPERADOR"],
+}
+
+
+def normalizar_funcao_para_comparacao(funcao):
+    """
+    Normaliza o texto da função para evitar divergências falsas causadas por acentos e abreviações conhecidas.
+    """
+    if not funcao:
+        return ""
+
+    texto = str(funcao).strip().upper()
+    texto_sem_acento = unicodedata.normalize("NFD", texto)
+    texto_sem_acento = "".join(
+        caractere for caractere in texto_sem_acento
+        if unicodedata.category(caractere) != "Mn"
+    )
+    return " ".join(texto_sem_acento.split())
+
+
+def encontrar_grupos_funcao(funcao_normalizada):
+    """
+    Encontra todos os grupos presentes na função para comparar textos que podem ter mais de uma característica.
+    """
+    grupos_encontrados = set()
+
+    for grupo, termos in FUNCAO_GRUPOS_EQUIVALENTES.items():
+        for termo in termos:
+            if termo in funcao_normalizada:
+                grupos_encontrados.add(grupo)
+
+    return grupos_encontrados
+
+
+def funcao_esta_divergente(colaborador):
+    """
+    Centraliza a regra para o filtro mostrar apenas diferenças reais entre TOTVS e Gestão.
+    """
+    funcao_totvs = normalizar_funcao_para_comparacao(colaborador.cargo)
+    funcao_gestao = normalizar_funcao_para_comparacao(colaborador.funcao_gestao)
+
+    if not funcao_gestao:
+        return False
+
+    grupos_totvs = encontrar_grupos_funcao(funcao_totvs)
+    grupos_gestao = encontrar_grupos_funcao(funcao_gestao)
+
+    if grupos_totvs and grupos_totvs.intersection(grupos_gestao):
+        return False
+
+    return funcao_totvs != funcao_gestao
+
 
 def derive_termino_state(colaborador, reference_date):
     controles = list(colaborador.controles_termino.all())
@@ -413,6 +473,7 @@ def colaborador_list(request):
     loja_gestao_query = request.GET.get('loja_gestao', '')
     status_gestao_query = request.GET.get('status_gestao', '')
     divergente_query = request.GET.get('divergente', '')
+    funcao_divergente_query = request.GET.get('funcao_divergente', '')
     so_totvs_query = request.GET.get('so_totvs', '')
     
     # 🆕 NOVO FILTRO UNIFICADO
@@ -446,6 +507,15 @@ def colaborador_list(request):
 
     if status_gestao_query:
         colaboradores_qs = colaboradores_qs.filter(status_gestao__iexact=status_gestao_query)
+
+    # Lógica do Filtro Rápido: Função Divergente
+    if funcao_divergente_query == 'S':
+        ids_funcao_divergente = [
+            colaborador.id
+            for colaborador in colaboradores_qs
+            if funcao_esta_divergente(colaborador)
+        ]
+        colaboradores_qs = colaboradores_qs.filter(id__in=ids_funcao_divergente)
 
     # Lógica do Filtro Rápido: Divergente (Loja)
     if divergente_query == 'S':
@@ -517,9 +587,11 @@ def colaborador_list(request):
         'status_query': status_query,
         'status_gestao_query': status_gestao_query,
         'divergente_query': divergente_query,
+        'funcao_divergente_query': funcao_divergente_query,
         'so_totvs_query': so_totvs_query,
         'status_divergente_query': status_divergente_query,  # 🆕
         'total_status_divergentes': total_status_divergentes,  # 🆕
+        'pagina_demitidos': False,
         'titulo': 'Colaboradores'
     }
     return render(request, 'colaboradores/colaborador_list.html', context)
@@ -597,6 +669,7 @@ def demitido_list(request):
         'cargo_query': cargo_query,
         'status_divergente_query': status_divergente_query,  # 🆕
         'total_status_divergentes': total_status_divergentes,  # 🆕
+        'pagina_demitidos': True,
         'titulo': 'Colaboradores Demitidos'
     }
     return render(request, 'colaboradores/colaborador_list.html', context)
@@ -739,6 +812,7 @@ def sync_lojas_geovictoria(request):
     loja_gestao_query = request.POST.get('loja_gestao', '')
     status_gestao_query = request.POST.get('status_gestao', '')
     divergente_query = request.POST.get('divergente', '')
+    funcao_divergente_query = request.POST.get('funcao_divergente', '')
     so_totvs_query = request.POST.get('so_totvs', '')
     status_divergente_query = request.POST.get('status_divergente', '')
 
@@ -768,6 +842,14 @@ def sync_lojas_geovictoria(request):
 
     if status_gestao_query:
         colaboradores_qs = colaboradores_qs.filter(status_gestao__iexact=status_gestao_query)
+
+    if funcao_divergente_query == 'S':
+        ids_funcao_divergente = [
+            colaborador.id
+            for colaborador in colaboradores_qs
+            if funcao_esta_divergente(colaborador)
+        ]
+        colaboradores_qs = colaboradores_qs.filter(id__in=ids_funcao_divergente)
 
     if divergente_query == 'S':
         colaboradores_qs = colaboradores_qs.exclude(status='A').exclude(
