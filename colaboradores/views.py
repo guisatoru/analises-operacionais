@@ -90,8 +90,9 @@ def funcao_esta_divergente(colaborador):
     return funcao_totvs != funcao_gestao
 
 
-def derive_termino_state(colaborador, reference_date):
-    controles = list(colaborador.controles_termino.all())
+def derive_termino_state(colaborador, reference_date, controles=None):
+    if controles is None:
+        controles = list(colaborador.controles_termino.all())
     latest_first = next((c for c in controles if c.etapa == 1), None)
     latest_second = next((c for c in controles if c.etapa == 2), None)
     
@@ -143,15 +144,27 @@ def terminos_list(request):
     coordenador_query = request.GET.get('coordenador', '')
     status_gestao_query = request.GET.get('status_gestao', '')
 
+    if search_query:
+        colaboradores_qs = colaboradores_qs.filter(
+            Q(nome__icontains=search_query) | Q(re__icontains=search_query)
+        )
+
+    if coordenador_query:
+        colaboradores_qs = colaboradores_qs.filter(loja__coordenador=coordenador_query)
+
+    if status_gestao_query:
+        colaboradores_qs = colaboradores_qs.filter(status_gestao__iexact=status_gestao_query)
+
     today = date.today()
     processed_colaboradores = []
 
     for colaborador in colaboradores_qs:
-        state = derive_termino_state(colaborador, today)
+        history = list(colaborador.controles_termino.all())
+        state = derive_termino_state(colaborador, today, history)
         
         if colaborador.termino_1 and colaborador.termino_1 < today and \
            colaborador.termino_2 and colaborador.termino_2 < today and \
-           not list(colaborador.controles_termino.all()):
+           not history:
             continue
             
         relevant_date = colaborador.termino_2 if state['etapaAtual'] == 2 else colaborador.termino_1
@@ -171,26 +184,11 @@ def terminos_list(request):
                     continue
             except ValueError:
                 pass
-                
-        if coordenador_query:
-            loja_coordenador = colaborador.loja.coordenador if colaborador.loja else ""
-            if coordenador_query != loja_coordenador:
-                continue
-
-        if status_gestao_query:
-            col_status_gestao = (colaborador.status_gestao or "").strip().upper()
-            if status_gestao_query.upper() != col_status_gestao:
-                continue
-
-        if search_query:
-            if search_query not in colaborador.nome.lower() and search_query not in colaborador.re.lower():
-                continue
-
         processed_colaboradores.append({
             'colaborador': colaborador,
             'state': state,
             'relevant_date': relevant_date,
-            'history': list(colaborador.controles_termino.all()),
+            'history': history,
         })
 
     # ============================================
@@ -293,17 +291,29 @@ def exportar_terminos_excel(request):
     coordenador_query = request.GET.get('coordenador', '')
     status_gestao_query = request.GET.get('status_gestao', '')
 
+    if search_query:
+        colaboradores_qs = colaboradores_qs.filter(
+            Q(nome__icontains=search_query) | Q(re__icontains=search_query)
+        )
+
+    if coordenador_query:
+        colaboradores_qs = colaboradores_qs.filter(loja__coordenador=coordenador_query)
+
+    if status_gestao_query:
+        colaboradores_qs = colaboradores_qs.filter(status_gestao__iexact=status_gestao_query)
+
     today = date.today()
     processed_colaboradores = []
     data_rows = []
 
     for colaborador in colaboradores_qs:
-        state = derive_termino_state(colaborador, today)
+        historico = list(colaborador.controles_termino.all())
+        state = derive_termino_state(colaborador, today, historico)
         
         # Omitir se o primeiro termo passou, o segundo passou, e não tem histórico (já caducou e não foi controlado)
         if colaborador.termino_1 and colaborador.termino_1 < today and \
            colaborador.termino_2 and colaborador.termino_2 < today and \
-           not list(colaborador.controles_termino.all()):
+           not historico:
             continue
             
         relevant_date = colaborador.termino_2 if state['etapaAtual'] == 2 else colaborador.termino_1
@@ -345,6 +355,7 @@ def exportar_terminos_excel(request):
         processed_colaboradores.append({
             'colaborador': colaborador,
             'state': state,
+            'history': historico,
         })
 
     if not processed_colaboradores:
@@ -383,7 +394,7 @@ def exportar_terminos_excel(request):
 
         # Última observação do histórico
         ultima_obs = ""
-        historico = list(colaborador.controles_termino.all())
+        historico = item['history']
         if historico:
             ultima_obs = historico[0].observacao
 
