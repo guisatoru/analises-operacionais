@@ -11,11 +11,17 @@
 .comparativo-sidebar {
   width: 280px;
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
 }
 
 .comparativo-main {
   flex-grow: 1;
   min-width: 0;
+}
+
+.comparativo-sidebar .form-card {
+  overflow: visible;
 }
 
 /* --------------------------------------------------- */
