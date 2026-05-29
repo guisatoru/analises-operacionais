@@ -1,0 +1,1 @@
+ADMINISTRADOR_ROLE = "administrador"

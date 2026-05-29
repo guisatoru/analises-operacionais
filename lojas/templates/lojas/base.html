@@ -39,6 +39,20 @@
             </div>
 
             {% include "lojas/partials/sidebar_nav.html" %}
+
+            <div class="sidebar-user">
+                <div class="sidebar-user-info">
+                    <i class="fa-solid fa-circle-user"></i>
+                    <span>{{ request.user.username }}</span>
+                </div>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="sidebar-logout" title="Sair">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>Sair</span>
+                    </button>
+                </form>
+            </div>
         </aside>
 
         <!-- Conteúdo Principal -->

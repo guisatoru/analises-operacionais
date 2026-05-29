@@ -33,6 +33,12 @@ ALLOWED_HOSTS = DEFAULT_ALLOWED_HOSTS + config(
     cast=Csv(),
 )
 
+CSRF_TRUSTED_ORIGINS = config(
+    "CSRF_TRUSTED_ORIGINS",
+    default="",
+    cast=Csv(),
+)
+
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -43,6 +49,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "lojas",
     "colaboradores",
+    "usuarios",
     'django_select2',
 ]
 
@@ -119,3 +126,7 @@ USE_TZ = True
 STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "inicio"
+LOGOUT_REDIRECT_URL = "login"
