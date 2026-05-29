@@ -79,7 +79,12 @@
 
     </div>
 
+    <form method="post" action="{% url 'logout' %}" id="tab-session-logout-form" hidden>
+        {% csrf_token %}
+    </form>
+
     <script src="{% static 'plataforma/js/layout.js' %}"></script>
+    <script src="{% static 'plataforma/js/session_guard.js' %}"></script>
 
     {% block extra_js %}{% endblock %}
 

@@ -45,7 +45,7 @@
                 </div>
             {% endif %}
 
-            <form method="post" class="auth-form">
+            <form method="post" class="auth-form" id="login-form">
                 {% csrf_token %}
 
                 <div class="form-group">
@@ -67,6 +67,8 @@
             </form>
         </section>
     </main>
+
+    <script src="{% static 'usuarios/js/login_session.js' %}"></script>
 </body>
 
 </html>
