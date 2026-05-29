@@ -15,7 +15,6 @@ from .escopos import (
 )
 from .folha_import import folha_import
 from .configuracoes import importacoes
-from .home import home
 from .loja_insalubridade import loja_config_insalubridade
 from .stores import (
     store_create,
@@ -37,7 +36,6 @@ __all__ = [
     "escopo_delete",
     "escopo_list",
     "folha_import",
-    "home",
     "parse_int_param",
     "replicar_do_mes_anterior_se_existir",
     "store_create",

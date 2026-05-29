@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "plataforma",
     "lojas",
     "colaboradores",
     "usuarios",
@@ -128,5 +129,5 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "inicio"
+LOGIN_REDIRECT_URL = "plataforma:inicio"
 LOGOUT_REDIRECT_URL = "login"

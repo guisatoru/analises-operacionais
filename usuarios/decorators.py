@@ -25,6 +25,6 @@ def administrador_required(view_func):
             return view_func(request, *args, **kwargs)
 
         messages.error(request, "Você não tem permissão para acessar a tela de usuários.")
-        return redirect("inicio")
+        return redirect("plataforma:inicio")
 
     return wrapper

@@ -5,7 +5,7 @@
     <div class="sidebar-menu">
         <!-- Home -->
         <div class="sidebar-item">
-            <a href="{% url 'inicio' %}" class="sidebar-link {% if current == 'inicio' %}active{% endif %}">
+            <a href="{% url 'plataforma:inicio' %}" class="sidebar-link {% if app == 'plataforma' and current == 'inicio' %}active{% endif %}">
                 <i class="fa-solid fa-house"></i>
                 <span>Home</span>
             </a>
@@ -32,9 +32,9 @@
                 <i class="fa-solid fa-chevron-down arrow"></i>
             </button>
             <div class="sidebar-submenu">
-                <a href="{% url 'colaboradores:list' %}" class="sidebar-submenu-link {% if current == 'list' %}active{% endif %}">Ativos</a>
-                <a href="{% url 'colaboradores:terminos_list' %}" class="sidebar-submenu-link {% if current == 'terminos_list' %}active{% endif %}">Términos</a>
-                <a href="{% url 'colaboradores:demitidos_list' %}" class="sidebar-submenu-link {% if current == 'demitidos_list' %}active{% endif %}">Demitidos</a>
+                <a href="{% url 'colaboradores:list' %}" class="sidebar-submenu-link {% if app == 'colaboradores' and current == 'list' %}active{% endif %}">Ativos</a>
+                <a href="{% url 'colaboradores:terminos_list' %}" class="sidebar-submenu-link {% if app == 'colaboradores' and current == 'terminos_list' %}active{% endif %}">Términos</a>
+                <a href="{% url 'colaboradores:demitidos_list' %}" class="sidebar-submenu-link {% if app == 'colaboradores' and current == 'demitidos_list' %}active{% endif %}">Demitidos</a>
             </div>
         </div>
 
@@ -51,7 +51,13 @@
             </div>
         </div>
 
-        <!-- Configurações -->
+        <div class="sidebar-item">
+            <a href="{% url 'importacoes' %}" class="sidebar-link {% if current == 'importacoes' %}active{% endif %}">
+                <i class="fa-solid fa-gear"></i>
+                <span>Importações</span>
+            </a>
+        </div>
+
         {% if request.user.is_superuser %}
         <div class="sidebar-item">
             <a href="{% url 'usuarios:list' %}" class="sidebar-link {% if app == 'usuarios' %}active{% endif %}">
@@ -60,13 +66,6 @@
             </a>
         </div>
         {% endif %}
-
-        <div class="sidebar-item">
-            <a href="{% url 'importacoes' %}" class="sidebar-link {% if current == 'importacoes' %}active{% endif %}">
-                <i class="fa-solid fa-gear"></i>
-                <span>Importações</span>
-            </a>
-        </div>
     </div>
 
 </div>

@@ -12,8 +12,8 @@
     </title>
 
     <!-- CSS Base e Layout -->
-    <link rel="stylesheet" href="{% static 'lojas/css/layout.css' %}">
-    <link rel="stylesheet" href="{% static 'lojas/css/components.css' %}">
+    <link rel="stylesheet" href="{% static 'plataforma/css/layout.css' %}">
+    <link rel="stylesheet" href="{% static 'plataforma/css/components.css' %}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -38,7 +38,7 @@
                 </button>
             </div>
 
-            {% include "lojas/partials/sidebar_nav.html" %}
+            {% include "plataforma/partials/sidebar_nav.html" %}
 
             <div class="sidebar-user">
                 <div class="sidebar-user-info">
@@ -79,7 +79,7 @@
 
     </div>
 
-    <script src="{% static 'lojas/js/layout.js' %}"></script>
+    <script src="{% static 'plataforma/js/layout.js' %}"></script>
 
     {% block extra_js %}{% endblock %}
 

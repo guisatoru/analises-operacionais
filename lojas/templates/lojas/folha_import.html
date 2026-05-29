@@ -1,16 +1,16 @@
-{% extends "lojas/base.html" %} 
+{% extends "plataforma/base.html" %} 
 {% load static %}
 
 {% block titulo %}{{ titulo }}{% endblock %} 
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'lojas/css/pages/folha-import.css' %}" />
+<link rel="stylesheet" href="{% static 'plataforma/css/pages/import-form.css' %}" />
 {% endblock %} 
 
 {% block content %}
 <div class="page-title-row">
   <div>
-    <a class="back-link" href="{% url 'inicio' %}">
+    <a class="back-link" href="{% url 'plataforma:inicio' %}">
       <i class="fa-solid fa-arrow-left"></i>
       Voltar ao início
     </a>
@@ -213,5 +213,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'lojas/js/import_form.js' %}"></script>
+<script src="{% static 'plataforma/js/import_form.js' %}"></script>
 {% endblock %}

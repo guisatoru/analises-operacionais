@@ -4,7 +4,6 @@ from . import views  # Isso importa lojas/views/__init__.py
 from .views import configuracoes  # Isso importa lojas/views/configuracoes.py
 
 urlpatterns = [
-    path("", login_required(views.home), name="inicio"),
     path("lojas/", login_required(views.store_list), name="lista_lojas"),
     path("lojas/nova/", login_required(views.store_create), name="nova_loja"),
     path("lojas/<int:pk>/", login_required(views.store_detail), name="detalhe_loja"),
