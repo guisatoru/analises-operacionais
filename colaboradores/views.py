@@ -14,7 +14,6 @@ import threading
 import unicodedata
 from .services.geovictoria_sync import (
     sincronizar_colaboradores, 
-    obter_dados_geovictoria_cache,
     set_progresso_sync,
     get_progresso_sync,
 )
@@ -194,41 +193,37 @@ def terminos_list(request):
     # ============================================
     # 🆕 LÓGICA UNIFICADA: Cache ou fallback
     # ============================================
-    geodata_cache = obter_dados_geovictoria_cache()
+    geovictoria_atualizado_em = colaboradores_qs.aggregate(
+        ultima_atualizacao=models.Max("geovictoria_atualizado_em")
+    )["ultima_atualizacao"]
+    total_sincronizados = colaboradores_qs.filter(
+        geovictoria_atualizado_em__isnull=False
+    ).count()
     cache_info = None
     
-    if geodata_cache:
+    if geovictoria_atualizado_em:
         # USA CACHE (dados já sincronizados)
-        geodata_map = geodata_cache["dados"]
         cache_info = {
-            "sincronizado_em": geodata_cache.get("sincronizado_em"),
-            "total_sucesso": geodata_cache.get("sucesso", 0),
-            "total_erros": geodata_cache.get("erros", 0),
+            "sincronizado_em": geovictoria_atualizado_em.strftime("%d/%m/%Y"),
+            "total_sucesso": total_sincronizados,
+            "total_erros": 0,
         }
     else:
         # FALLBACK: busca apenas da página atual (comportamento antigo)
-        geodata_map = {}
+        pass
         
     # Parâmetro de ordenação
     ordenar_por = request.GET.get('ordenar', 'data')
     
     # Ordenação global (só funciona com cache)
-    if ordenar_por == 'faltas' and geodata_map:
+    if ordenar_por == 'faltas':
         processed_colaboradores.sort(
-            key=lambda x: (
-                geodata_map.get(
-                    str(x['colaborador'].cpf).strip(), {}
-                ).get('faltas', 0) if x['colaborador'].cpf else 0
-            ),
+            key=lambda x: x['colaborador'].faltas_geovictoria,
             reverse=True
         )
-    elif ordenar_por == 'atestados' and geodata_map:
+    elif ordenar_por == 'atestados':
         processed_colaboradores.sort(
-            key=lambda x: (
-                geodata_map.get(
-                    str(x['colaborador'].cpf).strip(), {}
-                ).get('atestados', 0) if x['colaborador'].cpf else 0
-            ),
+            key=lambda x: x['colaborador'].atestados_geovictoria,
             reverse=True
         )
     else:
@@ -247,11 +242,10 @@ def terminos_list(request):
         item['faltas'] = 0
         item['atestados'] = 0
 
-        if cpf and geodata_map and cpf in geodata_map:
-            summary = geodata_map[cpf]
-            item['faltas'] = summary.get('faltas', 0)
-            item['atestados'] = summary.get('atestados', 0)
-        elif not cpf:
+        if cpf:
+            item['faltas'] = colaborador.faltas_geovictoria
+            item['atestados'] = colaborador.atestados_geovictoria
+        else:
             item['faltas'] = "-"
             item['atestados'] = "-"
 
@@ -363,7 +357,7 @@ def exportar_terminos_excel(request):
         return redirect('colaboradores:terminos_list')
 
     # Buscar dados da GeoVictoria em lotes de 50 CPFs para não estourar limite de URL/Body
-    cpfs_totais = [str(item['colaborador'].cpf).strip() for item in processed_colaboradores if item['colaborador'].cpf]
+    cpfs_totais = []
     geodata_map = {}
     
     if cpfs_totais:
@@ -383,14 +377,8 @@ def exportar_terminos_excel(request):
     for item in processed_colaboradores:
         colaborador = item['colaborador']
         state = item['state']
-        cpf = str(colaborador.cpf).strip() if colaborador.cpf else None
-        
-        # Buscar dados do mapa carregado
-        faltas = 0
-        atestados = 0
-        if cpf and cpf in geodata_map:
-            faltas = geodata_map[cpf].get('faltas', 0)
-            atestados = geodata_map[cpf].get('atestados', 0)
+        faltas = colaborador.faltas_geovictoria if colaborador.cpf else 0
+        atestados = colaborador.atestados_geovictoria if colaborador.cpf else 0
 
         # Última observação do histórico
         ultima_obs = ""

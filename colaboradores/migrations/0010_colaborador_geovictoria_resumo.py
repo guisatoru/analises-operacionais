@@ -1,0 +1,30 @@
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ("colaboradores", "0009_colaborador_loja_geo"),
+    ]
+
+    operations = [
+        migrations.AddField(
+            model_name="colaborador",
+            name="faltas_geovictoria",
+            field=models.IntegerField(default=0, verbose_name="Faltas GeoVictoria"),
+        ),
+        migrations.AddField(
+            model_name="colaborador",
+            name="atestados_geovictoria",
+            field=models.IntegerField(default=0, verbose_name="Atestados GeoVictoria"),
+        ),
+        migrations.AddField(
+            model_name="colaborador",
+            name="geovictoria_atualizado_em",
+            field=models.DateField(
+                blank=True,
+                null=True,
+                verbose_name="GeoVictoria atualizado em",
+            ),
+        ),
+    ]

@@ -12,6 +12,9 @@ class ColaboradorAdmin(admin.ModelAdmin):
         "cargo",
         "status",
         "data_admissao",
+        "faltas_geovictoria",
+        "atestados_geovictoria",
+        "geovictoria_atualizado_em",
     )
     
     # Campos que permitem clicar para editar
@@ -36,6 +39,9 @@ class ColaboradorAdmin(admin.ModelAdmin):
         }),
         ("Datas de Controle", {
             "fields": ("data_admissao", "data_demissao", "termino_1", "termino_2")
+        }),
+        ("GeoVictoria", {
+            "fields": ("faltas_geovictoria", "atestados_geovictoria", "geovictoria_atualizado_em")
         }),
         ("Datas de Sistema", {
             "fields": ("created_at", "updated_at"),

@@ -8,7 +8,9 @@ from datetime import date
 from typing import Dict, List, Optional
 
 from django.core.cache import cache
+from django.db import transaction
 
+from colaboradores.models import Colaborador
 from . import geovictoria
 
 logger = logging.getLogger(__name__)
@@ -34,7 +36,7 @@ def sincronizar_colaboradores(cpfs_com_admissao: List[Dict], progress_callback=N
     if total == 0:
         if progress_callback:
             progress_callback(100, "Nenhum colaborador para sincronizar.")
-        return {"total": 0, "sucesso": 0, "erros": 0}
+        return {"total": 0, "sucesso": 0, "erros": 0, "salvos": 0}
     
     if progress_callback:
         progress_callback(0, f"Iniciando sincronização de {total} colaboradores...")
@@ -82,7 +84,37 @@ def sincronizar_colaboradores(cpfs_com_admissao: List[Dict], progress_callback=N
                 f"Processando lote {chunk_num}/{total_chunks}... ({sucesso} OK, {erros} erros)"
             )
     
-    # Salva no cache
+    colaboradores_para_atualizar = []
+    for item in cpfs_com_admissao:
+        cpf = item.get("cpf")
+        colaborador_id = item.get("id")
+        resumo = dados_finais.get(cpf)
+
+        if not colaborador_id or resumo is None:
+            continue
+
+        colaboradores_para_atualizar.append(
+            Colaborador(
+                id=colaborador_id,
+                faltas_geovictoria=resumo.get("faltas", 0),
+                atestados_geovictoria=resumo.get("atestados", 0),
+                geovictoria_atualizado_em=today,
+            )
+        )
+
+    if colaboradores_para_atualizar:
+        with transaction.atomic():
+            Colaborador.objects.bulk_update(
+                colaboradores_para_atualizar,
+                [
+                    "faltas_geovictoria",
+                    "atestados_geovictoria",
+                    "geovictoria_atualizado_em",
+                ],
+                batch_size=500,
+            )
+
+    # Mantem um cache temporario apenas para compatibilidade e diagnostico da ultima execucao.
     cache_data = {
         "dados": dados_finais,
         "total_colaboradores": total,
@@ -108,6 +140,7 @@ def sincronizar_colaboradores(cpfs_com_admissao: List[Dict], progress_callback=N
         "total": total,
         "sucesso": sucesso,
         "erros": erros,
+        "salvos": len(colaboradores_para_atualizar),
     }
 
 
