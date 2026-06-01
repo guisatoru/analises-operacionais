@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { 
   Search, 
-  ChevronLeft,
-  ChevronRight,
   Loader2,
   AlertCircle,
   FileSpreadsheet,
@@ -11,10 +9,26 @@ import {
   CloudLightning,
   CheckCircle2,
   Clock,
-  Briefcase
+  Briefcase,
+  CalendarDays
 } from 'lucide-react';
 import api from '../api/client';
 import SearchableSelect from '../components/ui/searchable-select';
+import { toast } from 'sonner';
+import { Skeleton } from '../components/ui/skeleton';
+import { Progress, ProgressValue } from '../components/ui/progress';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from '../components/ui/pagination';
+import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
+import { Calendar } from '../components/ui/calendar';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '../components/ui/input-group';
+import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface ColaboradorTermino {
   id: string;
@@ -205,6 +219,7 @@ export default function Terminos() {
               clearInterval(intervalId);
               setSyncLoading(false);
               setSyncMessage('Concluído com sucesso!');
+              toast.success('Sincronização de faltas e atestados do GeoVictoria concluída!');
               setTimeout(() => {
                 setShowProgressBar(false);
                 fetchTerminos();
@@ -213,6 +228,7 @@ export default function Terminos() {
               clearInterval(intervalId);
               setSyncLoading(false);
               setErrorMsg('Erro reportado durante a sincronização de pontos.');
+              toast.error('Erro na sincronização de pontos.');
               setTimeout(() => setShowProgressBar(false), 2000);
             }
           } catch (pollErr) {
@@ -279,10 +295,11 @@ export default function Terminos() {
 
       setShowAcaoModal(false);
       fetchTerminos();
-      alert('Decisão de término registrada com sucesso!');
+      toast.success('Decisão de término registrada com sucesso!');
     } catch (err: any) {
       console.error('Erro ao registrar decisão:', err);
       setErrorMsg(err.response?.data?.error || 'Erro ao salvar controle de término.');
+      toast.error('Erro ao salvar controle de término.');
     } finally {
       setActionLoading(false);
     }
@@ -390,16 +407,12 @@ export default function Terminos() {
       {/* Barra de Progresso da Sincronização */}
       {showProgressBar && (
         <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs p-5 shadow-sm space-y-2 animate-fade-in">
-          <div className="flex items-center justify-between text-sm">
-            <span className="font-semibold text-neutral-700 dark:text-neutral-300">{syncMessage}</span>
-            <span className="font-bold text-primary">{syncProgress}%</span>
-          </div>
-          <div className="w-full bg-neutral-100 dark:bg-neutral-800 rounded-full h-2.5 overflow-hidden">
-            <div 
-              className="bg-primary h-2.5 rounded-full transition-all duration-300"
-              style={{ width: `${syncProgress}%` }}
-            />
-          </div>
+          <Progress value={syncProgress} className="w-full flex-col gap-1.5">
+            <div className="flex items-center justify-between text-xs w-full">
+              <span className="font-semibold text-neutral-700 dark:text-neutral-300">{syncMessage}</span>
+              <ProgressValue className="font-bold text-primary" />
+            </div>
+          </Progress>
         </div>
       )}
 
@@ -410,16 +423,17 @@ export default function Terminos() {
             <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Busca (Nome ou RE)
             </label>
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-neutral-400" />
-              <input
+            <InputGroup className="w-full">
+              <InputGroupAddon align="inline-start">
+                <Search className="h-4 w-4 text-neutral-450" />
+              </InputGroupAddon>
+              <InputGroupInput
                 type="text"
                 placeholder="Ex: Pedro / 001290..."
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
-                className="w-full input-with-icon-left pr-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
               />
-            </div>
+            </InputGroup>
           </div>
 
           <div>
@@ -454,24 +468,56 @@ export default function Terminos() {
             <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Término a Partir de
             </label>
-            <input
-              type="date"
-              value={dataFiltro}
-              onChange={(e) => setDataFiltro(e.target.value)}
-              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-            />
+            <Popover>
+              <PopoverTrigger
+                className="w-full justify-start text-left font-normal h-8 text-neutral-750 dark:text-neutral-300 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg px-3 py-1 text-sm inline-flex items-center hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+              >
+                <CalendarDays className="mr-2 h-4 w-4 text-neutral-450" />
+                {dataFiltro ? (
+                  format(parseISO(dataFiltro), 'dd/MM/yyyy')
+                ) : (
+                  <span>Selecione a data</span>
+                )}
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dataFiltro ? parseISO(dataFiltro) : undefined}
+                  onSelect={(date) => {
+                    setDataFiltro(date ? format(date, 'yyyy-MM-dd') : '');
+                  }}
+                  locale={ptBR}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Término Até
             </label>
-            <input
-              type="date"
-              value={dataFim}
-              onChange={(e) => setDataFim(e.target.value)}
-              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-            />
+            <Popover>
+              <PopoverTrigger
+                className="w-full justify-start text-left font-normal h-8 text-neutral-750 dark:text-neutral-300 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg px-3 py-1 text-sm inline-flex items-center hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+              >
+                <CalendarDays className="mr-2 h-4 w-4 text-neutral-450" />
+                {dataFim ? (
+                  format(parseISO(dataFim), 'dd/MM/yyyy')
+                ) : (
+                  <span>Selecione a data</span>
+                )}
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dataFim ? parseISO(dataFim) : undefined}
+                  onSelect={(date) => {
+                    setDataFim(date ? format(date, 'yyyy-MM-dd') : '');
+                  }}
+                  locale={ptBR}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
@@ -533,14 +579,25 @@ export default function Terminos() {
             </thead>
             <tbody className="divide-y divide-border text-sm">
               {loading ? (
-                <tr>
-                  <td colSpan={8} className="py-10 text-center text-neutral-400">
-                    <div className="flex items-center justify-center gap-2">
-                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                      <span>Processando términos contratuais...</span>
-                    </div>
-                  </td>
-                </tr>
+                Array.from({ length: 5 }).map((_, idx) => (
+                  <tr key={idx} className="animate-pulse">
+                    <td className="py-4 px-6">
+                      <Skeleton className="h-5 w-40 mb-1" />
+                      <Skeleton className="h-3 w-16" />
+                    </td>
+                    <td className="py-4 px-6">
+                      <Skeleton className="h-5 w-32" />
+                    </td>
+                    <td className="py-4 px-6"><Skeleton className="h-5 w-24" /></td>
+                    <td className="py-4 px-6"><Skeleton className="h-5 w-20" /></td>
+                    <td className="py-4 px-6 text-center">
+                      <Skeleton className="h-8 w-16 inline-block" />
+                    </td>
+                    <td className="py-4 px-6"><Skeleton className="h-5 w-24" /></td>
+                    <td className="py-4 px-6"><Skeleton className="h-5 w-24" /></td>
+                    <td className="py-4 px-6 text-right"><Skeleton className="h-8 w-20 ml-auto" /></td>
+                  </tr>
+                ))
               ) : terminos.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-10 text-center text-neutral-400">
@@ -635,25 +692,37 @@ export default function Terminos() {
             <span className="text-xs text-neutral-500">
               Mostrando {terminos.length} de {count} termos contratuais
             </span>
-            <div className="flex items-center gap-2">
-              <button
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                className="p-1.5 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="text-sm font-semibold text-neutral-700 px-2">
-                Página {currentPage} de {totalPages}
-              </span>
-              <button
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                className="p-1.5 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
+            <Pagination className="w-auto mx-0">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage > 1) setCurrentPage(currentPage - 1);
+                    }}
+                    text="Anterior"
+                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+                <PaginationItem>
+                  <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300 px-3">
+                    Página {currentPage} de {totalPages}
+                  </span>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                    }}
+                    text="Próxima"
+                    className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
           </div>
         )}
       </div>

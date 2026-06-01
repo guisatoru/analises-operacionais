@@ -5,13 +5,21 @@ import {
   Edit2, 
   Trash2, 
   Settings2,
-  ChevronLeft,
-  ChevronRight,
   Loader2,
   X,
   AlertCircle
 } from 'lucide-react';
 import api from '../api/client';
+import { toast } from 'sonner';
+import { Skeleton } from '../components/ui/skeleton';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from '../components/ui/pagination';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '../components/ui/input-group';
 
 interface Loja {
   id: string;
@@ -201,15 +209,18 @@ export default function Lojas() {
       if (selectedLoja) {
         // Atualização (PUT ou PATCH)
         await api.patch(`/lojas/${selectedLoja.id}/editar/`, payload);
+        toast.success('Loja atualizada com sucesso!');
       } else {
         // Criação (POST)
         await api.post('/lojas/nova/', payload);
+        toast.success('Loja cadastrada com sucesso!');
       }
       setShowCadastroModal(false);
       fetchLojas();
     } catch (err: any) {
       console.error('Erro ao salvar loja:', err);
       setErrorMsg(err.response?.data?.errors ? JSON.stringify(err.response.data.errors) : 'Erro ao processar requisição.');
+      toast.error('Erro ao salvar loja.');
     } finally {
       setActionLoading(false);
     }
@@ -223,10 +234,11 @@ export default function Lojas() {
 
     try {
       await api.delete(`/lojas/${loja.id}/excluir/`);
+      toast.success('Loja excluída com sucesso!');
       fetchLojas();
     } catch (err) {
       console.error('Erro ao excluir loja:', err);
-      alert('Erro ao excluir loja. Verifique as permissões.');
+      toast.error('Erro ao excluir loja. Verifique as permissões.');
     }
   };
 
@@ -265,10 +277,11 @@ export default function Lojas() {
     try {
       await api.put(`/lojas/${selectedLoja.id}/insalubridade/`, insalConfig);
       setShowInsalubridadeModal(false);
-      alert('Configuração de insalubridade salva com sucesso!');
+      toast.success('Configuração de insalubridade salva com sucesso!');
     } catch (err: any) {
       console.error('Erro ao salvar insalubridade:', err);
       setErrorMsg(err.response?.data ? JSON.stringify(err.response.data) : 'Erro ao salvar configurações.');
+      toast.error('Erro ao salvar insalubridade.');
     } finally {
       setActionLoading(false);
     }
@@ -298,16 +311,17 @@ export default function Lojas() {
             <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Busca por Nome
             </label>
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-neutral-400" />
-              <input
+            <InputGroup className="w-full">
+              <InputGroupAddon align="inline-start">
+                <Search className="h-4 w-4 text-neutral-450" />
+              </InputGroupAddon>
+              <InputGroupInput
                 type="text"
                 placeholder="Ex: Loja Centro..."
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
-                className="w-full input-with-icon-left pr-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
               />
-            </div>
+            </InputGroup>
           </div>
 
           <div>
@@ -394,14 +408,17 @@ export default function Lojas() {
             </thead>
             <tbody className="divide-y divide-border text-sm">
               {loading ? (
-                <tr>
-                  <td colSpan={7} className="py-10 text-center text-neutral-400">
-                    <div className="flex items-center justify-center gap-2">
-                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                      <span>Carregando dados das filiais...</span>
-                    </div>
-                  </td>
-                </tr>
+                Array.from({ length: 5 }).map((_, idx) => (
+                  <tr key={idx} className="animate-pulse">
+                    <td className="py-4 px-6"><Skeleton className="h-5 w-12" /></td>
+                    <td className="py-4 px-6"><Skeleton className="h-5 w-40" /></td>
+                    <td className="py-4 px-6"><Skeleton className="h-5 w-24" /></td>
+                    <td className="py-4 px-6"><Skeleton className="h-5 w-20" /></td>
+                    <td className="py-4 px-6"><Skeleton className="h-5 w-12" /></td>
+                    <td className="py-4 px-6"><Skeleton className="h-5 w-16" /></td>
+                    <td className="py-4 px-6 text-right"><Skeleton className="h-8 w-24 ml-auto" /></td>
+                  </tr>
+                ))
               ) : lojas.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-10 text-center text-neutral-400">
@@ -464,25 +481,37 @@ export default function Lojas() {
             <span className="text-xs text-neutral-500">
               Mostrando {lojas.length} de {count} filiais cadastradas
             </span>
-            <div className="flex items-center gap-2">
-              <button
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                className="p-1.5 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="text-sm font-semibold text-neutral-700 px-2">
-                Página {currentPage} de {totalPages}
-              </span>
-              <button
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                className="p-1.5 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
+            <Pagination className="w-auto mx-0">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage > 1) setCurrentPage(currentPage - 1);
+                    }}
+                    text="Anterior"
+                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+                <PaginationItem>
+                  <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300 px-3">
+                    Página {currentPage} de {totalPages}
+                  </span>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                    }}
+                    text="Próxima"
+                    className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
           </div>
         )}
       </div>

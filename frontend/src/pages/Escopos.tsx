@@ -6,8 +6,6 @@ import {
   Check, 
   X, 
   Copy, 
-  ChevronLeft, 
-  ChevronRight, 
   Loader2, 
   AlertCircle, 
   Search,
@@ -15,6 +13,16 @@ import {
 } from 'lucide-react';
 import api from '../api/client';
 import SearchableSelect from '../components/ui/searchable-select';
+import { toast } from 'sonner';
+import { Skeleton } from '../components/ui/skeleton';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from '../components/ui/pagination';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '../components/ui/input-group';
 
 interface Cargo {
   id: string;
@@ -228,11 +236,11 @@ export default function Escopos() {
     setLoading(true);
     try {
       const response = await api.post('/escopos/duplicar-proximo-mes/');
-      alert(response.data.message || 'Duplicação em lote processada com sucesso!');
+      toast.success(response.data.message || 'Duplicação em lote processada com sucesso!');
       fetchEscopos(true);
     } catch (err: any) {
       console.error('Erro ao duplicar escopos:', err);
-      alert(err.response?.data?.error || 'Erro ao processar duplicação de escopos.');
+      toast.error(err.response?.data?.error || 'Erro ao processar duplicação de escopos.');
       setLoading(false);
     }
   };
@@ -246,11 +254,11 @@ export default function Escopos() {
     setLoading(true);
     try {
       const response = await api.delete(`/escopos/${escopoId}/excluir/`);
-      alert(response.data.message || 'Escopo mensal removido.');
+      toast.success(response.data.message || 'Escopo mensal removido.');
       fetchEscopos(true);
     } catch (err: any) {
       console.error('Erro ao excluir escopo:', err);
-      alert(err.response?.data?.error || 'Erro ao remover escopo mensal.');
+      toast.error(err.response?.data?.error || 'Erro ao remover escopo mensal.');
       setLoading(false);
     }
   };
@@ -283,11 +291,11 @@ export default function Escopos() {
   // Salva o item editado inline via API
   const handleSaveItem = async (escopoId: string, itemId: string) => {
     if (!editCargo) {
-      alert('Selecione um cargo válido.');
+      toast.error('Selecione um cargo válido.');
       return;
     }
     if (editQuantidade < 1) {
-      alert('A quantidade deve ser maior ou igual a 1.');
+      toast.error('A quantidade deve ser maior ou igual a 1.');
       return;
     }
 
@@ -303,49 +311,14 @@ export default function Escopos() {
       const response = await api.post('/escopos/api/item/save/', payload);
       if (response.data.success) {
         setEditingItemId(null);
-        // Atualiza dinamicamente o estado local do escopo correspondente para evitar recarregar toda a lista
-        setEscopos(prev => prev.map(esc => {
-          if (esc.id === escopoId) {
-            // Se o item for novo, substitui o temporário. Caso contrário, atualiza o item existente
-            let updatedItens;
-            const novoItem: ItemEscopo = {
-              id: response.data.id,
-              escopo_mensal: escopoId,
-              cargo: editCargo,
-              cargo_nome: response.data.cargo_nome,
-              turno: editTurno,
-              turno_display: response.data.turno_display,
-              quantidade: editQuantidade,
-              detalhamento: {
-                base_total: response.data.detalhes.base_total,
-                insal_fixa: response.data.detalhes.insal_fixa,
-                insal_ban: response.data.detalhes.insal_ban,
-                adic_not: response.data.detalhes.adic_not,
-                total: response.data.detalhes.total
-              }
-            };
-
-            if (!itemId) {
-              // Substitui o temporário que tinha ID vazio
-              updatedItens = esc.itens_com_estimativa.map(i => i.id === '' ? novoItem : i);
-            } else {
-              updatedItens = esc.itens_com_estimativa.map(i => i.id === itemId ? novoItem : i);
-            }
-
-            return {
-              ...esc,
-              itens_com_estimativa: updatedItens,
-              total_estimativa_escopo: response.data.total_escopo
-            };
-          }
-          return esc;
-        }));
+        toast.success('Item salvo com sucesso!');
+        fetchEscopos();
       } else {
-        alert(response.data.error || 'Erro ao salvar o item.');
+        toast.error(response.data.error || 'Erro ao salvar o item.');
       }
     } catch (err: any) {
       console.error('Erro ao salvar item:', err);
-      alert(err.response?.data?.error || 'Erro de comunicação para salvar o item do escopo.');
+      toast.error(err.response?.data?.error || 'Erro de comunicação para salvar o item do escopo.');
     }
   };
 
@@ -358,6 +331,7 @@ export default function Escopos() {
     try {
       const response = await api.post(`/escopos/api/item/${itemId}/delete/`);
       if (response.data.success) {
+        toast.success('Item removido com sucesso!');
         setEscopos(prev => prev.map(esc => {
           if (esc.id === escopoId) {
             return {
@@ -371,7 +345,7 @@ export default function Escopos() {
       }
     } catch (err: any) {
       console.error('Erro ao excluir item:', err);
-      alert(err.response?.data?.error || 'Erro ao excluir o item do escopo.');
+      toast.error(err.response?.data?.error || 'Erro ao excluir o item do escopo.');
     }
   };
 
@@ -379,7 +353,7 @@ export default function Escopos() {
   const handleAddNewItemPlaceholder = (escopoId: string) => {
     // Evita criar múltiplos placeholders
     if (editingItemId) {
-      alert('Salve ou cancele a alteração pendente antes de adicionar um novo item.');
+      toast.error('Salve ou cancele a alteração pendente antes de adicionar um novo item.');
       return;
     }
 
@@ -476,7 +450,7 @@ export default function Escopos() {
       if (response.data.success) {
         setShowCreateModal(false);
         fetchEscopos(true);
-        alert('Escopo mensal criado com sucesso!');
+        toast.success('Escopo mensal criado com sucesso!');
       } else {
         setModalError(response.data.error || 'Erro ao registrar escopo.');
       }
@@ -543,16 +517,17 @@ export default function Escopos() {
             <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Busca Textual Loja
             </label>
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-neutral-400" />
-              <input
+            <InputGroup className="w-full">
+              <InputGroupAddon align="inline-start">
+                <Search className="h-4 w-4 text-neutral-455" />
+              </InputGroupAddon>
+              <InputGroupInput
                 type="text"
                 placeholder="Ex: Auto Posto..."
                 value={buscaLojaInput}
                 onChange={(e) => setBuscaLojaInput(e.target.value)}
-                className="w-full input-with-icon-left pr-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
               />
-            </div>
+            </InputGroup>
           </div>
 
           <div>
@@ -617,11 +592,27 @@ export default function Escopos() {
       {/* Listagem de Escopos */}
       <div className="space-y-6">
         {loading ? (
-          <div className="py-12 text-center text-neutral-400 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl">
-            <div className="flex items-center justify-center gap-2">
-              <Loader2 className="h-5 w-5 animate-spin text-neutral-900 dark:text-white" />
-              <span>Buscando escopos mensais...</span>
-            </div>
+          <div className="space-y-6">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div key={idx} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 space-y-4 animate-pulse">
+                <div className="flex justify-between items-center border-b border-neutral-100 dark:border-neutral-850 pb-3">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-6 w-48" />
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                  </div>
+                  <Skeleton className="h-6 w-24" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-5 w-full" />
+                  <Skeleton className="h-5 w-full" />
+                  <Skeleton className="h-5 w-full" />
+                </div>
+                <div className="flex justify-between items-center pt-3 border-t border-neutral-100 dark:border-neutral-850">
+                  <Skeleton className="h-6 w-24" />
+                  <Skeleton className="h-6 w-32" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : escopos.length === 0 ? (
           <div className="py-12 text-center text-neutral-400 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl">
@@ -817,25 +808,37 @@ export default function Escopos() {
           <span className="text-xs text-neutral-500">
             Mostrando {escopos.length} de {count} escopos
           </span>
-          <div className="flex items-center gap-2">
-            <button
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-              className="p-1.5 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <span className="text-sm font-semibold text-neutral-700 px-2">
-              Página {currentPage} de {totalPages}
-            </span>
-            <button
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-              className="p-1.5 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
+          <Pagination className="w-auto mx-0">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (currentPage > 1) setCurrentPage(currentPage - 1);
+                  }}
+                  text="Anterior"
+                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+              <PaginationItem>
+                <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300 px-3">
+                  Página {currentPage} de {totalPages}
+                </span>
+              </PaginationItem>
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                  }}
+                  text="Próxima"
+                  className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       )}
 

@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { 
   Search, 
-  ChevronLeft,
-  ChevronRight,
   Loader2,
   AlertCircle,
   AlertTriangle,
@@ -16,6 +14,16 @@ import {
 } from 'lucide-react';
 import api from '../api/client';
 import SearchableSelect from '../components/ui/searchable-select';
+import { Skeleton } from '../components/ui/skeleton';
+import { Progress, ProgressValue } from '../components/ui/progress';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from '../components/ui/pagination';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '../components/ui/input-group';
 
 interface LojaRef {
   id: string;
@@ -466,16 +474,17 @@ export default function Colaboradores() {
             <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Nome do Colaborador
             </label>
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-neutral-400" />
-              <input
+            <InputGroup className="w-full">
+              <InputGroupAddon align="inline-start">
+                <Search className="h-4 w-4 text-neutral-450" />
+              </InputGroupAddon>
+              <InputGroupInput
                 type="text"
                 placeholder="Pesquise por nome..."
                 value={nomeBusca}
                 onChange={(e) => setNomeBusca(e.target.value)}
-                className="w-full input-with-icon-left pr-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
               />
-            </div>
+            </InputGroup>
           </div>
 
           <div>
@@ -574,27 +583,14 @@ export default function Colaboradores() {
 
           {syncLojasStatus !== 'idle' && (
             <div className="pt-3 space-y-2 border-t border-neutral-100 dark:border-neutral-850">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-neutral-600 dark:text-neutral-450">
-                  {syncLojasMessage}
-                </span>
-                <span className="font-bold text-neutral-850 dark:text-neutral-250">
-                  {syncLojasProgress}%
-                </span>
-              </div>
-              
-              <div className="h-2 w-full bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full transition-all duration-300 ${
-                    syncLojasStatus === 'completed'
-                      ? 'bg-green-600'
-                      : syncLojasStatus === 'error'
-                      ? 'bg-red-600'
-                      : 'bg-primary'
-                  }`}
-                  style={{ width: `${syncLojasProgress}%` }}
-                />
-              </div>
+              <Progress value={syncLojasProgress || 0} className="w-full flex-col gap-1.5">
+                <div className="flex items-center justify-between text-xs w-full">
+                  <span className="font-semibold text-neutral-600 dark:text-neutral-450">
+                    {syncLojasMessage}
+                  </span>
+                  <ProgressValue className="font-bold text-neutral-850 dark:text-neutral-250" />
+                </div>
+              </Progress>
 
               {syncLojasStatus === 'completed' && (
                 <div className="text-xs pt-1.5 flex gap-2">
@@ -638,14 +634,29 @@ export default function Colaboradores() {
             </thead>
             <tbody className="divide-y divide-border text-sm">
               {loading ? (
-                <tr>
-                  <td colSpan={6} className="py-10 text-center text-neutral-400">
-                    <div className="flex items-center justify-center gap-2">
-                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                      <span>Auditando base de colaboradores...</span>
-                    </div>
-                  </td>
-                </tr>
+                Array.from({ length: 5 }).map((_, idx) => (
+                  <tr key={idx} className="animate-pulse">
+                    <td className="py-4 px-6"><Skeleton className="h-5 w-12" /></td>
+                    <td className="py-4 px-6">
+                      <Skeleton className="h-5 w-40 mb-1" />
+                      <Skeleton className="h-3 w-24" />
+                    </td>
+                    <td className="py-4 px-6">
+                      <Skeleton className="h-4 w-32 mb-1" />
+                      <Skeleton className="h-3 w-20" />
+                    </td>
+                    <td className="py-4 px-6 space-y-1">
+                      <Skeleton className="h-3 w-28" />
+                      <Skeleton className="h-3 w-24" />
+                      <Skeleton className="h-3 w-20" />
+                    </td>
+                    <td className="py-4 px-6 space-y-1">
+                      <Skeleton className="h-5 w-16" />
+                      <Skeleton className="h-3 w-12" />
+                    </td>
+                    <td className="py-4 px-6 text-right"><Skeleton className="h-6 w-24 ml-auto" /></td>
+                  </tr>
+                ))
               ) : colaboradores.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-10 text-center text-neutral-400">
@@ -752,25 +763,37 @@ export default function Colaboradores() {
             <span className="text-xs text-neutral-500">
               Mostrando {colaboradores.length} de {count} colaboradores
             </span>
-            <div className="flex items-center gap-2">
-              <button
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                className="p-1.5 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="text-sm font-semibold text-neutral-700 px-2">
-                Página {currentPage} de {totalPages}
-              </span>
-              <button
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                className="p-1.5 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
+            <Pagination className="w-auto mx-0">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage > 1) setCurrentPage(currentPage - 1);
+                    }}
+                    text="Anterior"
+                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+                <PaginationItem>
+                  <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300 px-3">
+                    Página {currentPage} de {totalPages}
+                  </span>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                    }}
+                    text="Próxima"
+                    className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
           </div>
         )}
       </div>

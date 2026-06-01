@@ -12,6 +12,7 @@ import Terminos from './pages/Terminos';
 import Importacoes from './pages/Importacoes';
 import Escopos from './pages/Escopos';
 import Comparativo from './pages/Comparativo';
+import { Toaster } from './components/ui/sonner';
 
 /**
  * Componente Principal do Aplicativo (App).
@@ -71,6 +72,7 @@ function App() {
 
   return (
     <Router>
+      <Toaster />
       <Routes>
         {/* Rota Pública de Login */}
         <Route 

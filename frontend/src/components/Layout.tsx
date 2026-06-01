@@ -1,6 +1,13 @@
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from './ui/sidebar';
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from './ui/breadcrumb';
 
 interface LayoutProps {
   isAuthenticated: boolean;
@@ -14,11 +21,42 @@ interface LayoutProps {
  * Por que existe: Serve como moldura estrutural pós-autenticação.
  * Envolve a área logada no SidebarProvider para fornecer estados do menu lateral 
  * e utiliza SidebarInset e SidebarTrigger para controlar e renderizar a área 
- * de conteúdo ao lado da barra lateral.
+ * de conteúdo ao lado da barra lateral. Inclui também o cabeçalho com o sistema
+ * de breadcrumbs dinâmicos para facilitar a navegação do usuário.
  */
 export default function Layout({ isAuthenticated, username, onLogout }: LayoutProps) {
+  const location = useLocation();
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Mapeamento manual e amigável da rota atual para definir o setor e a página ativa
+  const path = location.pathname.replace(/^\/|\/$/g, '');
+  let sector = '';
+  let pageName = 'Dashboard';
+
+  if (path === 'lojas') {
+    sector = 'Operação & Equipe';
+    pageName = 'Lojas';
+  } else if (path === 'colaboradores') {
+    sector = 'Operação & Equipe';
+    pageName = 'Auditoria de Equipe';
+  } else if (path === 'terminos') {
+    sector = 'Operação & Equipe';
+    pageName = 'Términos de Experiência';
+  } else if (path === 'escopos') {
+    sector = 'Planejamento & BI';
+    pageName = 'Escopos';
+  } else if (path === 'comparativo') {
+    sector = 'Planejamento & BI';
+    pageName = 'Raio-X (Comparativo)';
+  } else if (path === 'importacoes') {
+    sector = 'Configurações';
+    pageName = 'Importações';
+  } else {
+    sector = 'Geral';
+    pageName = 'Dashboard';
   }
 
   return (
@@ -29,13 +67,27 @@ export default function Layout({ isAuthenticated, username, onLogout }: LayoutPr
       {/* Conteúdo Principal da Área de Trabalho */}
       <SidebarInset>
         {/* Cabeçalho Superior com Gatilho da Sidebar */}
-        <header className="h-16 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-6 flex items-center justify-between sticky top-0 z-10">
-          <div className="flex items-center gap-3">
+        <header className="h-16 border-b border-neutral-250 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-6 flex items-center justify-between sticky top-0 z-10">
+          <div className="flex items-center gap-4">
             {/* Botão para colapsar/expandir a Sidebar */}
             <SidebarTrigger />
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-850 dark:text-neutral-200">
-              Ambiente de Análise
-            </span>
+            
+            {/* Componente Oficial do Shadcn para exibição da hierarquia da página */}
+            <Breadcrumb>
+              <BreadcrumbList>
+                {sector && (
+                  <>
+                    <BreadcrumbItem>
+                      <span className="text-neutral-500 font-medium text-xs">{sector}</span>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                  </>
+                )}
+                <BreadcrumbItem>
+                  <BreadcrumbPage className="text-xs font-semibold">{pageName}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
           </div>
           <div className="text-xs text-neutral-500 dark:text-neutral-400">
             Sessão ativa como: <span className="font-semibold text-neutral-800 dark:text-neutral-200">{username}</span>
