@@ -35,7 +35,7 @@ def criar_mapa_lojas_por_nome_gestao():
 
     return lojas_por_nome, nomes_duplicados
 
-def importar_gestao_pessoas(arquivo_excel):
+def importar_gestao_pessoas(arquivo_excel, progress_callback=None):
     """
     Importa dados da planilha Gestão de Pessoas (Excel).
     Apenas atualiza colaboradores existentes.
@@ -47,6 +47,9 @@ def importar_gestao_pessoas(arquivo_excel):
     4. Atualiza apenas se houver alteração nos campos.
     5. Não cria novos colaboradores.
     """
+    if progress_callback:
+        progress_callback(5, "Lendo planilha de Gestao...")
+
     try:
         # Lê a aba específica. openpyxl suporta .xlsm
         df = pd.read_excel(arquivo_excel, sheet_name="Relação de funcionários", engine='openpyxl')
@@ -64,6 +67,9 @@ def importar_gestao_pessoas(arquivo_excel):
             raise ValueError(f"Coluna '{col}' não encontrada na aba 'Relação de funcionários'.")
 
     # Limpeza e normalização do RE (CÓD. FUNCIONÁRIO)
+    if progress_callback:
+        progress_callback(20, "Normalizando REs e removendo duplicidades...")
+
     def normalizar_re(valor):
         if pd.isna(valor):
             return ""
@@ -95,6 +101,9 @@ def importar_gestao_pessoas(arquivo_excel):
     df_unico = df.drop_duplicates(subset=[col_re], keep='first')
 
     # 1. Carregar colaboradores atuais para memória
+    if progress_callback:
+        progress_callback(35, "Carregando colaboradores e lojas cadastradas...")
+
     colaboradores_atuais = {c.re: c for c in Colaborador.objects.all()}
     lojas_por_nome_gestao, nomes_gestao_duplicados = criar_mapa_lojas_por_nome_gestao()
     
@@ -111,7 +120,12 @@ def importar_gestao_pessoas(arquivo_excel):
 
     para_atualizar = []
 
-    for _, row in df_unico.iterrows():
+    total_linhas = len(df_unico)
+    for indice, (_, row) in enumerate(df_unico.iterrows(), start=1):
+        if progress_callback and total_linhas > 0 and indice % 200 == 0:
+            progresso = 35 + int((indice / total_linhas) * 45)
+            progress_callback(progresso, f"Comparando colaboradores da Gestao... {indice}/{total_linhas}")
+
         re_val = row[col_re]
         try:
             colaborador = colaboradores_atuais.get(re_val)
@@ -162,6 +176,9 @@ def importar_gestao_pessoas(arquivo_excel):
             continue
 
     # 2. Gravação em massa
+    if progress_callback:
+        progress_callback(85, "Gravando alteracoes da Gestao no banco...")
+
     if para_atualizar:
         with transaction.atomic():
             Colaborador.objects.bulk_update(
@@ -169,5 +186,8 @@ def importar_gestao_pessoas(arquivo_excel):
                 ['funcao_gestao', 'loja_gestao', 'status_gestao'], 
                 batch_size=2000
             )
+
+    if progress_callback:
+        progress_callback(95, "Finalizando resumo da importacao Gestao...")
 
     return stats

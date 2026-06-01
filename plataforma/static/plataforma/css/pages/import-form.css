@@ -4,6 +4,29 @@
   margin-top: 28px;
 }
 
+.import-card-description {
+  margin-bottom: 24px;
+  font-size: 0.875rem;
+}
+
+.import-progress {
+  height: 30px;
+  margin-bottom: 24px;
+}
+
+.import-progress-bar {
+  width: 0%;
+}
+
+.import-status-message {
+  margin-bottom: 24px;
+}
+
+.import-back-button {
+  display: none;
+  text-align: center;
+}
+
 .result-card {
   background-color: #ffffff;
   border: 1px solid #e5e7eb;

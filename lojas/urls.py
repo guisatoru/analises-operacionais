@@ -24,12 +24,13 @@ urlpatterns = [
     path("escopos/<int:pk>/excluir/", login_required(views.escopo_delete), name="excluir_escopo"),
     path("escopos/api/item/save/", login_required(views.api_item_escopo_save), name="api_item_escopo_save"),
     path("escopos/api/item/<int:pk>/delete/", login_required(views.api_item_escopo_delete), name="api_item_escopo_delete"),
-    path("folhas/importar/", login_required(views.folha_import), name="importar_folha"),
+    path("folhas/importar/", login_required(configuracoes.folha_import_async), name="importar_folha"),
     path("folhas/duplicadas/", login_required(views.folha_duplicadas_list), name="lista_folha_duplicadas"),
     
     # ========== NOVAS URLs (usando configuracoes) ==========
     path("importacoes/", login_required(configuracoes.importacoes), name="importacoes"),
     path("colaboradores/importar/", login_required(configuracoes.colaborador_import_async), name="colaborador_import"),
+    path("colaboradores/importar-gestao/", login_required(configuracoes.gestao_import_async), name="gestao_import"),
     path("import-progress/<str:import_id>/", login_required(configuracoes.import_progress), name="import_progress"),
     path("import-status/<str:import_id>/", login_required(configuracoes.import_status_api), name="import_status_api"),
     

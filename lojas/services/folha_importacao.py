@@ -351,11 +351,14 @@ def _linha_para_detalhe_sem_loja(d):
     }
 
 
-def importar_folha_de_texto(conteudo_utf8, arquivo_origem, dry_run=False):
+def importar_folha_de_texto(conteudo_utf8, arquivo_origem, dry_run=False, progress_callback=None):
     """
     Processa o CSV e grava LinhaFolha (transação única).
     Otimizado para performance com Pandas e bulk_create em lote maior.
     """
+    if progress_callback:
+        progress_callback(5, "Lendo e tratando CSV da folha...")
+
     dados = processar_csv_para_linhas(conteudo_utf8, arquivo_origem)
     if not dados:
         return {
@@ -364,6 +367,9 @@ def importar_folha_de_texto(conteudo_utf8, arquivo_origem, dry_run=False):
             "detalhes_sem_loja": [], "detalhes_duplicadas_truncado": False,
             "detalhes_sem_loja_truncado": False,
         }
+
+    if progress_callback:
+        progress_callback(35, "Identificando duplicadas no arquivo...")
 
     # 1. Filtro em Memória com Pandas (Performance interna)
     df_dados = pd.DataFrame(dados)
@@ -386,6 +392,9 @@ def importar_folha_de_texto(conteudo_utf8, arquivo_origem, dry_run=False):
             detalhes_duplicadas.append(_linha_para_detalhe_duplicada(d, "repetida_no_mesmo_arquivo"))
         para_gravar_duplicadas.append(_dict_para_linha_folha_duplicada(d, "REPETIDA_NO_ARQUIVO"))
 
+    if progress_callback:
+        progress_callback(55, "Comparando folha com linhas ja gravadas...")
+
     # 2. Busca eficiente no Banco usando o novo Super-Índice
     matriculas = df_unicos["matricula"].unique().tolist()
     dt_arqs = df_unicos["dt_arq"].unique().tolist()
@@ -406,7 +415,12 @@ def importar_folha_de_texto(conteudo_utf8, arquivo_origem, dry_run=False):
     detalhes_sem_loja = []
     ignoradas_duplicadas = duplicadas_no_arquivo
 
-    for _, d in df_unicos.iterrows():
+    total_unicas = len(df_unicos)
+    for indice, (_, d) in enumerate(df_unicos.iterrows(), start=1):
+        if progress_callback and total_unicas > 0 and indice % 1000 == 0:
+            progresso = 55 + int((indice / total_unicas) * 25)
+            progress_callback(progresso, f"Preparando linhas da folha... {indice}/{total_unicas}")
+
         # Chave para comparação (normalizando o valor decimal)
         k = (d["matricula"], d["verba_id"], _normalizar_valor_chave(d["valor"]), d["dt_arq"], d["centro_custo"])
         
@@ -449,10 +463,16 @@ def importar_folha_de_texto(conteudo_utf8, arquivo_origem, dry_run=False):
     if dry_run:
         return resumo
 
+    if progress_callback:
+        progress_callback(85, "Gravando linhas da folha no banco...")
+
     # 3. Gravação em Lote Otimizada (batch_size=2000)
     with transaction.atomic():
         LinhaFolha.objects.bulk_create(para_gravar, batch_size=2000)
         if para_gravar_duplicadas:
             LinhaFolhaDuplicada.objects.bulk_create(para_gravar_duplicadas, batch_size=2000)
+
+    if progress_callback:
+        progress_callback(95, "Finalizando resumo da importacao SRD...")
 
     return resumo
