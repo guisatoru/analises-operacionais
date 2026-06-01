@@ -1,0 +1,292 @@
+from django.core.paginator import Paginator
+from django.db.models import Q
+from django.shortcuts import render
+
+from lojas.models import Loja
+
+from .models import Colaborador
+from .view_utils import funcao_esta_divergente
+
+
+def colaborador_list(request):
+    """
+    Lista colaboradores ativos com filtros para conferência entre TOTVS, Gestão e GeoVictoria.
+    """
+    filtros = _ler_filtros_colaboradores(request.GET)
+    colaboradores_qs = _buscar_colaboradores_ativos()
+    colaboradores_qs = _aplicar_filtros_colaboradores(colaboradores_qs, filtros)
+
+    paginator = Paginator(colaboradores_qs, 10)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    context = {
+        "page_obj": page_obj,
+        "lojas": _buscar_lojas_ativas(),
+        "cargos_opcoes": _buscar_cargos_ativos(),
+        "status_gestao_opcoes": _buscar_status_gestao_ativos(),
+        "loja_query": filtros["loja"],
+        "loja_gestao_query": filtros["loja_gestao"],
+        "re_query": filtros["re"],
+        "nome_query": filtros["nome"],
+        "cargo_query": filtros["cargo"],
+        "status_query": filtros["status"],
+        "status_gestao_query": filtros["status_gestao"],
+        "divergente_query": filtros["divergente"],
+        "funcao_divergente_query": filtros["funcao_divergente"],
+        "so_totvs_query": filtros["so_totvs"],
+        "status_divergente_query": filtros["status_divergente"],
+        "total_status_divergentes": _contar_status_divergentes_ativos(),
+        "pagina_demitidos": False,
+        "titulo": "Colaboradores",
+    }
+    return render(request, "colaboradores/colaborador_list.html", context)
+
+
+def demitido_list(request):
+    """
+    Lista colaboradores demitidos separadamente para facilitar a conferência de desligamentos.
+    """
+    filtros = _ler_filtros_demitidos(request.GET)
+    colaboradores_qs = Colaborador.objects.filter(status="D").exclude(
+        cargo="AUXILIAR ADMINISTRAT"
+    ).select_related("loja")
+
+    colaboradores_qs = _aplicar_filtros_demitidos(colaboradores_qs, filtros)
+
+    paginator = Paginator(colaboradores_qs, 10)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    context = {
+        "page_obj": page_obj,
+        "lojas": Loja.objects.filter(status="ATIVA").order_by("nome_referencia"),
+        "cargos_opcoes": _buscar_cargos_demitidos(),
+        "loja_query": filtros["loja"],
+        "re_query": filtros["re"],
+        "nome_query": filtros["nome"],
+        "cargo_query": filtros["cargo"],
+        "status_divergente_query": filtros["status_divergente"],
+        "total_status_divergentes": _contar_status_divergentes_demitidos(),
+        "pagina_demitidos": True,
+        "titulo": "Colaboradores Demitidos",
+    }
+    return render(request, "colaboradores/colaborador_list.html", context)
+
+
+def _ler_filtros_colaboradores(params):
+    """
+    Centraliza a leitura dos filtros para a tela e para a sincronização usarem os mesmos nomes.
+    """
+    return {
+        "loja": params.get("loja", ""),
+        "re": params.get("re", ""),
+        "nome": params.get("nome", ""),
+        "cargo": params.get("cargo", ""),
+        "status": params.get("status", ""),
+        "loja_gestao": params.get("loja_gestao", ""),
+        "status_gestao": params.get("status_gestao", ""),
+        "divergente": params.get("divergente", ""),
+        "funcao_divergente": params.get("funcao_divergente", ""),
+        "so_totvs": params.get("so_totvs", ""),
+        "status_divergente": params.get("status_divergente", ""),
+    }
+
+
+def _ler_filtros_demitidos(params):
+    """
+    Lê apenas os filtros usados na tela de demitidos para manter o contexto explícito.
+    """
+    return {
+        "loja": params.get("loja", ""),
+        "re": params.get("re", ""),
+        "nome": params.get("nome", ""),
+        "cargo": params.get("cargo", ""),
+        "status_divergente": params.get("status_divergente", ""),
+    }
+
+
+def _buscar_colaboradores_ativos():
+    """
+    Mantém a consulta base dos ativos em um único lugar para evitar diferenças entre telas.
+    """
+    return Colaborador.objects.exclude(status="D").exclude(
+        cargo="AUXILIAR ADMINISTRAT"
+    ).select_related("loja", "loja_gestao", "loja_geo")
+
+
+def _aplicar_filtros_colaboradores(colaboradores_qs, filtros):
+    """
+    Aplica os filtros da listagem de ativos de forma direta e previsível.
+    """
+    if filtros["loja"]:
+        colaboradores_qs = colaboradores_qs.filter(loja_id=filtros["loja"])
+
+    if filtros["loja_gestao"]:
+        colaboradores_qs = colaboradores_qs.filter(
+            Q(loja_gestao__nome_gestao__icontains=filtros["loja_gestao"])
+            | Q(loja_gestao__nome_referencia__icontains=filtros["loja_gestao"])
+        )
+
+    if filtros["re"]:
+        colaboradores_qs = colaboradores_qs.filter(re__icontains=filtros["re"])
+
+    if filtros["nome"]:
+        colaboradores_qs = colaboradores_qs.filter(nome__icontains=filtros["nome"])
+
+    if filtros["cargo"]:
+        colaboradores_qs = colaboradores_qs.filter(cargo__iexact=filtros["cargo"])
+
+    if filtros["status"]:
+        if filtros["status"] == "ativo":
+            colaboradores_qs = colaboradores_qs.exclude(status__in=["A", "F"])
+        else:
+            colaboradores_qs = colaboradores_qs.filter(status=filtros["status"])
+
+    if filtros["status_gestao"]:
+        colaboradores_qs = colaboradores_qs.filter(
+            status_gestao__iexact=filtros["status_gestao"]
+        )
+
+    if filtros["funcao_divergente"] == "S":
+        ids_funcao_divergente = [
+            colaborador.id
+            for colaborador in colaboradores_qs
+            if funcao_esta_divergente(colaborador)
+        ]
+        colaboradores_qs = colaboradores_qs.filter(id__in=ids_funcao_divergente)
+
+    if filtros["divergente"] == "S":
+        colaboradores_qs = colaboradores_qs.exclude(status="A").exclude(
+            loja__dispensa_gestao_pessoas=True,
+        ).filter(
+            loja__isnull=False,
+        ).filter(
+            Q(loja_gestao__isnull=False) | Q(loja_geo__isnull=False)
+        )
+        ids_divergentes = [
+            colaborador.id for colaborador in colaboradores_qs if colaborador.is_divergente
+        ]
+        colaboradores_qs = colaboradores_qs.filter(id__in=ids_divergentes)
+
+    if filtros["so_totvs"] == "S":
+        colaboradores_qs = colaboradores_qs.exclude(
+            loja__dispensa_gestao_pessoas=True,
+        ).filter(
+            loja__isnull=False,
+            loja_gestao__isnull=True,
+        )
+
+    if filtros["status_divergente"] == "S":
+        colaboradores_qs = colaboradores_qs.filter(_filtro_status_divergente_ativo())
+
+    return colaboradores_qs
+
+
+def _aplicar_filtros_demitidos(colaboradores_qs, filtros):
+    """
+    Aplica os filtros da listagem de demitidos mantendo a regra separada dos ativos.
+    """
+    if filtros["loja"]:
+        colaboradores_qs = colaboradores_qs.filter(loja_id=filtros["loja"])
+
+    if filtros["re"]:
+        colaboradores_qs = colaboradores_qs.filter(re__icontains=filtros["re"])
+
+    if filtros["nome"]:
+        colaboradores_qs = colaboradores_qs.filter(nome__icontains=filtros["nome"])
+
+    if filtros["cargo"]:
+        colaboradores_qs = colaboradores_qs.filter(cargo__iexact=filtros["cargo"])
+
+    if filtros["status_divergente"] == "S":
+        colaboradores_qs = colaboradores_qs.filter(_filtro_status_divergente_demitido())
+
+    return colaboradores_qs
+
+
+def _buscar_lojas_ativas():
+    """
+    Busca lojas ativas respeitando o método customizado de ordenação quando ele existir.
+    """
+    lojas_qs = Loja.objects.filter(status="ATIVA")
+    if hasattr(Loja.objects, "order_title"):
+        return lojas_qs.order_title()
+    return lojas_qs.order_by("nome_referencia")
+
+
+def _buscar_cargos_ativos():
+    """
+    Monta opções de cargo a partir dos colaboradores ativos para preencher o filtro da tela.
+    """
+    cargos_unicos = Colaborador.objects.exclude(status="D").exclude(
+        cargo="AUXILIAR ADMINISTRAT"
+    ).values_list("cargo", flat=True).distinct().order_by("cargo")
+    return sorted(set(cargo.strip() for cargo in cargos_unicos if cargo.strip()))
+
+
+def _buscar_cargos_demitidos():
+    """
+    Monta opções de cargo a partir dos demitidos para preencher o filtro correto da tela.
+    """
+    cargos_unicos = Colaborador.objects.filter(status="D").exclude(
+        cargo="AUXILIAR ADMINISTRAT"
+    ).values_list("cargo", flat=True).distinct().order_by("cargo")
+    return sorted(set(cargo.strip() for cargo in cargos_unicos if cargo.strip()))
+
+
+def _buscar_status_gestao_ativos():
+    """
+    Monta opções de status da Gestão usando apenas registros ativos exibidos na tela principal.
+    """
+    status_gestao_unicos = Colaborador.objects.exclude(status="D").exclude(
+        cargo="AUXILIAR ADMINISTRAT"
+    ).values_list("status_gestao", flat=True)
+    return sorted(
+        set(
+            status.strip().upper()
+            for status in status_gestao_unicos
+            if status and status.strip()
+        )
+    )
+
+
+def _contar_status_divergentes_ativos():
+    """
+    Calcula o total do atalho de status divergente para mostrar o indicador na tela de ativos.
+    """
+    return Colaborador.objects.exclude(status="D").exclude(
+        cargo="AUXILIAR ADMINISTRAT"
+    ).filter(_filtro_status_divergente_ativo()).count()
+
+
+def _contar_status_divergentes_demitidos():
+    """
+    Calcula o total do atalho de status divergente para mostrar o indicador na tela de demitidos.
+    """
+    return Colaborador.objects.filter(status="D").exclude(
+        cargo="AUXILIAR ADMINISTRAT"
+    ).filter(_filtro_status_divergente_demitido()).count()
+
+
+def _filtro_status_divergente_ativo():
+    """
+    Reúne as condições de status divergente dos ativos para evitar copiar a mesma regra.
+    """
+    return (
+        Q(status__in=["", "A", "F"])
+        & (
+            Q(status_gestao__icontains="DESLIG")
+            | Q(status_gestao__icontains="DEMIT")
+            | Q(status_gestao__icontains="ENCERRADO")
+        )
+    )
+
+
+def _filtro_status_divergente_demitido():
+    """
+    Reúne as condições de status divergente dos demitidos para evitar copiar a mesma regra.
+    """
+    return (
+        Q(status_gestao__isnull=True)
+        | Q(status_gestao="")
+        | (~Q(status_gestao__icontains="DEMIT"))
+    )
