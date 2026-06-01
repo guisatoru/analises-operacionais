@@ -155,7 +155,7 @@ export default function Terminos() {
       if (coordenador) params.coordenador = coordenador;
       if (statusGestao) params.status_gestao = statusGestao;
 
-      const response = await api.get('/colaboradores/sync-geovictoria/', { params });
+      const response = await api.post('/colaboradores/sync-geovictoria/', null, { params });
       
       if (response.data.status === 'started') {
         // Cria loop de polling para checar progresso a cada 1 segundo
@@ -320,11 +320,11 @@ export default function Terminos() {
       </div>
 
       {/* Seção Sincronização & Ordenação */}
-      <div className="flex flex-col md:flex-row items-start md:items-center gap-4 p-4 bg-card border border-border rounded-xl shadow-sm">
+      <div className="flex flex-col md:flex-row items-start md:items-center gap-4 p-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs shadow-sm">
         <button
           onClick={handleStartSyncGeoVictoria}
           disabled={syncLoading}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/95 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full text-xs font-bold hover:bg-neutral-850 dark:hover:bg-neutral-100 shadow-xs transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {syncLoading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -351,7 +351,7 @@ export default function Terminos() {
 
       {/* Barra de Progresso da Sincronização */}
       {showProgressBar && (
-        <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-2 animate-fade-in">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs p-5 shadow-sm space-y-2 animate-fade-in">
           <div className="flex items-center justify-between text-sm">
             <span className="font-semibold text-neutral-700 dark:text-neutral-300">{syncMessage}</span>
             <span className="font-bold text-primary">{syncProgress}%</span>
@@ -366,7 +366,7 @@ export default function Terminos() {
       )}
 
       {/* Filtros */}
-      <form onSubmit={handleSearchSubmit} className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
+      <form onSubmit={handleSearchSubmit} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs p-5 shadow-sm space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1.5">
@@ -379,7 +379,7 @@ export default function Terminos() {
                 placeholder="Ex: Pedro / 001290..."
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full pl-9 pr-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
               />
             </div>
           </div>
@@ -393,7 +393,7 @@ export default function Terminos() {
               placeholder="Ex: Marcos Silva..."
               value={coordenador}
               onChange={(e) => setCoordenador(e.target.value)}
-              className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
             />
           </div>
 
@@ -406,7 +406,7 @@ export default function Terminos() {
               placeholder="Ex: ATIVO / AFASTADO..."
               value={statusGestao}
               onChange={(e) => setStatusGestao(e.target.value)}
-              className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
             />
           </div>
 
@@ -417,7 +417,7 @@ export default function Terminos() {
             <select
               value={ordenacao}
               onChange={(e) => setOrdenacao(e.target.value)}
-              className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
             >
               <option value="data">Data de Término mais próxima</option>
               <option value="faltas">Quantidade de Faltas (Geo)</option>
@@ -430,13 +430,13 @@ export default function Terminos() {
           <button
             type="button"
             onClick={handleClearFilters}
-            className="px-4 py-2 border border-border hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg text-sm font-semibold transition-colors"
+            className="px-5 py-2.5 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 rounded-full text-xs font-bold text-neutral-700 dark:text-neutral-300 text-sm font-semibold transition-colors"
           >
             Limpar Filtros
           </button>
           <button
             type="submit"
-            className="px-5 py-2 bg-neutral-900 text-white dark:bg-neutral-50 dark:text-neutral-900 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
+            className="px-6 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full text-xs font-bold hover:bg-neutral-850 dark:hover:bg-neutral-100 shadow-xs transition-opacity"
           >
             Buscar Prazos
           </button>
@@ -445,18 +445,18 @@ export default function Terminos() {
 
       {/* Erro de comunicação */}
       {errorMsg && !showAcaoModal && (
-        <div className="p-4 bg-red-950/50 border border-red-900 text-red-200 rounded-lg text-sm flex gap-3 items-center">
+        <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 rounded-lg text-sm flex gap-3 items-center">
           <AlertCircle className="h-5 w-5 text-red-400 shrink-0" />
           <span>{errorMsg}</span>
         </div>
       )}
 
       {/* Listagem */}
-      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-border bg-neutral-500/5 text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+              <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 text-xs font-semibold text-neutral-400 uppercase tracking-wider">
                 <th className="py-4 px-6">RE / Colaborador</th>
                 <th className="py-4 px-6">Loja Física (TOTVS)</th>
                 <th className="py-4 px-6">Coordenador</th>
@@ -485,7 +485,7 @@ export default function Terminos() {
                 </tr>
               ) : (
                 terminos.map((item) => (
-                  <tr key={item.colaborador.id} className="hover:bg-neutral-500/5 transition-colors">
+                  <tr key={item.colaborador.id} className="hover:bg-neutral-50 dark:bg-neutral-850 transition-colors">
                     <td className="py-4 px-6">
                       <div className="font-semibold text-neutral-900 dark:text-neutral-100">{item.colaborador.nome}</div>
                       <div className="text-xs text-neutral-400 font-mono">RE: {item.colaborador.re}</div>
@@ -567,7 +567,7 @@ export default function Terminos() {
 
         {/* Paginação */}
         {!loading && totalPages > 1 && (
-          <div className="py-4 px-6 border-t border-border flex items-center justify-between">
+          <div className="py-4 px-6 border-t border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
             <span className="text-xs text-neutral-500">
               Mostrando {terminos.length} de {count} termos contratuais
             </span>
@@ -575,7 +575,7 @@ export default function Terminos() {
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                className="p-1.5 border border-border rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -585,7 +585,7 @@ export default function Terminos() {
               <button
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                className="p-1.5 border border-border rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -597,8 +597,8 @@ export default function Terminos() {
       {/* Modal de Registro de Decisão */}
       {showAcaoModal && selectedItem && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-scale-in">
-            <div className="flex items-center justify-between p-6 border-b border-border bg-neutral-500/5">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs shadow-xl w-full max-w-lg overflow-hidden animate-scale-in">
+            <div className="flex items-center justify-between p-6 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850">
               <div>
                 <h3 className="font-bold text-lg text-neutral-900 dark:text-neutral-100">
                   Decisão de Término
@@ -615,24 +615,24 @@ export default function Terminos() {
 
             <form onSubmit={handleSaveAcao} className="p-6 space-y-4">
               {errorMsg && (
-                <div className="p-3 bg-red-950/50 border border-red-900 text-red-200 rounded-md text-xs flex gap-2">
+                <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 rounded-md text-xs flex gap-2">
                   <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
                   <span>{errorMsg}</span>
                 </div>
               )}
 
               {/* Informações GeoVictoria */}
-              <div className="bg-neutral-500/5 p-4 rounded-xl border border-border space-y-2">
+              <div className="bg-neutral-50 dark:bg-neutral-850 p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 space-y-2">
                 <h4 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
                   <Clock className="h-4 w-4" />
                   Dados do Relógio GeoVictoria
                 </h4>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-card p-3 rounded-lg border border-border text-center">
+                  <div className="bg-card p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 text-center">
                     <span className="block text-[10px] font-bold text-neutral-400 uppercase">Faltas Coletadas</span>
                     <span className="text-xl font-bold text-red-500">{selectedItem.faltas}</span>
                   </div>
-                  <div className="bg-card p-3 rounded-lg border border-border text-center">
+                  <div className="bg-card p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 text-center">
                     <span className="block text-[10px] font-bold text-neutral-400 uppercase">Atestados Coletados</span>
                     <span className="text-xl font-bold text-amber-500">{selectedItem.atestados}</span>
                   </div>
@@ -698,21 +698,21 @@ export default function Terminos() {
                   required
                   value={observacao}
                   onChange={(e) => setObservacao(e.target.value)}
-                  className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary h-24 resize-none"
+                  className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white h-24 resize-none"
                   placeholder="Descreva o motivo da decisão..."
                 />
               </div>
 
               {/* Histórico anterior se houver */}
               {selectedItem.history && selectedItem.history.length > 0 && (
-                <div className="space-y-2 border-t border-border pt-4">
+                <div className="space-y-2 border-t border-neutral-200 dark:border-neutral-800 pt-4">
                   <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider flex items-center gap-1">
                     <Briefcase className="h-4 w-4" />
                     Histórico de Acompanhamento
                   </h4>
                   <div className="space-y-2 max-h-28 overflow-y-auto">
                     {selectedItem.history.map((hist) => (
-                      <div key={hist.id} className="p-2 bg-neutral-500/5 rounded border border-border text-xs">
+                      <div key={hist.id} className="p-2 bg-neutral-50 dark:bg-neutral-850 rounded border border-neutral-200 dark:border-neutral-800 text-xs">
                         <div className="flex justify-between font-semibold mb-1">
                           <span className="text-primary capitalize">{hist.acao_display || hist.acao}</span>
                           <span className="text-neutral-400">{hist.respondido_por || 'Sistema'}</span>
@@ -724,18 +724,18 @@ export default function Terminos() {
                 </div>
               )}
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-border mt-6">
+              <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200 dark:border-neutral-800 mt-6">
                 <button
                   type="button"
                   onClick={() => setShowAcaoModal(false)}
-                  className="px-4 py-2 border border-border hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg text-sm font-semibold transition-colors"
+                  className="px-5 py-2.5 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 rounded-full text-xs font-bold text-neutral-700 dark:text-neutral-300 text-sm font-semibold transition-colors"
                 >
                   Voltar
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-5 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center gap-2"
+                  className="px-6 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full text-xs font-bold hover:bg-neutral-850 dark:hover:bg-neutral-100 shadow-xs disabled:opacity-50 transition-colors flex items-center gap-2"
                 >
                   {actionLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                   Salvar Decisão

@@ -129,7 +129,7 @@ export default function Importacoes() {
       </div>
 
       {errorMsg && (
-        <div className="p-4 bg-red-950/50 border border-red-900 text-red-200 rounded-lg text-sm flex gap-3 items-center">
+        <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 rounded-lg text-sm flex gap-3 items-center">
           <AlertCircle className="h-5 w-5 text-red-400 shrink-0" />
           <span>{errorMsg}</span>
         </div>
@@ -138,7 +138,7 @@ export default function Importacoes() {
       {/* Grid de Cards de Upload */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Card Colaboradores SRA */}
-        <div className="bg-card border border-border rounded-xl p-6 shadow-sm flex flex-col justify-between space-y-4">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs p-6 shadow-sm flex flex-col justify-between space-y-4">
           <div className="space-y-2">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
               <Users className="h-6 w-6" />
@@ -150,7 +150,7 @@ export default function Importacoes() {
           </div>
 
           <div className="space-y-3 pt-2">
-            <label className="border border-dashed border-input rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-500/5 transition-colors">
+            <label className="border border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-50 dark:bg-neutral-850 transition-colors">
               <UploadCloud className="h-6 w-6 text-neutral-400 mb-2" />
               <span className="text-xs font-semibold text-neutral-500">
                 {sraFile ? sraFile.name : 'Selecionar arquivo CSV'}
@@ -167,7 +167,7 @@ export default function Importacoes() {
             <button
               onClick={() => handleUpload('sra', sraFile)}
               disabled={loading || !sraFile}
-              className="w-full py-2.5 bg-neutral-900 hover:opacity-90 dark:bg-neutral-50 dark:text-neutral-900 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2"
+              className="w-full py-2.5 bg-neutral-900 hover:bg-neutral-850 dark:bg-white dark:text-neutral-900 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-full text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs"
             >
               {loading && !activeImportId && <Loader2 className="h-4 w-4 animate-spin" />}
               Importar Colaboradores
@@ -176,7 +176,7 @@ export default function Importacoes() {
         </div>
 
         {/* Card Gestão de Pessoas */}
-        <div className="bg-card border border-border rounded-xl p-6 shadow-sm flex flex-col justify-between space-y-4">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs p-6 shadow-sm flex flex-col justify-between space-y-4">
           <div className="space-y-2">
             <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
               <FileSpreadsheet className="h-6 w-6" />
@@ -188,7 +188,7 @@ export default function Importacoes() {
           </div>
 
           <div className="space-y-3 pt-2">
-            <label className="border border-dashed border-input rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-500/5 transition-colors">
+            <label className="border border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-50 dark:bg-neutral-850 transition-colors">
               <UploadCloud className="h-6 w-6 text-emerald-500 mb-2" />
               <span className="text-xs font-semibold text-neutral-500">
                 {gestaoFile ? gestaoFile.name : 'Selecionar planilha Excel'}
@@ -205,7 +205,7 @@ export default function Importacoes() {
             <button
               onClick={() => handleUpload('gestao', gestaoFile)}
               disabled={loading || !gestaoFile}
-              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2"
+              className="w-full py-2.5 bg-neutral-900 hover:bg-neutral-850 dark:bg-white dark:text-neutral-900 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-full text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs"
             >
               {loading && !activeImportId && <Loader2 className="h-4 w-4 animate-spin" />}
               Importar Planilha Gestão
@@ -214,7 +214,7 @@ export default function Importacoes() {
         </div>
 
         {/* Card Folha de Pagamento SRD */}
-        <div className="bg-card border border-border rounded-xl p-6 shadow-sm flex flex-col justify-between space-y-4">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs p-6 shadow-sm flex flex-col justify-between space-y-4">
           <div className="space-y-2">
             <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
               <FileText className="h-6 w-6" />
@@ -226,7 +226,7 @@ export default function Importacoes() {
           </div>
 
           <div className="space-y-3 pt-2">
-            <label className="border border-dashed border-input rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-500/5 transition-colors">
+            <label className="border border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-50 dark:bg-neutral-850 transition-colors">
               <UploadCloud className="h-6 w-6 text-blue-500 mb-2" />
               <span className="text-xs font-semibold text-neutral-500">
                 {folhaFile ? folhaFile.name : 'Selecionar arquivo CSV'}
@@ -243,7 +243,7 @@ export default function Importacoes() {
             <button
               onClick={() => handleUpload('folha', folhaFile)}
               disabled={loading || !folhaFile}
-              className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2"
+              className="w-full py-2.5 bg-neutral-900 hover:bg-neutral-850 dark:bg-white dark:text-neutral-900 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-full text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs"
             >
               {loading && !activeImportId && <Loader2 className="h-4 w-4 animate-spin" />}
               Importar Folha SRD
@@ -255,8 +255,8 @@ export default function Importacoes() {
       {/* Modal de Progresso e Resultado */}
       {importStatus && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-scale-in">
-            <div className="flex items-center justify-between p-6 border-b border-border bg-neutral-500/5">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs shadow-xl w-full max-w-lg overflow-hidden animate-scale-in">
+            <div className="flex items-center justify-between p-6 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850">
               <div>
                 <h3 className="font-bold text-lg text-neutral-900 dark:text-neutral-100">
                   {importStatus.titulo || 'Progresso do Processamento'}
@@ -292,8 +292,8 @@ export default function Importacoes() {
               {importStatus.status === 'completed' && (
                 <div className={`p-4 rounded-xl border flex gap-3 items-start ${
                   importStatus.msg_type === 'success' 
-                    ? 'bg-green-950/20 border-green-500/30 text-green-200' 
-                    : 'bg-amber-950/20 border-amber-500/30 text-amber-200'
+                    ? 'bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800/40 text-green-700 dark:text-green-300' 
+                    : 'bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 text-amber-700 dark:text-amber-300'
                 }`}>
                   {importStatus.msg_type === 'success' ? (
                     <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
@@ -308,7 +308,7 @@ export default function Importacoes() {
               )}
             </div>
 
-            <div className="flex justify-end p-6 border-t border-border bg-neutral-500/5">
+            <div className="flex justify-end p-6 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850">
               <button
                 type="button"
                 disabled={importStatus.status === 'processing'}

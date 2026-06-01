@@ -98,8 +98,11 @@ class TerminoColaboradorSerializer(serializers.Serializer):
     Este serializer não-modelo existe para envelopar o estado completo de término
     de experiência de um colaborador específico, unindo seu cadastro, o estado do término
     calculado dinamicamente no Python, a data relevante da fase atual e o histórico de ações tomadas.
+    Também expõe as quantidades consolidadas de faltas e atestados para exibição em tela.
     """
     colaborador = ColaboradorSerializer()
     state = serializers.DictField()
     relevant_date = serializers.DateField()
     history = ControleTerminoSerializer(many=True)
+    faltas = serializers.CharField()
+    atestados = serializers.CharField()

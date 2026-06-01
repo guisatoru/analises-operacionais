@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, User, AlertCircle, Loader2 } from 'lucide-react';
+import { Lock, User, AlertCircle, Loader2, TrendingUp } from 'lucide-react';
 import api from '../api/client';
 
 interface LoginProps {
@@ -34,16 +34,13 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     }
 
     try {
-      // Faz a chamada de login para a API Django
       const response = await api.post('/usuarios/api/login/', {
         username: usernameInput,
         password: passwordInput,
       });
 
       if (response.data.success) {
-        // Notifica o componente pai sobre o sucesso e o nome do usuário
         onLoginSuccess(response.data.user.username);
-        // Redireciona para o Dashboard (Home)
         navigate('/');
       } else {
         setErrorMsg(response.data.error || 'Erro desconhecido ao autenticar.');
@@ -61,33 +58,36 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-neutral-100 dark:bg-neutral-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <h2 className="text-3xl font-extrabold text-white tracking-tight">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-xs mb-4">
+          <TrendingUp className="h-6 w-6" />
+        </div>
+        <h2 className="text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
           Análises Operacionais
         </h2>
-        <p className="mt-2 text-sm text-neutral-400">
+        <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-450">
           Entre com as suas credenciais de analista
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-neutral-900 py-8 px-4 shadow-xl border border-neutral-800 rounded-xl sm:px-10">
+        <div className="bg-white dark:bg-neutral-900 py-8 px-4 shadow-sm border border-neutral-200 dark:border-neutral-800 rounded-2xl sm:px-10">
           
           {errorMsg && (
-            <div className="mb-6 p-4 rounded-lg bg-red-950/50 border border-red-900 text-red-200 text-sm flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 shrink-0 text-red-400" />
+            <div className="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 text-xs flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 shrink-0 text-red-600 dark:text-red-400" />
               <span>{errorMsg}</span>
             </div>
           )}
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-neutral-300">
+              <label htmlFor="username" className="block text-xs font-semibold text-neutral-400 dark:text-neutral-450 uppercase tracking-wider mb-1.5">
                 Usuário
               </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-500">
+              <div className="relative rounded-md shadow-xs">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-400">
                   <User className="h-4 w-4" />
                 </div>
                 <input
@@ -97,7 +97,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   required
                   value={usernameInput}
                   onChange={(e) => setUsernameInput(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2 border border-neutral-700 rounded-lg bg-neutral-950 text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
+                  className="block w-full pl-10 pr-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white text-sm"
                   placeholder="Seu usuário"
                   disabled={isLoading}
                 />
@@ -105,11 +105,11 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-neutral-300">
+              <label htmlFor="password" className="block text-xs font-semibold text-neutral-400 dark:text-neutral-450 uppercase tracking-wider mb-1.5">
                 Senha
               </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-500">
+              <div className="relative rounded-md shadow-xs">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-400">
                   <Lock className="h-4 w-4" />
                 </div>
                 <input
@@ -119,18 +119,18 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   required
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2 border border-neutral-700 rounded-lg bg-neutral-950 text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
+                  className="block w-full pl-10 pr-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white text-sm"
                   placeholder="Sua senha"
                   disabled={isLoading}
                 />
               </div>
             </div>
 
-            <div>
+            <div className="pt-2">
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex justify-center items-center gap-2 py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-900 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="w-full flex justify-center items-center gap-2 py-2.5 px-4 rounded-full text-xs font-bold text-white bg-neutral-900 dark:bg-white dark:text-neutral-900 hover:bg-neutral-850 dark:hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer shadow-xs"
               >
                 {isLoading ? (
                   <>

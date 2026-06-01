@@ -279,7 +279,7 @@ export default function Lojas() {
         </div>
         <button
           onClick={handleOpenCadastroNovo}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/95 transition-all shadow-sm"
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full text-xs font-bold hover:bg-neutral-850 dark:hover:bg-neutral-100 shadow-xs transition-all shadow-sm"
         >
           <Plus className="h-4 w-4" />
           Cadastrar Nova Loja
@@ -287,7 +287,7 @@ export default function Lojas() {
       </div>
 
       {/* Bloco de Filtros */}
-      <form onSubmit={handleSearchSubmit} className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
+      <form onSubmit={handleSearchSubmit} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs p-5 shadow-sm space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1.5">
@@ -300,7 +300,7 @@ export default function Lojas() {
                 placeholder="Ex: Loja Centro..."
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full pl-9 pr-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
               />
             </div>
           </div>
@@ -314,7 +314,7 @@ export default function Lojas() {
               placeholder="Ex: Grupo Sul..."
               value={cliente}
               onChange={(e) => setCliente(e.target.value)}
-              className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
             />
           </div>
 
@@ -327,7 +327,7 @@ export default function Lojas() {
               placeholder="Ex: 10200..."
               value={centroCusto}
               onChange={(e) => setCentroCusto(e.target.value)}
-              className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
             />
           </div>
 
@@ -338,7 +338,7 @@ export default function Lojas() {
             <select
               value={statusFiltro}
               onChange={(e) => setStatusFiltro(e.target.value)}
-              className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
             >
               <option value="">Todos os status</option>
               <option value="ATIVA">Ativa</option>
@@ -351,13 +351,13 @@ export default function Lojas() {
           <button
             type="button"
             onClick={handleClearFilters}
-            className="px-4 py-2 border border-border hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg text-sm font-semibold transition-colors"
+            className="px-5 py-2.5 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 rounded-full text-xs font-bold text-neutral-700 dark:text-neutral-300 text-sm font-semibold transition-colors"
           >
             Limpar Filtros
           </button>
           <button
             type="submit"
-            className="px-5 py-2 bg-neutral-900 text-white dark:bg-neutral-50 dark:text-neutral-900 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
+            className="px-6 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full text-xs font-bold hover:bg-neutral-850 dark:hover:bg-neutral-100 shadow-xs transition-opacity"
           >
             Buscar Filiais
           </button>
@@ -366,18 +366,18 @@ export default function Lojas() {
 
       {/* Erro de comunicação */}
       {errorMsg && !showCadastroModal && !showInsalubridadeModal && (
-        <div className="p-4 bg-red-950/50 border border-red-900 text-red-200 rounded-lg text-sm flex gap-3 items-center">
+        <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 rounded-lg text-sm flex gap-3 items-center">
           <AlertCircle className="h-5 w-5 text-red-400 shrink-0" />
           <span>{errorMsg}</span>
         </div>
       )}
 
       {/* Listagem em Tabela */}
-      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-border bg-neutral-500/5 text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+              <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 text-xs font-semibold text-neutral-400 uppercase tracking-wider">
                 <th className="py-4 px-6">Cód. Loja</th>
                 <th className="py-4 px-6">Nome de Referência</th>
                 <th className="py-4 px-6">Cliente/Regional</th>
@@ -405,7 +405,7 @@ export default function Lojas() {
                 </tr>
               ) : (
                 lojas.map((loja) => (
-                  <tr key={loja.id} className="hover:bg-neutral-500/5 transition-colors">
+                  <tr key={loja.id} className="hover:bg-neutral-50 dark:bg-neutral-850 transition-colors">
                     <td className="py-4 px-6 font-mono text-neutral-400">{loja.codigo_loja || '-'}</td>
                     <td className="py-4 px-6 font-semibold text-neutral-900 dark:text-neutral-100">
                       {loja.nome_referencia}
@@ -455,7 +455,7 @@ export default function Lojas() {
 
         {/* Paginação */}
         {!loading && totalPages > 1 && (
-          <div className="py-4 px-6 border-t border-border flex items-center justify-between">
+          <div className="py-4 px-6 border-t border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
             <span className="text-xs text-neutral-500">
               Mostrando {lojas.length} de {count} filiais cadastradas
             </span>
@@ -463,7 +463,7 @@ export default function Lojas() {
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                className="p-1.5 border border-border rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -473,7 +473,7 @@ export default function Lojas() {
               <button
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                className="p-1.5 border border-border rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -485,8 +485,8 @@ export default function Lojas() {
       {/* Modal de Cadastro/Edição de Loja */}
       {showCadastroModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-scale-in">
-            <div className="flex items-center justify-between p-6 border-b border-border bg-neutral-500/5">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs shadow-xl w-full max-w-lg overflow-hidden animate-scale-in">
+            <div className="flex items-center justify-between p-6 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850">
               <h3 className="font-bold text-lg text-neutral-900 dark:text-neutral-100">
                 {selectedLoja ? 'Editar Loja' : 'Cadastrar Nova Loja'}
               </h3>
@@ -500,7 +500,7 @@ export default function Lojas() {
 
             <form onSubmit={handleSaveLoja} className="p-6 space-y-4">
               {errorMsg && (
-                <div className="p-3 bg-red-950/50 border border-red-900 text-red-200 rounded-md text-xs flex gap-2">
+                <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 rounded-md text-xs flex gap-2">
                   <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
                   <span>{errorMsg}</span>
                 </div>
@@ -516,7 +516,7 @@ export default function Lojas() {
                     required
                     value={formNome}
                     onChange={(e) => setFormNome(e.target.value)}
-                    className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
                     placeholder="Ex: Loja São Paulo Centro"
                   />
                 </div>
@@ -530,7 +530,7 @@ export default function Lojas() {
                     required
                     value={formCliente}
                     onChange={(e) => setFormCliente(e.target.value)}
-                    className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
                     placeholder="Ex: Grupo Norte"
                   />
                 </div>
@@ -543,7 +543,7 @@ export default function Lojas() {
                     type="number"
                     value={formCodigo}
                     onChange={(e) => setFormCodigo(e.target.value)}
-                    className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
                     placeholder="Ex: 104"
                   />
                 </div>
@@ -557,7 +557,7 @@ export default function Lojas() {
                     required
                     value={formCentroCusto}
                     onChange={(e) => setFormCentroCusto(e.target.value)}
-                    className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
                     placeholder="Ex: 20100"
                   />
                 </div>
@@ -570,7 +570,7 @@ export default function Lojas() {
                     type="text"
                     value={formQuadro}
                     onChange={(e) => setFormQuadro(e.target.value)}
-                    className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
                     placeholder="Ex: 12"
                   />
                 </div>
@@ -582,7 +582,7 @@ export default function Lojas() {
                   <select
                     value={formStatus}
                     onChange={(e) => setFormStatus(e.target.value)}
-                    className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
                   >
                     <option value="ATIVA">Ativa</option>
                     <option value="INATIVA">Inativa</option>
@@ -595,7 +595,7 @@ export default function Lojas() {
                     id="dispensa_gestao"
                     checked={formDispensaGestao}
                     onChange={(e) => setFormDispensaGestao(e.target.checked)}
-                    className="rounded border-input text-primary focus:ring-primary h-4 w-4"
+                    className="rounded border-neutral-200 dark:border-neutral-800 text-primary focus:ring-primary h-4 w-4"
                   />
                   <label htmlFor="dispensa_gestao" className="text-sm text-neutral-600 dark:text-neutral-400 select-none">
                     Dispensar esta loja do controle de Gestão de Pessoas
@@ -603,18 +603,18 @@ export default function Lojas() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-border mt-6">
+              <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200 dark:border-neutral-800 mt-6">
                 <button
                   type="button"
                   onClick={() => setShowCadastroModal(false)}
-                  className="px-4 py-2 border border-border hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg text-sm font-semibold transition-colors"
+                  className="px-5 py-2.5 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 rounded-full text-xs font-bold text-neutral-700 dark:text-neutral-300 text-sm font-semibold transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-5 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center gap-2"
+                  className="px-6 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full text-xs font-bold hover:bg-neutral-850 dark:hover:bg-neutral-100 shadow-xs disabled:opacity-50 transition-colors flex items-center gap-2"
                 >
                   {actionLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                   Salvar Loja
@@ -628,8 +628,8 @@ export default function Lojas() {
       {/* Modal de Configuração de Insalubridade */}
       {showInsalubridadeModal && selectedLoja && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-scale-in">
-            <div className="flex items-center justify-between p-6 border-b border-border bg-neutral-500/5">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs shadow-xl w-full max-w-lg overflow-hidden animate-scale-in">
+            <div className="flex items-center justify-between p-6 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850">
               <div>
                 <h3 className="font-bold text-lg text-neutral-900 dark:text-neutral-100">
                   Configurar Insalubridade
@@ -646,7 +646,7 @@ export default function Lojas() {
 
             <form onSubmit={handleSaveInsalubridade} className="p-6 space-y-4">
               {errorMsg && (
-                <div className="p-3 bg-red-950/50 border border-red-900 text-red-200 rounded-md text-xs flex gap-2">
+                <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 rounded-md text-xs flex gap-2">
                   <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
                   <span>{errorMsg}</span>
                 </div>
@@ -655,7 +655,7 @@ export default function Lojas() {
               <div className="grid grid-cols-2 gap-4">
                 {/* Seção Insalubridade Fixa */}
                 <div className="col-span-2">
-                  <h4 className="font-bold text-sm text-primary border-b border-border pb-1 mb-2">Insalubridade Fixa</h4>
+                  <h4 className="font-bold text-sm text-primary border-b border-neutral-200 dark:border-neutral-800 pb-1 mb-2">Insalubridade Fixa</h4>
                 </div>
 
                 <div>
@@ -668,7 +668,7 @@ export default function Lojas() {
                     required
                     value={insalConfig.insalubridade_fixa_percentual}
                     onChange={(e) => setInsalConfig({ ...insalConfig, insalubridade_fixa_percentual: e.target.value })}
-                    className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
                   />
                 </div>
 
@@ -679,7 +679,7 @@ export default function Lojas() {
                   <select
                     value={insalConfig.insalubridade_fixa_base}
                     onChange={(e) => setInsalConfig({ ...insalConfig, insalubridade_fixa_base: e.target.value })}
-                    className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
                   >
                     <option value="SALARIO_BASE">Salário Base do Cargo</option>
                     <option value="MINIMO_NACIONAL">Salário Mínimo Nacional</option>
@@ -693,7 +693,7 @@ export default function Lojas() {
                   <select
                     value={insalConfig.insalubridade_fixa_recebedores_modo}
                     onChange={(e) => setInsalConfig({ ...insalConfig, insalubridade_fixa_recebedores_modo: e.target.value })}
-                    className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
                   >
                     <option value="TODOS">Todos do Escopo</option>
                     <option value="PERSONALIZADO">Personalizado</option>
@@ -711,7 +711,7 @@ export default function Lojas() {
                       required
                       value={insalConfig.insalubridade_fixa_recebedores_quantidade || ''}
                       onChange={(e) => setInsalConfig({ ...insalConfig, insalubridade_fixa_recebedores_quantidade: e.target.value ? parseInt(e.target.value) : null })}
-                      className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
                       placeholder="Ex: 5"
                     />
                   </div>
@@ -719,7 +719,7 @@ export default function Lojas() {
 
                 {/* Seção Insalubridade Banheirista */}
                 <div className="col-span-2 pt-2">
-                  <h4 className="font-bold text-sm text-primary border-b border-border pb-1 mb-2">Insalubridade Banheirista</h4>
+                  <h4 className="font-bold text-sm text-primary border-b border-neutral-200 dark:border-neutral-800 pb-1 mb-2">Insalubridade Banheirista</h4>
                 </div>
 
                 <div>
@@ -732,7 +732,7 @@ export default function Lojas() {
                     required
                     value={insalConfig.insalubridade_banheirista_percentual}
                     onChange={(e) => setInsalConfig({ ...insalConfig, insalubridade_banheirista_percentual: e.target.value })}
-                    className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
                   />
                 </div>
 
@@ -743,7 +743,7 @@ export default function Lojas() {
                   <select
                     value={insalConfig.insalubridade_banheirista_base}
                     onChange={(e) => setInsalConfig({ ...insalConfig, insalubridade_banheirista_base: e.target.value })}
-                    className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
                   >
                     <option value="SALARIO_BASE">Salário Base do Cargo</option>
                     <option value="MINIMO_NACIONAL">Salário Mínimo Nacional</option>
@@ -756,7 +756,7 @@ export default function Lojas() {
                     id="calc_diferenca"
                     checked={insalConfig.calcular_diferenca_banheirista}
                     onChange={(e) => setInsalConfig({ ...insalConfig, calcular_diferenca_banheirista: e.target.checked })}
-                    className="rounded border-input text-primary focus:ring-primary h-4 w-4"
+                    className="rounded border-neutral-200 dark:border-neutral-800 text-primary focus:ring-primary h-4 w-4"
                   />
                   <label htmlFor="calc_diferenca" className="text-sm text-neutral-600 dark:text-neutral-400 select-none">
                     Calcular diferença de banheirista (valor banheirista − valor fixa)
@@ -764,18 +764,18 @@ export default function Lojas() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-border mt-6">
+              <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200 dark:border-neutral-800 mt-6">
                 <button
                   type="button"
                   onClick={() => setShowInsalubridadeModal(false)}
-                  className="px-4 py-2 border border-border hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg text-sm font-semibold transition-colors"
+                  className="px-5 py-2.5 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 rounded-full text-xs font-bold text-neutral-700 dark:text-neutral-300 text-sm font-semibold transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-5 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center gap-2"
+                  className="px-6 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full text-xs font-bold hover:bg-neutral-850 dark:hover:bg-neutral-100 shadow-xs disabled:opacity-50 transition-colors flex items-center gap-2"
                 >
                   {actionLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                   Confirmar Configuração

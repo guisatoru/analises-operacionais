@@ -251,7 +251,7 @@ export default function Colaboradores() {
       </div>
 
       {/* Navegação por Abas (Tabs) */}
-      <div className="border-b border-border flex gap-4">
+      <div className="border-b border-neutral-200 dark:border-neutral-800 flex gap-4">
         <button
           onClick={() => {
             setActiveTab('ativos');
@@ -290,7 +290,7 @@ export default function Colaboradores() {
           className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
             !anyFilterActive
               ? 'bg-neutral-900 text-white border-neutral-900 dark:bg-white dark:text-neutral-900 dark:border-white'
-              : 'border-border text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+              : 'border-neutral-200 dark:border-neutral-800 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800'
           }`}
         >
           Todos
@@ -348,7 +348,7 @@ export default function Colaboradores() {
       </div>
 
       {/* Formulário Completo de Filtros */}
-      <form onSubmit={handleFilterSubmit} className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
+      <form onSubmit={handleFilterSubmit} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs p-5 shadow-sm space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1.5">
@@ -357,7 +357,7 @@ export default function Colaboradores() {
             <select
               value={lojaFiltro}
               onChange={(e) => setLojaFiltro(e.target.value)}
-              className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
             >
               <option value="">Todas</option>
               {lojasOpcoes.map((l) => (
@@ -375,7 +375,7 @@ export default function Colaboradores() {
               placeholder="Ex: 001402..."
               value={reBusca}
               onChange={(e) => setReBusca(e.target.value)}
-              className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
             />
           </div>
 
@@ -390,7 +390,7 @@ export default function Colaboradores() {
                 placeholder="Pesquise por nome..."
                 value={nomeBusca}
                 onChange={(e) => setNomeBusca(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full pl-9 pr-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
               />
             </div>
           </div>
@@ -404,7 +404,7 @@ export default function Colaboradores() {
               placeholder="Ex: Frentista..."
               value={cargoFiltro}
               onChange={(e) => setCargoFiltro(e.target.value)}
-              className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
             />
           </div>
 
@@ -417,7 +417,7 @@ export default function Colaboradores() {
                 <select
                   value={statusFiltro}
                   onChange={(e) => setStatusFiltro(e.target.value)}
-                  className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
                 >
                   <option value="">Todos</option>
                   <option value="ativo">Ativo (Normal)</option>
@@ -435,7 +435,7 @@ export default function Colaboradores() {
                   placeholder="Ex: ADMITIDO / DESLIGADO..."
                   value={statusGestaoFiltro}
                   onChange={(e) => setStatusGestaoFiltro(e.target.value)}
-                  className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
                 />
               </div>
             </>
@@ -446,13 +446,13 @@ export default function Colaboradores() {
           <button
             type="button"
             onClick={handleClearFilters}
-            className="px-4 py-2 border border-border hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg text-sm font-semibold transition-colors"
+            className="px-5 py-2.5 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 rounded-full text-xs font-bold text-neutral-700 dark:text-neutral-300 text-sm font-semibold transition-colors"
           >
             Limpar
           </button>
           <button
             type="submit"
-            className="px-5 py-2 bg-neutral-900 text-white dark:bg-neutral-50 dark:text-neutral-900 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
+            className="px-6 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full text-xs font-bold hover:bg-neutral-850 dark:hover:bg-neutral-100 shadow-xs transition-opacity"
           >
             Pesquisar
           </button>
@@ -461,18 +461,18 @@ export default function Colaboradores() {
 
       {/* Erro de comunicação */}
       {errorMsg && !showDetailModal && (
-        <div className="p-4 bg-red-950/50 border border-red-900 text-red-200 rounded-lg text-sm flex gap-3 items-center">
+        <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 rounded-lg text-sm flex gap-3 items-center">
           <AlertCircle className="h-5 w-5 text-red-400 shrink-0" />
           <span>{errorMsg}</span>
         </div>
       )}
 
       {/* Listagem */}
-      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-border bg-neutral-500/5 text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+              <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 text-xs font-semibold text-neutral-400 uppercase tracking-wider">
                 <th className="py-4 px-6">RE</th>
                 <th className="py-4 px-6">Colaborador</th>
                 <th className="py-4 px-6">Função (TOTVS / Gestão)</th>
@@ -502,7 +502,7 @@ export default function Colaboradores() {
                   <tr 
                     key={colab.id} 
                     onClick={() => handleOpenDetail(colab)}
-                    className="hover:bg-neutral-500/5 transition-colors cursor-pointer"
+                    className="hover:bg-neutral-50 dark:bg-neutral-850 transition-colors cursor-pointer"
                   >
                     <td className="py-4 px-6 font-mono text-neutral-400">{colab.re}</td>
                     <td className="py-4 px-6">
@@ -593,7 +593,7 @@ export default function Colaboradores() {
 
         {/* Paginação */}
         {!loading && totalPages > 1 && (
-          <div className="py-4 px-6 border-t border-border flex items-center justify-between">
+          <div className="py-4 px-6 border-t border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
             <span className="text-xs text-neutral-500">
               Mostrando {colaboradores.length} de {count} colaboradores
             </span>
@@ -601,7 +601,7 @@ export default function Colaboradores() {
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                className="p-1.5 border border-border rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -611,7 +611,7 @@ export default function Colaboradores() {
               <button
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                className="p-1.5 border border-border rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -623,8 +623,8 @@ export default function Colaboradores() {
       {/* Modal Ficha do Colaborador (Detalhes completos) */}
       {showDetailModal && selectedColab && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-2xl overflow-hidden animate-scale-in">
-            <div className="flex items-center justify-between p-6 border-b border-border bg-neutral-500/5">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs shadow-xl w-full max-w-2xl overflow-hidden animate-scale-in">
+            <div className="flex items-center justify-between p-6 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
                   <User className="h-5 w-5" />
@@ -647,7 +647,7 @@ export default function Colaboradores() {
             <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
               {/* Informações Pessoais e Identificação */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2 bg-neutral-500/5 p-4 rounded-lg border border-border">
+                <div className="col-span-2 bg-neutral-50 dark:bg-neutral-850 p-4 rounded-lg border border-neutral-200 dark:border-neutral-800">
                   <span className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Nome Completo</span>
                   <span className="text-lg font-bold text-neutral-950 dark:text-neutral-50">{selectedColab.nome}</span>
                 </div>
@@ -665,14 +665,14 @@ export default function Colaboradores() {
 
               {/* Lotação e Cargos de Base Cruzada */}
               <div className="space-y-3">
-                <h4 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5 border-b border-border pb-1">
+                <h4 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5 border-b border-neutral-200 dark:border-neutral-800 pb-1">
                   <Layers className="h-4 w-4" />
                   Comparativo de Lotação & Função
                 </h4>
                 
                 <div className="grid grid-cols-2 gap-4">
                   {/* TOTVS */}
-                  <div className="p-3 bg-neutral-500/5 rounded-lg border border-border space-y-1">
+                  <div className="p-3 bg-neutral-50 dark:bg-neutral-850 rounded-lg border border-neutral-200 dark:border-neutral-800 space-y-1">
                     <span className="block text-[9px] font-bold text-neutral-400 uppercase">TOTVS (Lotação Física)</span>
                     <span className="text-sm font-semibold">{selectedColab.loja_nome || selectedColab.centro_custo}</span>
                     <span className="block text-[10px] text-neutral-500">Função: {selectedColab.cargo}</span>
@@ -682,7 +682,7 @@ export default function Colaboradores() {
                   <div className={`p-3 rounded-lg border space-y-1 ${
                     selectedColab.loja_gestao_divergente 
                       ? 'bg-red-500/5 border-red-500/20' 
-                      : 'bg-neutral-500/5 border-border'
+                      : 'bg-neutral-50 dark:bg-neutral-850 border-neutral-200 dark:border-neutral-800'
                   }`}>
                     <span className="block text-[9px] font-bold text-neutral-400 uppercase">Gestão Pessoas</span>
                     <span className="text-sm font-semibold">{selectedColab.loja_gestao_nome || 'Em branco'}</span>
@@ -693,14 +693,14 @@ export default function Colaboradores() {
                   <div className={`p-3 rounded-lg border space-y-1 ${
                     selectedColab.loja_geo_divergente 
                       ? 'bg-red-500/5 border-red-500/20' 
-                      : 'bg-neutral-500/5 border-border'
+                      : 'bg-neutral-50 dark:bg-neutral-850 border-neutral-200 dark:border-neutral-800'
                   }`}>
                     <span className="block text-[9px] font-bold text-neutral-400 uppercase">GeoVictoria (Relógio Ponto)</span>
                     <span className="text-sm font-semibold">{selectedColab.loja_geo_nome || 'Em branco'}</span>
                   </div>
 
                   {/* Status do Funcionário */}
-                  <div className="p-3 bg-neutral-500/5 rounded-lg border border-border space-y-1">
+                  <div className="p-3 bg-neutral-50 dark:bg-neutral-850 rounded-lg border border-neutral-200 dark:border-neutral-800 space-y-1">
                     <span className="block text-[9px] font-bold text-neutral-400 uppercase">Status de Contrato</span>
                     <div className="flex gap-2 items-center">
                       <div>{getStatusBadge(selectedColab.status)}</div>
@@ -716,23 +716,23 @@ export default function Colaboradores() {
 
               {/* Datas de Experiência e Admissão */}
               <div className="space-y-3">
-                <h4 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5 border-b border-border pb-1">
+                <h4 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5 border-b border-neutral-200 dark:border-neutral-800 pb-1">
                   <Calendar className="h-4 w-4" />
                   Datas e Períodos de Experiência
                 </h4>
 
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="p-3 bg-neutral-500/5 rounded-lg border border-border">
+                  <div className="p-3 bg-neutral-50 dark:bg-neutral-850 rounded-lg border border-neutral-200 dark:border-neutral-800">
                     <span className="block text-[9px] font-bold text-neutral-400 uppercase mb-1">Admissão</span>
                     <span className="text-sm font-semibold font-mono">{formatDate(selectedColab.data_admissao)}</span>
                   </div>
 
-                  <div className="p-3 bg-neutral-500/5 rounded-lg border border-border">
+                  <div className="p-3 bg-neutral-50 dark:bg-neutral-850 rounded-lg border border-neutral-200 dark:border-neutral-800">
                     <span className="block text-[9px] font-bold text-neutral-400 uppercase mb-1">Experiência (1º Período)</span>
                     <span className="text-sm font-semibold font-mono">{formatDate(selectedColab.termino_1)}</span>
                   </div>
 
-                  <div className="p-3 bg-neutral-500/5 rounded-lg border border-border">
+                  <div className="p-3 bg-neutral-50 dark:bg-neutral-850 rounded-lg border border-neutral-200 dark:border-neutral-800">
                     <span className="block text-[9px] font-bold text-neutral-400 uppercase mb-1">Experiência (2º Período)</span>
                     <span className="text-sm font-semibold font-mono">{formatDate(selectedColab.termino_2)}</span>
                   </div>
@@ -747,7 +747,7 @@ export default function Colaboradores() {
               </div>
             </div>
 
-            <div className="flex justify-end p-6 border-t border-border bg-neutral-500/5">
+            <div className="flex justify-end p-6 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850">
               <button
                 type="button"
                 onClick={() => setShowDetailModal(false)}
