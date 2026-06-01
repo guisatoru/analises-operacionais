@@ -1,15 +1,11 @@
-from django.shortcuts import render, redirect, get_object_or_404
+﻿from django.shortcuts import render, redirect, get_object_or_404
 from django.core.paginator import Paginator
 from django.contrib import messages
-from django.utils import timezone
 from datetime import date
-from django.db import models, transaction
+from django.db import models
 from django.db.models import Q
 from .models import Colaborador, ControleTermino
 from lojas.models import Loja
-from .forms import ColaboradorImportForm, GestaoPessoasImportForm
-from .services.colaborador_importacao import importar_colaboradores_de_texto
-from .services.gestao_importacao import importar_gestao_pessoas
 import threading
 import unicodedata
 from .services.geovictoria_sync import (
@@ -42,7 +38,7 @@ FUNCAO_GRUPOS_EQUIVALENTES = {
 
 def normalizar_funcao_para_comparacao(funcao):
     """
-    Normaliza o texto da função para evitar divergências falsas causadas por acentos e abreviações conhecidas.
+    Normaliza o texto da funÃ§Ã£o para evitar divergÃªncias falsas causadas por acentos e abreviaÃ§Ãµes conhecidas.
     """
     if not funcao:
         return ""
@@ -58,7 +54,7 @@ def normalizar_funcao_para_comparacao(funcao):
 
 def encontrar_grupos_funcao(funcao_normalizada):
     """
-    Encontra todos os grupos presentes na função para comparar textos que podem ter mais de uma característica.
+    Encontra todos os grupos presentes na funÃ§Ã£o para comparar textos que podem ter mais de uma caracterÃ­stica.
     """
     grupos_encontrados = set()
 
@@ -72,7 +68,7 @@ def encontrar_grupos_funcao(funcao_normalizada):
 
 def funcao_esta_divergente(colaborador):
     """
-    Centraliza a regra para o filtro mostrar apenas diferenças reais entre TOTVS e Gestão.
+    Centraliza a regra para o filtro mostrar apenas diferenÃ§as reais entre TOTVS e GestÃ£o.
     """
     funcao_totvs = normalizar_funcao_para_comparacao(colaborador.cargo)
     funcao_gestao = normalizar_funcao_para_comparacao(colaborador.funcao_gestao)
@@ -98,21 +94,21 @@ def derive_termino_state(colaborador, reference_date, controles=None):
     first_term_passed = colaborador.termino_1 and colaborador.termino_1 < reference_date
     
     if latest_second and latest_second.acao == 'termino':
-        return { 'etapaAtual': 2, 'tipoTermino': '2º Término', 'statusControle': 'Término registrado', 'encerrado': True, 'ultimaAcao': latest_second.acao }
+        return { 'etapaAtual': 2, 'tipoTermino': '2Âº TÃ©rmino', 'statusControle': 'TÃ©rmino registrado', 'encerrado': True, 'ultimaAcao': latest_second.acao }
     if latest_second and latest_second.acao == 'manter':
-        return { 'etapaAtual': 2, 'tipoTermino': '2º Término', 'statusControle': 'Mantido', 'encerrado': True, 'ultimaAcao': latest_second.acao }
+        return { 'etapaAtual': 2, 'tipoTermino': '2Âº TÃ©rmino', 'statusControle': 'Mantido', 'encerrado': True, 'ultimaAcao': latest_second.acao }
     if latest_first and latest_first.acao == 'termino':
-        return { 'etapaAtual': 1, 'tipoTermino': '1º Término', 'statusControle': 'Término registrado', 'encerrado': True, 'ultimaAcao': latest_first.acao }
+        return { 'etapaAtual': 1, 'tipoTermino': '1Âº TÃ©rmino', 'statusControle': 'TÃ©rmino registrado', 'encerrado': True, 'ultimaAcao': latest_first.acao }
     if latest_first and latest_first.acao == 'prorrogado':
-        return { 'etapaAtual': 2, 'tipoTermino': '2º Término', 'statusControle': 'Prorrogado', 'encerrado': False, 'ultimaAcao': latest_first.acao }
+        return { 'etapaAtual': 2, 'tipoTermino': '2Âº TÃ©rmino', 'statusControle': 'Prorrogado', 'encerrado': False, 'ultimaAcao': latest_first.acao }
     if first_term_passed:
-        return { 'etapaAtual': 2, 'tipoTermino': '2º Término', 'statusControle': 'Pendente 2º Término', 'encerrado': False, 'ultimaAcao': None }
+        return { 'etapaAtual': 2, 'tipoTermino': '2Âº TÃ©rmino', 'statusControle': 'Pendente 2Âº TÃ©rmino', 'encerrado': False, 'ultimaAcao': None }
     
-    return { 'etapaAtual': 1, 'tipoTermino': '1º Término', 'statusControle': 'Pendente 1º Término', 'encerrado': False, 'ultimaAcao': None }
+    return { 'etapaAtual': 1, 'tipoTermino': '1Âº TÃ©rmino', 'statusControle': 'Pendente 1Âº TÃ©rmino', 'encerrado': False, 'ultimaAcao': None }
 
 def terminos_list(request):
     """
-    Exibe os colaboradores próximos das datas de término de experiência.
+    Exibe os colaboradores prÃ³ximos das datas de tÃ©rmino de experiÃªncia.
     """
     if request.method == "POST":
         colaborador_id = request.POST.get('colaborador_id')
@@ -128,9 +124,9 @@ def terminos_list(request):
                 etapa=int(etapa),
                 acao=acao,
                 observacao=observacao,
-                respondido_por=request.user.username if request.user.is_authenticated else 'Usuário'
+                respondido_por=request.user.username if request.user.is_authenticated else 'UsuÃ¡rio'
             )
-            messages.success(request, f"Controle de término para {colaborador.nome} registrado com sucesso!")
+            messages.success(request, f"Controle de tÃ©rmino para {colaborador.nome} registrado com sucesso!")
         return redirect('colaboradores:terminos_list')
 
     colaboradores_qs = Colaborador.objects.exclude(status='D').exclude(cargo='AUXILIAR ADMINISTRAT').filter(
@@ -191,7 +187,7 @@ def terminos_list(request):
         })
 
     # ============================================
-    # 🆕 LÓGICA UNIFICADA: Cache ou fallback
+    # ðŸ†• LÃ“GICA UNIFICADA: Cache ou fallback
     # ============================================
     geovictoria_atualizado_em = colaboradores_qs.aggregate(
         ultima_atualizacao=models.Max("geovictoria_atualizado_em")
@@ -202,20 +198,20 @@ def terminos_list(request):
     cache_info = None
     
     if geovictoria_atualizado_em:
-        # USA CACHE (dados já sincronizados)
+        # USA CACHE (dados jÃ¡ sincronizados)
         cache_info = {
             "sincronizado_em": geovictoria_atualizado_em.strftime("%d/%m/%Y"),
             "total_sucesso": total_sincronizados,
             "total_erros": 0,
         }
     else:
-        # FALLBACK: busca apenas da página atual (comportamento antigo)
+        # FALLBACK: busca apenas da pÃ¡gina atual (comportamento antigo)
         pass
         
-    # Parâmetro de ordenação
+    # ParÃ¢metro de ordenaÃ§Ã£o
     ordenar_por = request.GET.get('ordenar', 'data')
     
-    # Ordenação global (só funciona com cache)
+    # OrdenaÃ§Ã£o global (sÃ³ funciona com cache)
     if ordenar_por == 'faltas':
         processed_colaboradores.sort(
             key=lambda x: x['colaborador'].faltas_geovictoria,
@@ -227,14 +223,14 @@ def terminos_list(request):
             reverse=True
         )
     else:
-        # Ordenação padrão por data
+        # OrdenaÃ§Ã£o padrÃ£o por data
         processed_colaboradores.sort(key=lambda x: (x['relevant_date'] is None, x['relevant_date']))
 
     paginator = Paginator(processed_colaboradores, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    # Preenche faltas/atestados nos itens da página
+    # Preenche faltas/atestados nos itens da pÃ¡gina
     for item in page_obj:
         colaborador = item['colaborador']
         cpf = str(colaborador.cpf).strip() if colaborador.cpf else None
@@ -249,10 +245,10 @@ def terminos_list(request):
             item['faltas'] = "-"
             item['atestados'] = "-"
 
-    # Coordenadores únicos para o filtro
+    # Coordenadores Ãºnicos para o filtro
     coordenadores = Loja.objects.exclude(coordenador="").values_list('coordenador', flat=True).distinct().order_by('coordenador')
     
-    # Status Gestão únicos para o filtro
+    # Status GestÃ£o Ãºnicos para o filtro
     status_gestao_unicos = Colaborador.objects.exclude(status='D').exclude(cargo='AUXILIAR ADMINISTRAT').values_list('status_gestao', flat=True)
     status_gestao_opcoes = sorted(list(set(s.strip().upper() for s in status_gestao_unicos if s and s.strip())))
 
@@ -267,13 +263,13 @@ def terminos_list(request):
         'status_gestao_opcoes': status_gestao_opcoes,
         'cache_info': cache_info,
         'ordenar_por': ordenar_por,
-        'titulo': 'Controle de Términos',
+        'titulo': 'Controle de TÃ©rminos',
     }
     return render(request, 'colaboradores/terminos_list.html', context)
 
 def exportar_terminos_excel(request):
     """
-    Exporta a listagem de términos filtrada para um arquivo Excel.
+    Exporta a listagem de tÃ©rminos filtrada para um arquivo Excel.
     """
     colaboradores_qs = Colaborador.objects.exclude(status='D').exclude(cargo='AUXILIAR ADMINISTRAT').filter(
         Q(termino_1__isnull=False) | Q(termino_2__isnull=False)
@@ -304,7 +300,7 @@ def exportar_terminos_excel(request):
         historico = list(colaborador.controles_termino.all())
         state = derive_termino_state(colaborador, today, historico)
         
-        # Omitir se o primeiro termo passou, o segundo passou, e não tem histórico (já caducou e não foi controlado)
+        # Omitir se o primeiro termo passou, o segundo passou, e nÃ£o tem histÃ³rico (jÃ¡ caducou e nÃ£o foi controlado)
         if colaborador.termino_1 and colaborador.termino_1 < today and \
            colaborador.termino_2 and colaborador.termino_2 < today and \
            not historico:
@@ -312,7 +308,7 @@ def exportar_terminos_excel(request):
             
         relevant_date = colaborador.termino_2 if state['etapaAtual'] == 2 else colaborador.termino_1
         
-        # Filtro de Data Início (A partir de)
+        # Filtro de Data InÃ­cio (A partir de)
         if data_filtro and relevant_date:
             try:
                 filtro_date = date.fromisoformat(data_filtro)
@@ -321,7 +317,7 @@ def exportar_terminos_excel(request):
             except ValueError:
                 pass
 
-        # Filtro de Data Fim (Até)
+        # Filtro de Data Fim (AtÃ©)
         if data_fim and relevant_date:
             try:
                 fim_date = date.fromisoformat(data_fim)
@@ -336,7 +332,7 @@ def exportar_terminos_excel(request):
             if coordenador_query != loja_coordenador:
                 continue
 
-        # Filtro de Status Gestão
+        # Filtro de Status GestÃ£o
         if status_gestao_query:
             col_status_gestao = (colaborador.status_gestao or "").strip().upper()
             if status_gestao_query.upper() != col_status_gestao:
@@ -353,15 +349,15 @@ def exportar_terminos_excel(request):
         })
 
     if not processed_colaboradores:
-        messages.warning(request, "Não há dados para exportar com os filtros selecionados.")
+        messages.warning(request, "NÃ£o hÃ¡ dados para exportar com os filtros selecionados.")
         return redirect('colaboradores:terminos_list')
 
-    # Buscar dados da GeoVictoria em lotes de 50 CPFs para não estourar limite de URL/Body
+    # Buscar dados da GeoVictoria em lotes de 50 CPFs para nÃ£o estourar limite de URL/Body
     cpfs_totais = []
     geodata_map = {}
     
     if cpfs_totais:
-        # Pega a data de admissão mais antiga do lote filtrado
+        # Pega a data de admissÃ£o mais antiga do lote filtrado
         min_admissao = min(item['colaborador'].data_admissao for item in processed_colaboradores if item['colaborador'].cpf)
         
         # Divide em chunks de 50 CPFs
@@ -372,7 +368,7 @@ def exportar_terminos_excel(request):
                 chunk_data = geovictoria.get_timeoff_summary(",".join(chunk), min_admissao, today)
                 geodata_map.update(chunk_data)
             except Exception as e:
-                print(f"Erro ao buscar lote exportação: {e}")
+                print(f"Erro ao buscar lote exportaÃ§Ã£o: {e}")
 
     for item in processed_colaboradores:
         colaborador = item['colaborador']
@@ -380,7 +376,7 @@ def exportar_terminos_excel(request):
         faltas = colaborador.faltas_geovictoria if colaborador.cpf else 0
         atestados = colaborador.atestados_geovictoria if colaborador.cpf else 0
 
-        # Última observação do histórico
+        # Ãšltima observaÃ§Ã£o do histÃ³rico
         ultima_obs = ""
         historico = item['history']
         if historico:
@@ -391,24 +387,24 @@ def exportar_terminos_excel(request):
             'Nome': colaborador.nome,
             'Loja': colaborador.loja.nome_referencia if colaborador.loja else colaborador.centro_custo,
             'Coordenador': colaborador.loja.coordenador if colaborador.loja else "-",
-            'Admissão': colaborador.data_admissao.strftime('%d/%m/%Y') if colaborador.data_admissao else "",
-            'Término 1': colaborador.termino_1.strftime('%d/%m/%Y') if colaborador.termino_1 else "",
-            'Término 2': colaborador.termino_2.strftime('%d/%m/%Y') if colaborador.termino_2 else "",
+            'AdmissÃ£o': colaborador.data_admissao.strftime('%d/%m/%Y') if colaborador.data_admissao else "",
+            'TÃ©rmino 1': colaborador.termino_1.strftime('%d/%m/%Y') if colaborador.termino_1 else "",
+            'TÃ©rmino 2': colaborador.termino_2.strftime('%d/%m/%Y') if colaborador.termino_2 else "",
             'Fase Atual': state['tipoTermino'],
             'Status': state['statusControle'],
-            'Status Gestão': colaborador.status_gestao or "-",
+            'Status GestÃ£o': colaborador.status_gestao or "-",
             'Faltas': faltas,
             'Atestados': atestados,
-            'Última Obs': ultima_obs,
+            'Ãšltima Obs': ultima_obs,
         })
 
     if not data_rows:
-        messages.warning(request, "Não há dados para exportar com os filtros selecionados.")
+        messages.warning(request, "NÃ£o hÃ¡ dados para exportar com os filtros selecionados.")
         return redirect('colaboradores:terminos_list')
 
     df = pd.DataFrame(data_rows)
     
-    # Criar o arquivo Excel em memória
+    # Criar o arquivo Excel em memÃ³ria
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='Terminos')
@@ -433,10 +429,10 @@ def colaborador_geovictoria_summary(request, colaborador_id):
     colaborador = get_object_or_404(Colaborador, id=colaborador_id)
     
     if not colaborador.cpf:
-        return JsonResponse({'error': 'CPF do colaborador não cadastrado. Reimporte os dados da TOTVS.'}, status=400)
+        return JsonResponse({'error': 'CPF do colaborador nÃ£o cadastrado. Reimporte os dados da TOTVS.'}, status=400)
     
     try:
-        # 1. Buscar resumo desde a admissão até hoje usando o CPF
+        # 1. Buscar resumo desde a admissÃ£o atÃ© hoje usando o CPF
         today = date.today()
         summary = geovictoria.get_timeoff_summary(
             colaborador.cpf, 
@@ -445,7 +441,7 @@ def colaborador_geovictoria_summary(request, colaborador_id):
         )
         
         if not summary:
-            return JsonResponse({'error': 'Não foi possível obter o resumo da GeoVictoria'}, status=500)
+            return JsonResponse({'error': 'NÃ£o foi possÃ­vel obter o resumo da GeoVictoria'}, status=500)
             
         return JsonResponse(summary)
         
@@ -456,7 +452,7 @@ def colaborador_geovictoria_summary(request, colaborador_id):
 def colaborador_list(request):
     """
     Lista todos os colaboradores ativos (status diferente de 'D').
-    Permite filtros avançados e filtros rápidos.
+    Permite filtros avanÃ§ados e filtros rÃ¡pidos.
     """
     colaboradores_qs = Colaborador.objects.exclude(
         status='D'
@@ -475,7 +471,7 @@ def colaborador_list(request):
     funcao_divergente_query = request.GET.get('funcao_divergente', '')
     so_totvs_query = request.GET.get('so_totvs', '')
     
-    # 🆕 NOVO FILTRO UNIFICADO
+    # ðŸ†• NOVO FILTRO UNIFICADO
     status_divergente_query = request.GET.get('status_divergente', '')
 
     # ... (todos os filtros existentes continuam iguais) ...
@@ -507,7 +503,7 @@ def colaborador_list(request):
     if status_gestao_query:
         colaboradores_qs = colaboradores_qs.filter(status_gestao__iexact=status_gestao_query)
 
-    # Lógica do Filtro Rápido: Função Divergente
+    # LÃ³gica do Filtro RÃ¡pido: FunÃ§Ã£o Divergente
     if funcao_divergente_query == 'S':
         ids_funcao_divergente = [
             colaborador.id
@@ -516,7 +512,7 @@ def colaborador_list(request):
         ]
         colaboradores_qs = colaboradores_qs.filter(id__in=ids_funcao_divergente)
 
-    # Lógica do Filtro Rápido: Divergente (Loja)
+    # LÃ³gica do Filtro RÃ¡pido: Divergente (Loja)
     if divergente_query == 'S':
         colaboradores_qs = colaboradores_qs.exclude(status='A').exclude(
             loja__dispensa_gestao_pessoas=True,
@@ -528,7 +524,7 @@ def colaborador_list(request):
         ids_divergentes = [c.id for c in colaboradores_qs if c.is_divergente]
         colaboradores_qs = colaboradores_qs.filter(id__in=ids_divergentes)
 
-    # Lógica do Filtro Rápido: Só TOTVS
+    # LÃ³gica do Filtro RÃ¡pido: SÃ³ TOTVS
     if so_totvs_query == 'S':
         colaboradores_qs = colaboradores_qs.exclude(
             loja__dispensa_gestao_pessoas=True,
@@ -537,12 +533,12 @@ def colaborador_list(request):
             loja_gestao__isnull=True
         )
 
-    # 🆕 LÓGICA DO FILTRO UNIFICADO: Status Divergente
+    # ðŸ†• LÃ“GICA DO FILTRO UNIFICADO: Status Divergente
     if status_divergente_query == 'S':
-        # Para ATIVOS: Status TOTVS ATIVO mas Gestão diz DESLIGADO/DEMITIDO
-        # ou Status TOTVS não está ATIVO mas Gestão diz que está
+        # Para ATIVOS: Status TOTVS ATIVO mas GestÃ£o diz DESLIGADO/DEMITIDO
+        # ou Status TOTVS nÃ£o estÃ¡ ATIVO mas GestÃ£o diz que estÃ¡
         colaboradores_qs = colaboradores_qs.filter(
-            # ATIVO na TOTVS mas DESLIGADO/DEMITIDO na Gestão
+            # ATIVO na TOTVS mas DESLIGADO/DEMITIDO na GestÃ£o
             (Q(status__in=['', 'A', 'F']) & 
              (Q(status_gestao__icontains='DESLIG') | 
               Q(status_gestao__icontains='DEMIT') |
@@ -561,7 +557,7 @@ def colaborador_list(request):
     status_gestao_unicos = Colaborador.objects.exclude(status='D').exclude(cargo='AUXILIAR ADMINISTRAT').values_list('status_gestao', flat=True)
     status_gestao_opcoes = sorted(list(set(s.strip().upper() for s in status_gestao_unicos if s and s.strip())))
 
-    # 🆕 Contagem de divergentes
+    # ðŸ†• Contagem de divergentes
     total_status_divergentes = Colaborador.objects.exclude(
         status='D'
     ).exclude(
@@ -588,8 +584,8 @@ def colaborador_list(request):
         'divergente_query': divergente_query,
         'funcao_divergente_query': funcao_divergente_query,
         'so_totvs_query': so_totvs_query,
-        'status_divergente_query': status_divergente_query,  # 🆕
-        'total_status_divergentes': total_status_divergentes,  # 🆕
+        'status_divergente_query': status_divergente_query,  # ðŸ†•
+        'total_status_divergentes': total_status_divergentes,  # ðŸ†•
         'pagina_demitidos': False,
         'titulo': 'Colaboradores'
     }
@@ -610,7 +606,7 @@ def demitido_list(request):
     nome_query = request.GET.get('nome', '')
     cargo_query = request.GET.get('cargo', '')
     
-    # 🆕 Mesmo parâmetro: status_divergente
+    # ðŸ†• Mesmo parÃ¢metro: status_divergente
     status_divergente_query = request.GET.get('status_divergente', '')
 
     if loja_query:
@@ -625,9 +621,9 @@ def demitido_list(request):
     if cargo_query:
         colaboradores_qs = colaboradores_qs.filter(cargo__iexact=cargo_query)
 
-    # 🆕 LÓGICA: Status Divergente para DEMITIDOS
+    # ðŸ†• LÃ“GICA: Status Divergente para DEMITIDOS
     if status_divergente_query == 'S':
-        # Demitido na TOTVS mas NÃO está como DESLIGADO/DEMITIDO na Gestão
+        # Demitido na TOTVS mas NÃƒO estÃ¡ como DESLIGADO/DEMITIDO na GestÃ£o
         colaboradores_qs = colaboradores_qs.filter(
             Q(status_gestao__isnull=True) |
             Q(status_gestao='') |
@@ -647,7 +643,7 @@ def demitido_list(request):
     ).values_list('cargo', flat=True).distinct().order_by('cargo')
     cargos_opcoes = sorted(list(set(c.strip() for c in cargos_unicos if c.strip())))
     
-    # 🆕 Contagem de divergentes
+    # ðŸ†• Contagem de divergentes
     total_status_divergentes = Colaborador.objects.filter(
         status='D'
     ).exclude(
@@ -666,129 +662,12 @@ def demitido_list(request):
         're_query': re_query,
         'nome_query': nome_query,
         'cargo_query': cargo_query,
-        'status_divergente_query': status_divergente_query,  # 🆕
-        'total_status_divergentes': total_status_divergentes,  # 🆕
+        'status_divergente_query': status_divergente_query,  # ðŸ†•
+        'total_status_divergentes': total_status_divergentes,  # ðŸ†•
         'pagina_demitidos': True,
         'titulo': 'Colaboradores Demitidos'
     }
     return render(request, 'colaboradores/colaborador_list.html', context)
-
-def colaborador_import(request):
-    """
-    Permite escolher um CSV da TOTVS para atualizar a base de colaboradores.
-    """
-    if request.method == "POST":
-        form = ColaboradorImportForm(request.POST, request.FILES)
-        if form.is_valid():
-            arquivo = form.cleaned_data["arquivo"]
-            try:
-                # O CSV da TOTVS costuma vir com encoding específico, utf-8-sig trata o BOM
-                conteudo = arquivo.read().decode("utf-8-sig")
-            except UnicodeDecodeError:
-                messages.error(
-                    request,
-                    "Não foi possível ler o arquivo. Certifique-se de que é um CSV válido em UTF-8.",
-                )
-            else:
-                try:
-                    resultado = importar_colaboradores_de_texto(conteudo)
-                except ValueError as exc:
-                    messages.error(request, str(exc))
-                except Exception as exc:
-                    messages.error(request, f"Erro inesperado: {str(exc)}")
-                else:
-                    # Sucesso ou aviso
-                    if resultado["total"] == 0:
-                        messages.warning(
-                            request,
-                            "Nenhum colaborador encontrado no arquivo. Verifique o formato.",
-                        )
-                    else:
-                        msg = (
-                            f"Importação concluída: {resultado['total']} processados. "
-                            f"{resultado['criados']} novos, {resultado['atualizados']} atualizados. "
-                        )
-                        if resultado["erros"] > 0:
-                            msg += f" {resultado['erros']} erros ignorados."
-                            messages.warning(request, msg)
-                        else:
-                            messages.success(request, msg)
-                    
-                    return redirect("importacoes")
-    else:
-        form = ColaboradorImportForm()
-
-    return render(
-        request,
-        "colaboradores/colaborador_import.html",
-        {
-            "form": form,
-            "titulo": "Importação de Colaboradores",
-        },
-    )
-
-def gestao_import(request):
-    """
-    Permite escolher a planilha de Gestão de Pessoas para atualizar os colaboradores.
-    """
-    if request.method == "POST":
-        form = GestaoPessoasImportForm(request.POST, request.FILES)
-        if form.is_valid():
-            arquivo = form.cleaned_data["arquivo"]
-            try:
-                resultado = importar_gestao_pessoas(arquivo)
-            except ValueError as exc:
-                messages.error(request, str(exc))
-            except Exception as exc:
-                messages.error(request, f"Erro inesperado: {str(exc)}")
-            else:
-                if resultado["total_planilha"] == 0:
-                    messages.warning(
-                        request,
-                        "Nenhum colaborador válido encontrado na planilha.",
-                    )
-                else:
-                    msg = (
-                        f"Importação Gestão concluída: {resultado['total_planilha']} processados. "
-                        f"{resultado['atualizados']} atualizados, "
-                        f"{resultado['sem_alteracao']} sem alteração. "
-                        f"{resultado['lojas_gestao_encontradas']} lojas vinculadas pelo nome da Gestão. "
-                    )
-                    if resultado["nao_encontrados"] > 0:
-                        msg += f"{resultado['nao_encontrados']} não encontrados no banco."
-
-                    if resultado["lojas_gestao_nao_encontradas"] > 0:
-                        msg += f" {resultado['lojas_gestao_nao_encontradas']} lojas da Gestão sem correspondência."
-
-                    if resultado["lojas_gestao_duplicadas"] > 0:
-                        msg += f" {resultado['lojas_gestao_duplicadas']} nomes de Gestão duplicados no cadastro de lojas."
-                    
-                    tem_alerta_importacao = (
-                        resultado["erros"] > 0
-                        or resultado["lojas_gestao_nao_encontradas"] > 0
-                        or resultado["lojas_gestao_duplicadas"] > 0
-                    )
-
-                    if tem_alerta_importacao:
-                        if resultado["erros"] > 0:
-                            msg += f" {resultado['erros']} erros ignorados."
-                        messages.warning(request, msg)
-                    else:
-                        messages.success(request, msg)
-                
-                return redirect("importacoes")
-    else:
-        form = GestaoPessoasImportForm()
-
-    return render(
-        request,
-        "colaboradores/colaborador_import.html",
-        {
-            "form": form,
-            "titulo": "Importação de Gestão de Pessoas",
-        },
-    )
-
 
 def sync_lojas_geovictoria(request):
     """
@@ -915,7 +794,7 @@ def _sync_lojas_geovictoria_background(colaboradores):
         set_progresso_sync_lojas(
             100,
             (
-                f"Concluído: {resultado['atualizados']} atualizados, "
+                f"Concluí­do: {resultado['atualizados']} atualizados, "
                 f"{resultado['sem_re_geo']} sem RE na GeoVictoria, "
                 f"{resultado['sem_loja']} sem loja para o centro de custo."
             ),
@@ -927,7 +806,7 @@ def _sync_lojas_geovictoria_background(colaboradores):
 
 def sync_lojas_geovictoria_progress(request):
     """
-    Retorna o progresso da sincronização de loja GeoVictoria.
+    Retorna o progresso da sincronizaÃ§Ã£o de loja GeoVictoria.
     """
     progresso = get_progresso_sync_lojas()
     if not progresso:
@@ -937,7 +816,7 @@ def sync_lojas_geovictoria_progress(request):
 
 def exportar_pendencias_lojas_geovictoria(request, tipo):
     """
-    Exporta as pendências da última sincronização para facilitar a conferência manual.
+    Exporta as pendÃªncias da Ãºltima sincronizaÃ§Ã£o para facilitar a conferÃªncia manual.
     """
     resultado = get_resultado_sync_lojas()
     if not resultado:
@@ -970,7 +849,7 @@ def exportar_pendencias_lojas_geovictoria(request, tipo):
 
     if linhas is None:
         return HttpResponse(
-            "Tipo de pendência inválido.",
+            "Tipo de pendÃªncia invÃ¡lido.",
             status=400,
             content_type="text/plain; charset=utf-8",
         )
@@ -1000,10 +879,10 @@ def exportar_pendencias_lojas_geovictoria(request, tipo):
 
 def sync_geovictoria(request):
     """
-    Dispara a sincronização da GeoVictoria APENAS para os colaboradores
-    que aparecem na listagem de términos com os filtros atuais.
+    Dispara a sincronizaÃ§Ã£o da GeoVictoria APENAS para os colaboradores
+    que aparecem na listagem de tÃ©rminos com os filtros atuais.
     """
-    # 🆕 Recebe os filtros da query string
+    # ðŸ†• Recebe os filtros da query string
     search_query = request.GET.get('search', '').strip().lower()
     data_filtro = request.GET.get('data_filtro', '')
     data_fim = request.GET.get('data_fim', '')
@@ -1026,7 +905,7 @@ def sync_geovictoria(request):
     for colaborador in colaboradores_qs:
         state = derive_termino_state(colaborador, today)
         
-        # Aplica filtros (mesma lógica da terminos_list)
+        # Aplica filtros (mesma lÃ³gica da terminos_list)
         if colaborador.termino_1 and colaborador.termino_1 < today and \
            colaborador.termino_2 and colaborador.termino_2 < today and \
            not list(colaborador.controles_termino.all()):
@@ -1064,7 +943,7 @@ def sync_geovictoria(request):
             if search_query not in colaborador.nome.lower() and search_query not in colaborador.re.lower():
                 continue
         
-        # Adiciona CPF à lista de sincronização
+        # Adiciona CPF Ã  lista de sincronizaÃ§Ã£o
         if colaborador.cpf:
             cpfs_para_sincronizar.append({
                 "cpf": str(colaborador.cpf).strip(),
@@ -1073,7 +952,7 @@ def sync_geovictoria(request):
             })
     
     # Inicializa progresso
-    set_progresso_sync(0, f"Iniciando sincronização de {len(cpfs_para_sincronizar)} colaboradores...", "processing")
+    set_progresso_sync(0, f"Iniciando sincronizaÃ§Ã£o de {len(cpfs_para_sincronizar)} colaboradores...", "processing")
     
     # Dispara em thread separada
     thread = threading.Thread(
@@ -1092,7 +971,7 @@ def sync_geovictoria(request):
 
 def _sync_geovictoria_background(cpfs_para_sincronizar):
     """
-    Executa a sincronização em background.
+    Executa a sincronizaÃ§Ã£o em background.
     """
     def atualizar_progresso(progresso, mensagem):
         set_progresso_sync(progresso, mensagem, "processing")
@@ -1105,7 +984,7 @@ def _sync_geovictoria_background(cpfs_para_sincronizar):
         
         set_progresso_sync(
             100,
-            f"Sincronização concluída! {resultado['sucesso']} sucessos, {resultado['erros']} erros.",
+            f"SincronizaÃ§Ã£o concluÃ­da! {resultado['sucesso']} sucessos, {resultado['erros']} erros.",
             "completed"
         )
     except Exception as e:
@@ -1114,9 +993,10 @@ def _sync_geovictoria_background(cpfs_para_sincronizar):
 
 def sync_geovictoria_progress(request):
     """
-    Retorna o progresso da sincronização.
+    Retorna o progresso da sincronizaÃ§Ã£o.
     """
     progresso = get_progresso_sync()
     if not progresso:
         return JsonResponse({"status": "not_found"}, status=404)
     return JsonResponse(progresso)
+

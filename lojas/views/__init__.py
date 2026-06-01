@@ -13,7 +13,6 @@ from .escopos import (
     escopo_duplicar_proximo_mes,
     escopo_list,
 )
-from .folha_import import folha_import
 from .configuracoes import importacoes
 from .loja_insalubridade import loja_config_insalubridade
 from .stores import (
@@ -35,7 +34,6 @@ __all__ = [
     "escopo_create",
     "escopo_delete",
     "escopo_list",
-    "folha_import",
     "parse_int_param",
     "replicar_do_mes_anterior_se_existir",
     "store_create",
