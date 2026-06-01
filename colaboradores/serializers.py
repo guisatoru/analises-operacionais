@@ -14,13 +14,38 @@ class ColaboradorSerializer(serializers.ModelSerializer):
     loja_geo_divergente = serializers.ReadOnlyField()
     funcao_divergente = serializers.SerializerMethodField()
     
-    loja_nome = serializers.CharField(source="loja.nome_referencia", read_only=True)
-    loja_gestao_nome = serializers.CharField(source="loja_gestao.nome_referencia", read_only=True)
-    loja_geo_nome = serializers.CharField(source="loja_geo.nome_referencia", read_only=True)
+    loja_nome = serializers.SerializerMethodField()
+    loja_coordenador = serializers.CharField(source="loja.coordenador", read_only=True)
+    loja_gestao_nome = serializers.SerializerMethodField()
+    loja_geo_nome = serializers.SerializerMethodField()
 
     class Meta:
         model = Colaborador
         fields = "__all__"
+
+    def get_loja_nome(self, obj):
+        """
+        Retorna o nome da loja cadastrado na TOTVS ou o nome de referência como fallback.
+        """
+        if obj.loja:
+            return obj.loja.nome_totvs or obj.loja.nome_referencia
+        return None
+
+    def get_loja_gestao_nome(self, obj):
+        """
+        Retorna o nome da loja configurado na planilha de Gestão de Pessoas ou o de referência.
+        """
+        if obj.loja_gestao:
+            return obj.loja_gestao.nome_gestao or obj.loja_gestao.nome_referencia
+        return None
+
+    def get_loja_geo_nome(self, obj):
+        """
+        Retorna o nome do relógio correspondente na GeoVictoria ou o de referência.
+        """
+        if obj.loja_geo:
+            return obj.loja_geo.nome_geovictoria or obj.loja_geo.nome_referencia
+        return None
 
     def get_funcao_divergente(self, obj):
         """

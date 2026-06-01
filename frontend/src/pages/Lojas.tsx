@@ -26,9 +26,14 @@ interface Loja {
 
 interface InsalubridadeConfig {
   id?: string;
-  grau_insalubridade?: string;
-  valor_insalubridade_fixa?: string;
-  percentual_adicional_noturno?: string;
+  loja?: string;
+  insalubridade_fixa_percentual: string;
+  insalubridade_fixa_base: string;
+  insalubridade_banheirista_percentual: string;
+  insalubridade_banheirista_base: string;
+  calcular_diferenca_banheirista: boolean;
+  insalubridade_fixa_recebedores_modo: string;
+  insalubridade_fixa_recebedores_quantidade: number | null;
 }
 
 /**
@@ -71,9 +76,13 @@ export default function Lojas() {
 
   // Formulário de insalubridade
   const [insalConfig, setInsalConfig] = useState<InsalubridadeConfig>({
-    grau_insalubridade: 'MEDIO',
-    valor_insalubridade_fixa: '0.00',
-    percentual_adicional_noturno: '20.00'
+    insalubridade_fixa_percentual: '0.00',
+    insalubridade_fixa_base: 'SALARIO_BASE',
+    insalubridade_banheirista_percentual: '40.00',
+    insalubridade_banheirista_base: 'MINIMO_NACIONAL',
+    calcular_diferenca_banheirista: true,
+    insalubridade_fixa_recebedores_modo: 'TODOS',
+    insalubridade_fixa_recebedores_quantidade: null
   });
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -222,9 +231,13 @@ export default function Lojas() {
     setErrorMsg(null);
     setShowInsalubridadeModal(true);
     setInsalConfig({
-      grau_insalubridade: 'MEDIO',
-      valor_insalubridade_fixa: '0.00',
-      percentual_adicional_noturno: '20.00'
+      insalubridade_fixa_percentual: '0.00',
+      insalubridade_fixa_base: 'SALARIO_BASE',
+      insalubridade_banheirista_percentual: '40.00',
+      insalubridade_banheirista_base: 'MINIMO_NACIONAL',
+      calcular_diferenca_banheirista: true,
+      insalubridade_fixa_recebedores_modo: 'TODOS',
+      insalubridade_fixa_recebedores_quantidade: null
     });
 
     try {
@@ -615,7 +628,7 @@ export default function Lojas() {
       {/* Modal de Configuração de Insalubridade */}
       {showInsalubridadeModal && selectedLoja && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-scale-in">
+          <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-scale-in">
             <div className="flex items-center justify-between p-6 border-b border-border bg-neutral-500/5">
               <div>
                 <h3 className="font-bold text-lg text-neutral-900 dark:text-neutral-100">
@@ -639,53 +652,116 @@ export default function Lojas() {
                 </div>
               )}
 
-              <div>
-                <label className="block text-xs font-semibold text-neutral-400 uppercase mb-1">
-                  Grau de Insalubridade Padrão
-                </label>
-                <select
-                  value={insalConfig.grau_insalubridade || 'MEDIO'}
-                  onChange={(e) => setInsalConfig({ ...insalConfig, grau_insalubridade: e.target.value })}
-                  className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="NENHUM">Nenhum</option>
-                  <option value="MINIMO">Mínimo (10%)</option>
-                  <option value="MEDIO">Médio (20%)</option>
-                  <option value="MAXIMO">Máximo (40%)</option>
-                  <option value="FIXO">Valor Fixo Customizado</option>
-                </select>
-              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {/* Seção Insalubridade Fixa */}
+                <div className="col-span-2">
+                  <h4 className="font-bold text-sm text-primary border-b border-border pb-1 mb-2">Insalubridade Fixa</h4>
+                </div>
 
-              {insalConfig.grau_insalubridade === 'FIXO' && (
                 <div>
                   <label className="block text-xs font-semibold text-neutral-400 uppercase mb-1">
-                    Valor Fixo de Insalubridade (R$)
+                    Percentual da Fixa (%)
                   </label>
                   <input
                     type="number"
                     step="0.01"
                     required
-                    value={insalConfig.valor_insalubridade_fixa || '0.00'}
-                    onChange={(e) => setInsalConfig({ ...insalConfig, valor_insalubridade_fixa: e.target.value })}
+                    value={insalConfig.insalubridade_fixa_percentual}
+                    onChange={(e) => setInsalConfig({ ...insalConfig, insalubridade_fixa_percentual: e.target.value })}
                     className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="0.00"
                   />
                 </div>
-              )}
 
-              <div>
-                <label className="block text-xs font-semibold text-neutral-400 uppercase mb-1">
-                  Percentual de Adicional Noturno (%)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  value={insalConfig.percentual_adicional_noturno || '20.00'}
-                  onChange={(e) => setInsalConfig({ ...insalConfig, percentual_adicional_noturno: e.target.value })}
-                  className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="20.00"
-                />
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-400 uppercase mb-1">
+                    Base de Cálculo da Fixa
+                  </label>
+                  <select
+                    value={insalConfig.insalubridade_fixa_base}
+                    onChange={(e) => setInsalConfig({ ...insalConfig, insalubridade_fixa_base: e.target.value })}
+                    className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="SALARIO_BASE">Salário Base do Cargo</option>
+                    <option value="MINIMO_NACIONAL">Salário Mínimo Nacional</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-400 uppercase mb-1">
+                    Modo de Recebedores (Fixa)
+                  </label>
+                  <select
+                    value={insalConfig.insalubridade_fixa_recebedores_modo}
+                    onChange={(e) => setInsalConfig({ ...insalConfig, insalubridade_fixa_recebedores_modo: e.target.value })}
+                    className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="TODOS">Todos do Escopo</option>
+                    <option value="PERSONALIZADO">Personalizado</option>
+                  </select>
+                </div>
+
+                {insalConfig.insalubridade_fixa_recebedores_modo === 'PERSONALIZADO' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-400 uppercase mb-1">
+                      Qtd. de Pessoas
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      value={insalConfig.insalubridade_fixa_recebedores_quantidade || ''}
+                      onChange={(e) => setInsalConfig({ ...insalConfig, insalubridade_fixa_recebedores_quantidade: e.target.value ? parseInt(e.target.value) : null })}
+                      className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="Ex: 5"
+                    />
+                  </div>
+                )}
+
+                {/* Seção Insalubridade Banheirista */}
+                <div className="col-span-2 pt-2">
+                  <h4 className="font-bold text-sm text-primary border-b border-border pb-1 mb-2">Insalubridade Banheirista</h4>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-400 uppercase mb-1">
+                    Percentual da Banheirista (%)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={insalConfig.insalubridade_banheirista_percentual}
+                    onChange={(e) => setInsalConfig({ ...insalConfig, insalubridade_banheirista_percentual: e.target.value })}
+                    className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-400 uppercase mb-1">
+                    Base de Cálculo da Banheirista
+                  </label>
+                  <select
+                    value={insalConfig.insalubridade_banheirista_base}
+                    onChange={(e) => setInsalConfig({ ...insalConfig, insalubridade_banheirista_base: e.target.value })}
+                    className="w-full px-3 py-2 border border-input rounded-lg bg-neutral-950/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="SALARIO_BASE">Salário Base do Cargo</option>
+                    <option value="MINIMO_NACIONAL">Salário Mínimo Nacional</option>
+                  </select>
+                </div>
+
+                <div className="col-span-2 flex items-center gap-2.5 pt-2">
+                  <input
+                    type="checkbox"
+                    id="calc_diferenca"
+                    checked={insalConfig.calcular_diferenca_banheirista}
+                    onChange={(e) => setInsalConfig({ ...insalConfig, calcular_diferenca_banheirista: e.target.checked })}
+                    className="rounded border-input text-primary focus:ring-primary h-4 w-4"
+                  />
+                  <label htmlFor="calc_diferenca" className="text-sm text-neutral-600 dark:text-neutral-400 select-none">
+                    Calcular diferença de banheirista (valor banheirista − valor fixa)
+                  </label>
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-border mt-6">

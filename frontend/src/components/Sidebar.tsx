@@ -8,7 +8,8 @@ import {
   User,
   ChevronLeft,
   ChevronRight,
-  TrendingUp
+  TrendingUp,
+  Database
 } from 'lucide-react';
 import { useState } from 'react';
 import api from '../api/client';
@@ -37,6 +38,7 @@ export default function Sidebar({ username = 'Usuário', onLogout }: SidebarProp
     { path: '/lojas', label: 'Lojas', icon: Store },
     { path: '/colaboradores', label: 'Colaboradores', icon: Users },
     { path: '/terminos', label: 'Términos de Exp.', icon: Clock },
+    { path: '/importacoes', label: 'Importações', icon: Database },
   ];
 
   const handleLogoutClick = async () => {

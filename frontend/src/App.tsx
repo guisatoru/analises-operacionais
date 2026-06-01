@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import Lojas from './pages/Lojas';
 import Colaboradores from './pages/Colaboradores';
 import Terminos from './pages/Terminos';
+import Importacoes from './pages/Importacoes';
 
 /**
  * Componente Principal do Aplicativo (App).
@@ -95,6 +96,7 @@ function App() {
           <Route path="/lojas" element={<Lojas />} />
           <Route path="/colaboradores" element={<Colaboradores />} />
           <Route path="/terminos" element={<Terminos />} />
+          <Route path="/importacoes" element={<Importacoes />} />
         </Route>
 
         {/* Redirecionamento de rotas inexistentes para o Dashboard ou Login */}
