@@ -85,6 +85,8 @@ export default function Terminos() {
   const [coordenador, setCoordenador] = useState('');
   const [statusGestao, setStatusGestao] = useState('');
   const [ordenacao, setOrdenacao] = useState('data');
+  const [dataFiltro, setDataFiltro] = useState('');
+  const [dataFim, setDataFim] = useState('');
 
   // Estados do Modal de Decisão
   const [showAcaoModal, setShowAcaoModal] = useState(false);
@@ -106,7 +108,7 @@ export default function Terminos() {
   useEffect(() => {
     const fetchCoordenadores = async () => {
       try {
-        const response = await api.get('/lojas/', { params: { page_size: 200 } });
+        const response = await api.get('/lojas/', { params: { sem_paginacao: 'true' } });
         if (response.data) {
           const lojas = response.data.results || response.data || [];
           const coords = lojas
@@ -123,9 +125,14 @@ export default function Terminos() {
     fetchCoordenadores();
   }, []);
 
+  // Efeito reativo: recarrega os prazos se mudar filtros dropdowns, ordenação, coordenador ou datas
+  useEffect(() => {
+    fetchTerminos(true);
+  }, [ordenacao, statusGestao, coordenador, dataFiltro, dataFim]);
+
   useEffect(() => {
     fetchTerminos();
-  }, [currentPage, ordenacao]);
+  }, [currentPage]);
 
   const fetchTerminos = async (resetPage = false) => {
     setLoading(true);
@@ -143,6 +150,8 @@ export default function Terminos() {
           coordenador: coordenador || undefined,
           status_gestao: statusGestao || undefined,
           ordenar: ordenacao || undefined,
+          data_filtro: dataFiltro || undefined,
+          data_fim: dataFim || undefined,
         }
       });
 
@@ -177,6 +186,8 @@ export default function Terminos() {
       if (busca) params.search = busca;
       if (coordenador) params.coordenador = coordenador;
       if (statusGestao) params.status_gestao = statusGestao;
+      if (dataFiltro) params.data_filtro = dataFiltro;
+      if (dataFim) params.data_fim = dataFim;
 
       const response = await api.post('/colaboradores/sync-geovictoria/', null, { params });
       
@@ -233,6 +244,8 @@ export default function Terminos() {
     setCoordenador('');
     setStatusGestao('');
     setOrdenacao('data');
+    setDataFiltro('');
+    setDataFim('');
 
     setTimeout(() => {
       fetchTerminos(true);
@@ -281,6 +294,8 @@ export default function Terminos() {
     if (busca) params.append('search', busca);
     if (coordenador) params.append('coordenador', coordenador);
     if (statusGestao) params.append('status_gestao', statusGestao);
+    if (dataFiltro) params.append('data_filtro', dataFiltro);
+    if (dataFim) params.append('data_fim', dataFim);
     
     const url = `http://localhost:8000/colaboradores/terminos/exportar/?${params.toString()}`;
     window.open(url, '_blank');
@@ -390,9 +405,9 @@ export default function Terminos() {
 
       {/* Filtros */}
       <form onSubmit={handleSearchSubmit} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs p-5 shadow-sm space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Busca (Nome ou RE)
             </label>
             <div className="relative">
@@ -402,13 +417,13 @@ export default function Terminos() {
                 placeholder="Ex: Pedro / 001290..."
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                className="w-full input-with-icon-left pr-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Coordenador da Loja
             </label>
             <SearchableSelect
@@ -423,7 +438,7 @@ export default function Terminos() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Status de Gestão
             </label>
             <input
@@ -436,7 +451,31 @@ export default function Terminos() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
+              Término a Partir de
+            </label>
+            <input
+              type="date"
+              value={dataFiltro}
+              onChange={(e) => setDataFiltro(e.target.value)}
+              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
+              Término Até
+            </label>
+            <input
+              type="date"
+              value={dataFim}
+              onChange={(e) => setDataFim(e.target.value)}
+              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Ordenação Principal
             </label>
             <select
@@ -481,7 +520,7 @@ export default function Terminos() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+              <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-100 text-xs font-bold text-neutral-700 uppercase tracking-wider">
                 <th className="py-4 px-6">RE / Colaborador</th>
                 <th className="py-4 px-6">Loja Física (TOTVS)</th>
                 <th className="py-4 px-6">Coordenador</th>
@@ -523,10 +562,10 @@ export default function Terminos() {
                         <div className="text-[10px] text-neutral-400">CC: {item.colaborador.centro_custo}</div>
                       )}
                     </td>
-                    <td className="py-4 px-6 text-neutral-600 dark:text-neutral-400">
+                    <td className="py-4 px-6 text-neutral-700">
                       {item.colaborador.loja_coordenador || '-'}
                     </td>
-                    <td className="py-4 px-6 text-neutral-600 dark:text-neutral-400">
+                    <td className="py-4 px-6 text-neutral-700">
                       {item.colaborador.status_gestao || '-'}
                     </td>
                     <td className="py-4 px-6 text-center whitespace-nowrap">
@@ -604,7 +643,7 @@ export default function Terminos() {
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-400 px-2">
+              <span className="text-sm font-semibold text-neutral-700 px-2">
                 Página {currentPage} de {totalPages}
               </span>
               <button
@@ -666,7 +705,7 @@ export default function Terminos() {
 
               {/* Ação */}
               <div>
-                <label className="block text-xs font-semibold text-neutral-400 uppercase mb-1.5">
+                <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1.5">
                   Ação Selecionada *
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -716,7 +755,7 @@ export default function Terminos() {
 
               {/* Justificativa */}
               <div>
-                <label className="block text-xs font-semibold text-neutral-400 uppercase mb-1">
+                <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
                   Justificativa / Observação Interna
                 </label>
                 <textarea

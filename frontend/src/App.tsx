@@ -10,6 +10,8 @@ import Lojas from './pages/Lojas';
 import Colaboradores from './pages/Colaboradores';
 import Terminos from './pages/Terminos';
 import Importacoes from './pages/Importacoes';
+import Escopos from './pages/Escopos';
+import Comparativo from './pages/Comparativo';
 
 /**
  * Componente Principal do Aplicativo (App).
@@ -94,6 +96,8 @@ function App() {
         >
           <Route path="/" element={<Dashboard />} />
           <Route path="/lojas" element={<Lojas />} />
+          <Route path="/escopos" element={<Escopos />} />
+          <Route path="/comparativo" element={<Comparativo />} />
           <Route path="/colaboradores" element={<Colaboradores />} />
           <Route path="/terminos" element={<Terminos />} />
           <Route path="/importacoes" element={<Importacoes />} />

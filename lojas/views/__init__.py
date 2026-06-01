@@ -12,6 +12,7 @@ from .escopos import (
     escopo_delete,
     escopo_duplicar_proximo_mes,
     escopo_list,
+    cargo_list,
 )
 from .configuracoes import importacoes
 from .loja_insalubridade import loja_config_insalubridade
@@ -29,6 +30,7 @@ from .folha_duplicadas import folha_duplicadas_list
 __all__ = [
     "api_item_escopo_delete",
     "api_item_escopo_save",
+    "cargo_list",
     "comparativo_loja",
     "competencia_anterior",
     "escopo_create",

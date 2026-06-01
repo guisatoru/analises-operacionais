@@ -7,7 +7,8 @@ import {
   LogOut, 
   User,
   TrendingUp,
-  Database
+  Database,
+  Layers
 } from 'lucide-react';
 import { 
   Sidebar as ShadcnSidebar, 
@@ -45,6 +46,8 @@ export default function Sidebar({ username = 'Usuário', onLogout }: SidebarProp
   const menuItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/lojas', label: 'Lojas', icon: Store },
+    { path: '/escopos', label: 'Escopos', icon: Layers },
+    { path: '/comparativo', label: 'Raio-X', icon: TrendingUp },
     { path: '/colaboradores', label: 'Colaboradores', icon: Users },
     { path: '/terminos', label: 'Términos de Exp.', icon: Clock },
     { path: '/importacoes', label: 'Importações', icon: Database },

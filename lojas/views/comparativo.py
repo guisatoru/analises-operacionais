@@ -85,4 +85,7 @@ def comparativo_loja(request):
                 "tabela_desvio_total": str(resultado.tabela_desvio_total),
             }
 
-    return Response(resultado_serializado)
+    return Response({
+        "resultado": resultado_serializado,
+        "competencias_opcoes": competencias_opcoes
+    })

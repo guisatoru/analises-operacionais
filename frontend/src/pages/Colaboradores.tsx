@@ -89,11 +89,17 @@ export default function Colaboradores() {
   const [lojasOpcoes, setLojasOpcoes] = useState<LojaRef[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Estados para sincronização de lojas da GeoVictoria
+  const [syncingLojas, setSyncingLojas] = useState(false);
+  const [syncLojasProgress, setSyncLojasProgress] = useState<number | null>(null);
+  const [syncLojasMessage, setSyncLojasMessage] = useState<string>('');
+  const [syncLojasStatus, setSyncLojasStatus] = useState<'idle' | 'processing' | 'completed' | 'error'>('idle');
+
   // Carrega opções de lojas para preencher o select de busca
   useEffect(() => {
     const fetchLojasFiltro = async () => {
       try {
-        const response = await api.get('/lojas/', { params: { page_size: 200 } });
+        const response = await api.get('/lojas/', { params: { sem_paginacao: 'true' } });
         if (response.data && response.data.results) {
           setLojasOpcoes(response.data.results);
         } else {
@@ -107,9 +113,15 @@ export default function Colaboradores() {
   }, []);
 
   // Recarrega os dados ao trocar de página, aba ou filtros rápidos
+  // Efeito reativo: recarrega a busca com página 1 se mudar filtros de abas ou dropdowns
+  useEffect(() => {
+    fetchColaboradores(true);
+  }, [activeTab, statusDivergenteQuery, funcaoDivergenteQuery, divergenteQuery, soTotvsQuery, lojaFiltro, statusFiltro]);
+
+  // Recarrega se mudar a página corrente
   useEffect(() => {
     fetchColaboradores();
-  }, [currentPage, activeTab, statusDivergenteQuery, funcaoDivergenteQuery, divergenteQuery, soTotvsQuery]);
+  }, [currentPage]);
 
   const fetchColaboradores = async (resetPage = false) => {
     setLoading(true);
@@ -155,6 +167,77 @@ export default function Colaboradores() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Dispara a sincronização de lojas GeoVictoria em background para os colaboradores ativos filtrados
+  const handleSyncLojas = async () => {
+    setSyncingLojas(true);
+    setSyncLojasStatus('processing');
+    setSyncLojasProgress(0);
+    setSyncLojasMessage('Iniciando sincronização de lojas...');
+
+    try {
+      const response = await api.post('/colaboradores/sync-lojas-geovictoria/', {
+        loja: lojaFiltro || "",
+        re: reBusca || "",
+        nome: nomeBusca || "",
+        cargo: cargoFiltro || "",
+        status: statusFiltro || "",
+        status_gestao: statusGestaoFiltro || "",
+        divergente: divergenteQuery || "",
+        funcao_divergente: funcaoDivergenteQuery || "",
+        so_totvs: soTotvsQuery || "",
+        status_divergente: statusDivergenteQuery || ""
+      });
+
+      if (response.data && response.data.status === 'started') {
+        setSyncLojasProgress(1);
+        setSyncLojasMessage(response.data.message || 'Sincronização iniciada.');
+        watchSyncLojasProgress();
+      } else {
+        throw new Error(response.data.error || 'Não foi possível iniciar a sincronização.');
+      }
+    } catch (err: any) {
+      console.error('Erro ao iniciar sincronização de lojas:', err);
+      setSyncLojasStatus('error');
+      setSyncLojasMessage(err.response?.data?.error || err.message || 'Erro ao iniciar a sincronização.');
+      setSyncingLojas(false);
+    }
+  };
+
+  // Monitora periodicamente o progresso do sync de lojas
+  const watchSyncLojasProgress = () => {
+    const intervalId = window.setInterval(async () => {
+      try {
+        const response = await api.get('/colaboradores/sync-lojas-geovictoria-progress/');
+        if (response.data) {
+          const { progress, message, status: statusVal } = response.data;
+          
+          if (statusVal === 'not_found') {
+            window.clearInterval(intervalId);
+            setSyncingLojas(false);
+            return;
+          }
+
+          setSyncLojasProgress(progress);
+          setSyncLojasMessage(message);
+          setSyncLojasStatus(statusVal);
+
+          if (statusVal === 'completed' || statusVal === 'error') {
+            window.clearInterval(intervalId);
+            setSyncingLojas(false);
+            // Ao concluir, recarrega a listagem para refletir os novos dados
+            fetchColaboradores();
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao consultar progresso:', err);
+        window.clearInterval(intervalId);
+        setSyncingLojas(false);
+        setSyncLojasStatus('error');
+        setSyncLojasMessage('Erro ao consultar o progresso da sincronização.');
+      }
+    }, 1500);
   };
 
   const handleFilterSubmit = (e: React.FormEvent) => {
@@ -285,7 +368,7 @@ export default function Colaboradores() {
 
       {/* Chips de Filtros Rápidos (Auditoria) */}
       <div className="flex flex-wrap gap-2.5 items-center">
-        <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mr-1">Auditoria Rápida:</span>
+        <span className="text-xs font-bold text-neutral-600 uppercase tracking-wider mr-1">Auditoria Rápida:</span>
         <button
           onClick={clearQuickFilters}
           className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
@@ -328,7 +411,7 @@ export default function Colaboradores() {
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
                 divergenteQuery === 'S'
                   ? 'bg-red-500 text-white border-red-500 shadow-sm'
-                  : 'border-red-500/20 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                  : 'border-red-500/20 text-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800'
               }`}
             >
               Divergências de Loja
@@ -339,7 +422,7 @@ export default function Colaboradores() {
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
                 soTotvsQuery === 'S'
                   ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
-                  : 'border-amber-500/20 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                  : 'border-amber-500/20 text-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800'
               }`}
             >
               Apenas TOTVS
@@ -352,7 +435,7 @@ export default function Colaboradores() {
       <form onSubmit={handleFilterSubmit} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs p-5 shadow-sm space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Loja TOTVS
             </label>
             <SearchableSelect
@@ -367,7 +450,7 @@ export default function Colaboradores() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Matrícula (RE)
             </label>
             <input
@@ -380,7 +463,7 @@ export default function Colaboradores() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Nome do Colaborador
             </label>
             <div className="relative">
@@ -390,13 +473,13 @@ export default function Colaboradores() {
                 placeholder="Pesquise por nome..."
                 value={nomeBusca}
                 onChange={(e) => setNomeBusca(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                className="w-full input-with-icon-left pr-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Cargo / Função
             </label>
             <input
@@ -411,7 +494,7 @@ export default function Colaboradores() {
           {activeTab === 'ativos' && (
             <>
               <div>
-                <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
                   Status TOTVS
                 </label>
                 <select
@@ -427,7 +510,7 @@ export default function Colaboradores() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
                   Status Gestão
                 </label>
                 <input
@@ -459,6 +542,78 @@ export default function Colaboradores() {
         </div>
       </form>
 
+      {/* Painel de Sincronização de Lojas (GeoVictoria) */}
+      {activeTab === 'ativos' && (
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-xs shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h3 className="text-sm font-bold text-neutral-850 dark:text-neutral-250 flex items-center gap-2">
+                <Layers className="h-4 w-4 text-neutral-500" />
+                Sincronização de Lojas — GeoVictoria
+              </h3>
+              <p className="text-xs text-neutral-500">
+                Atualiza a Loja GeoVictoria dos colaboradores ativos usando RE e centro de custo da API do relógio de ponto.
+              </p>
+            </div>
+            
+            <button
+              type="button"
+              disabled={syncingLojas}
+              onClick={handleSyncLojas}
+              className={`px-5 py-2.5 rounded-full text-xs font-bold border transition-all cursor-pointer inline-flex items-center gap-1.5 ${
+                syncingLojas
+                  ? 'bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed dark:bg-neutral-800 dark:text-neutral-500 dark:border-neutral-700'
+                  : 'border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-150 dark:hover:bg-neutral-800'
+              }`}
+            >
+              {syncingLojas && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {!syncingLojas && <Layers className="h-3.5 w-3.5" />}
+              Sincronizar lojas GeoVictoria
+            </button>
+          </div>
+
+          {syncLojasStatus !== 'idle' && (
+            <div className="pt-3 space-y-2 border-t border-neutral-100 dark:border-neutral-850">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-neutral-600 dark:text-neutral-450">
+                  {syncLojasMessage}
+                </span>
+                <span className="font-bold text-neutral-850 dark:text-neutral-250">
+                  {syncLojasProgress}%
+                </span>
+              </div>
+              
+              <div className="h-2 w-full bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full transition-all duration-300 ${
+                    syncLojasStatus === 'completed'
+                      ? 'bg-green-600'
+                      : syncLojasStatus === 'error'
+                      ? 'bg-red-600'
+                      : 'bg-primary'
+                  }`}
+                  style={{ width: `${syncLojasProgress}%` }}
+                />
+              </div>
+
+              {syncLojasStatus === 'completed' && (
+                <div className="text-xs pt-1.5 flex gap-2">
+                  <span className="text-neutral-500">Ação pós-sync:</span>
+                  <a 
+                    href="http://localhost:8000/colaboradores/sync-lojas-geovictoria/pendencias/todas/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-bold text-neutral-900 hover:underline dark:text-neutral-100"
+                  >
+                    Baixar relatório de pendências da sincronização (CSV)
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Erro de comunicação */}
       {errorMsg && !showDetailModal && (
         <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 rounded-lg text-sm flex gap-3 items-center">
@@ -472,7 +627,7 @@ export default function Colaboradores() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+              <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-100 text-xs font-bold text-neutral-700 uppercase tracking-wider">
                 <th className="py-4 px-6">RE</th>
                 <th className="py-4 px-6">Colaborador</th>
                 <th className="py-4 px-6">Função (TOTVS / Gestão)</th>
@@ -504,10 +659,10 @@ export default function Colaboradores() {
                     onClick={() => handleOpenDetail(colab)}
                     className="hover:bg-neutral-50 dark:bg-neutral-850 transition-colors cursor-pointer"
                   >
-                    <td className="py-4 px-6 font-mono text-neutral-400">{colab.re}</td>
+                    <td className="py-4 px-6 font-mono text-neutral-600">{colab.re}</td>
                     <td className="py-4 px-6">
                       <div className="font-semibold text-neutral-900 dark:text-neutral-100">{colab.nome}</div>
-                      <div className="text-[10px] text-neutral-400 font-mono">CPF: {colab.cpf || '-'}</div>
+                      <div className="text-[10px] text-neutral-600 font-mono">CPF: {colab.cpf || '-'}</div>
                     </td>
                     <td className="py-4 px-6 space-y-1">
                       <div className="text-xs font-medium text-neutral-800 dark:text-neutral-200">
@@ -515,24 +670,24 @@ export default function Colaboradores() {
                       </div>
                       {activeTab === 'ativos' && (
                         <div className="text-[10px] text-neutral-500">
-                          <span className="font-medium text-neutral-400">Gestão:</span>{' '}
+                          <span className="font-semibold text-neutral-500">Gestão:</span>{' '}
                           {colab.funcao_gestao || 'Em branco'}
                         </div>
                       )}
                     </td>
                     <td className="py-4 px-6 space-y-1">
-                      <div className="text-xs text-neutral-600 dark:text-neutral-400">
-                        <span className="font-medium text-neutral-400">TOTVS:</span>{' '}
+                      <div className="text-xs text-neutral-700">
+                        <span className="font-semibold text-neutral-500">TOTVS:</span>{' '}
                         {colab.loja_nome || colab.centro_custo}
                       </div>
                       {activeTab === 'ativos' && (
                         <>
-                          <div className="text-xs text-neutral-600 dark:text-neutral-400">
-                            <span className="font-medium text-neutral-400">Gestão:</span>{' '}
+                          <div className="text-xs text-neutral-700">
+                            <span className="font-semibold text-neutral-500">Gestão:</span>{' '}
                             {colab.loja_gestao_nome || 'Em branco'}
                           </div>
-                          <div className="text-xs text-neutral-600 dark:text-neutral-400">
-                            <span className="font-medium text-neutral-400">Geo:</span>{' '}
+                          <div className="text-xs text-neutral-700">
+                            <span className="font-semibold text-neutral-500">Geo:</span>{' '}
                             {colab.loja_geo_nome || 'Em branco'}
                           </div>
                         </>
@@ -542,7 +697,7 @@ export default function Colaboradores() {
                       <div>{getStatusBadge(colab.status)}</div>
                       {colab.status_gestao && (
                         <div className="text-[10px] text-neutral-500">
-                          <span className="text-neutral-400">Gestão:</span>{' '}
+                          <span className="font-semibold text-neutral-500">Gestão:</span>{' '}
                           <span className="font-semibold">{colab.status_gestao}</span>
                         </div>
                       )}
@@ -605,7 +760,7 @@ export default function Colaboradores() {
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-400 px-2">
+              <span className="text-sm font-semibold text-neutral-700 px-2">
                 Página {currentPage} de {totalPages}
               </span>
               <button
@@ -648,17 +803,17 @@ export default function Colaboradores() {
               {/* Informações Pessoais e Identificação */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 bg-neutral-50 dark:bg-neutral-850 p-4 rounded-lg border border-neutral-200 dark:border-neutral-800">
-                  <span className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Nome Completo</span>
+                  <span className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider mb-1">Nome Completo</span>
                   <span className="text-lg font-bold text-neutral-950 dark:text-neutral-50">{selectedColab.nome}</span>
                 </div>
 
                 <div>
-                  <span className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Matrícula (RE)</span>
+                  <span className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider mb-1">Matrícula (RE)</span>
                   <span className="text-sm font-mono font-semibold">{selectedColab.re}</span>
                 </div>
 
                 <div>
-                  <span className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">CPF</span>
+                  <span className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider mb-1">CPF</span>
                   <span className="text-sm font-mono font-semibold">{selectedColab.cpf || 'Não cadastrado'}</span>
                 </div>
               </div>
@@ -723,17 +878,17 @@ export default function Colaboradores() {
 
                 <div className="grid grid-cols-3 gap-4">
                   <div className="p-3 bg-neutral-50 dark:bg-neutral-850 rounded-lg border border-neutral-200 dark:border-neutral-800">
-                    <span className="block text-[9px] font-bold text-neutral-400 uppercase mb-1">Admissão</span>
+                    <span className="block text-[9px] font-bold text-neutral-600 uppercase mb-1">Admissão</span>
                     <span className="text-sm font-semibold font-mono">{formatDate(selectedColab.data_admissao)}</span>
                   </div>
 
                   <div className="p-3 bg-neutral-50 dark:bg-neutral-850 rounded-lg border border-neutral-200 dark:border-neutral-800">
-                    <span className="block text-[9px] font-bold text-neutral-400 uppercase mb-1">Experiência (1º Período)</span>
+                    <span className="block text-[9px] font-bold text-neutral-600 uppercase mb-1">Experiência (1º Período)</span>
                     <span className="text-sm font-semibold font-mono">{formatDate(selectedColab.termino_1)}</span>
                   </div>
 
                   <div className="p-3 bg-neutral-50 dark:bg-neutral-850 rounded-lg border border-neutral-200 dark:border-neutral-800">
-                    <span className="block text-[9px] font-bold text-neutral-400 uppercase mb-1">Experiência (2º Período)</span>
+                    <span className="block text-[9px] font-bold text-neutral-600 uppercase mb-1">Experiência (2º Período)</span>
                     <span className="text-sm font-semibold font-mono">{formatDate(selectedColab.termino_2)}</span>
                   </div>
 

@@ -89,6 +89,11 @@ export default function Lojas() {
   const [actionLoading, setActionLoading] = useState(false);
 
   // Carrega as lojas ao inicializar ou mudar de página/filtros
+  // Efeito reativo: recarrega as lojas se mudar a página ou o filtro de status
+  useEffect(() => {
+    fetchLojas(true);
+  }, [statusFiltro]);
+
   useEffect(() => {
     fetchLojas();
   }, [currentPage]);
@@ -290,7 +295,7 @@ export default function Lojas() {
       <form onSubmit={handleSearchSubmit} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs p-5 shadow-sm space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Busca por Nome
             </label>
             <div className="relative">
@@ -300,13 +305,13 @@ export default function Lojas() {
                 placeholder="Ex: Loja Centro..."
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                className="w-full input-with-icon-left pr-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Cliente / Regional
             </label>
             <input
@@ -319,7 +324,7 @@ export default function Lojas() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Centro de Custo
             </label>
             <input
@@ -332,7 +337,7 @@ export default function Lojas() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Status da Loja
             </label>
             <select
@@ -377,7 +382,7 @@ export default function Lojas() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+              <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-100 text-xs font-bold text-neutral-700 uppercase tracking-wider">
                 <th className="py-4 px-6">Cód. Loja</th>
                 <th className="py-4 px-6">Nome de Referência</th>
                 <th className="py-4 px-6">Cliente/Regional</th>
@@ -406,12 +411,12 @@ export default function Lojas() {
               ) : (
                 lojas.map((loja) => (
                   <tr key={loja.id} className="hover:bg-neutral-50 dark:bg-neutral-850 transition-colors">
-                    <td className="py-4 px-6 font-mono text-neutral-400">{loja.codigo_loja || '-'}</td>
+                    <td className="py-4 px-6 font-mono text-neutral-600">{loja.codigo_loja || '-'}</td>
                     <td className="py-4 px-6 font-semibold text-neutral-900 dark:text-neutral-100">
                       {loja.nome_referencia}
                     </td>
                     <td className="py-4 px-6">{loja.cliente}</td>
-                    <td className="py-4 px-6 font-mono text-neutral-400">{loja.centro_de_custo}</td>
+                    <td className="py-4 px-6 font-mono text-neutral-600">{loja.centro_de_custo}</td>
                     <td className="py-4 px-6">{loja.quadro || '-'}</td>
                     <td className="py-4 px-6">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
@@ -433,7 +438,7 @@ export default function Lojas() {
                       </button>
                       <button
                         onClick={() => handleOpenEdicao(loja)}
-                        className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-md transition-colors inline-block text-neutral-600 dark:text-neutral-400"
+                        className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-md transition-colors inline-block text-neutral-700"
                         title="Editar Loja"
                       >
                         <Edit2 className="h-4 w-4" />
@@ -467,7 +472,7 @@ export default function Lojas() {
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-400 px-2">
+              <span className="text-sm font-semibold text-neutral-700 px-2">
                 Página {currentPage} de {totalPages}
               </span>
               <button
@@ -508,7 +513,7 @@ export default function Lojas() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <label className="block text-xs font-semibold text-neutral-400 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
                     Nome de Referência *
                   </label>
                   <input
@@ -522,7 +527,7 @@ export default function Lojas() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-400 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
                     Cliente / Regional *
                   </label>
                   <input
@@ -536,7 +541,7 @@ export default function Lojas() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-400 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
                     Código Loja (Númerico)
                   </label>
                   <input
@@ -549,7 +554,7 @@ export default function Lojas() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-400 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
                     Centro de Custo *
                   </label>
                   <input
@@ -563,7 +568,7 @@ export default function Lojas() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-400 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
                     Quadro Estimado
                   </label>
                   <input
@@ -576,7 +581,7 @@ export default function Lojas() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-400 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
                     Status
                   </label>
                   <select
@@ -597,7 +602,7 @@ export default function Lojas() {
                     onChange={(e) => setFormDispensaGestao(e.target.checked)}
                     className="rounded border-neutral-200 dark:border-neutral-800 text-primary focus:ring-primary h-4 w-4"
                   />
-                  <label htmlFor="dispensa_gestao" className="text-sm text-neutral-600 dark:text-neutral-400 select-none">
+                  <label htmlFor="dispensa_gestao" className="text-sm text-neutral-700 select-none">
                     Dispensar esta loja do controle de Gestão de Pessoas
                   </label>
                 </div>
@@ -659,7 +664,7 @@ export default function Lojas() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-400 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
                     Percentual da Fixa (%)
                   </label>
                   <input
@@ -673,7 +678,7 @@ export default function Lojas() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-400 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
                     Base de Cálculo da Fixa
                   </label>
                   <select
@@ -687,7 +692,7 @@ export default function Lojas() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-400 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
                     Modo de Recebedores (Fixa)
                   </label>
                   <select
@@ -702,7 +707,7 @@ export default function Lojas() {
 
                 {insalConfig.insalubridade_fixa_recebedores_modo === 'PERSONALIZADO' && (
                   <div>
-                    <label className="block text-xs font-semibold text-neutral-400 uppercase mb-1">
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
                       Qtd. de Pessoas
                     </label>
                     <input
@@ -723,7 +728,7 @@ export default function Lojas() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-400 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
                     Percentual da Banheirista (%)
                   </label>
                   <input
@@ -737,7 +742,7 @@ export default function Lojas() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-400 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
                     Base de Cálculo da Banheirista
                   </label>
                   <select
@@ -758,7 +763,7 @@ export default function Lojas() {
                     onChange={(e) => setInsalConfig({ ...insalConfig, calcular_diferenca_banheirista: e.target.checked })}
                     className="rounded border-neutral-200 dark:border-neutral-800 text-primary focus:ring-primary h-4 w-4"
                   />
-                  <label htmlFor="calc_diferenca" className="text-sm text-neutral-600 dark:text-neutral-400 select-none">
+                  <label htmlFor="calc_diferenca" className="text-sm text-neutral-700 select-none">
                     Calcular diferença de banheirista (valor banheirista − valor fixa)
                   </label>
                 </div>

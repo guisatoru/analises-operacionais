@@ -45,6 +45,10 @@ def store_list(request):
     if store_code and store_code.isdigit():
         stores = stores.filter(codigo_loja=int(store_code))
 
+    if request.GET.get("sem_paginacao", "").strip().lower() in ("true", "1", "yes", "t"):
+        serializer = LojaSerializer(stores, many=True)
+        return Response(serializer.data)
+
     paginator = PageNumberPagination()
     paginator.page_size = 25
     page = paginator.paginate_queryset(stores, request)

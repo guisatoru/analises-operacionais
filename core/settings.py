@@ -147,7 +147,7 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = config(
 # Define a autenticação padrão como SessionAuthentication e a permissão padrão como IsAuthenticated.
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
+        "core.authentication.CsrfExemptSessionAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",

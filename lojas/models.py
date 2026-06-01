@@ -519,7 +519,8 @@ class ItemEscopoMensal(models.Model):
         if not uf_loja:
             return None
         ano = self.escopo_mensal.ano
-        chave_regional = (self.cargo_id, uf_loja, ano)
+        cargo_id_val = int(self.cargo_id) if self.cargo_id else None
+        chave_regional = (cargo_id_val, uf_loja, ano)
         if cache_salarios_regional is not None:
             salario_regional = cache_salarios_regional.get(chave_regional)
         else:
@@ -754,7 +755,8 @@ def montar_caches_salario_para_itens(itens):
         uf = (loja.uf or "").strip().upper()
         if not uf:
             continue
-        chaves_regional.add((item.cargo_id, uf, escopo.ano))
+        cargo_id_val = int(item.cargo_id) if item.cargo_id else None
+        chaves_regional.add((cargo_id_val, uf, escopo.ano))
         anos.add(escopo.ano)
 
     cache_regional = {}

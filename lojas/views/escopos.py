@@ -20,7 +20,7 @@ from ..models import (
     escala_insalubridade_fixa_para_escopo,
     montar_caches_salario_para_itens,
 )
-from ..serializers import EscopoMensalSerializer, ItemEscopoMensalSerializer
+from ..serializers import EscopoMensalSerializer, ItemEscopoMensalSerializer, CargoSerializer
 from .common import parse_int_param, escopo_duplicar_proximo_mes_para_todas_as_lojas
 
 ESCOPOS_POR_PAGINA = 10
@@ -115,7 +115,7 @@ def api_item_escopo_save(request):
         item = ItemEscopoMensal(escopo_mensal_id=escopo_id)
 
     if cargo_id:
-        item.cargo_id = cargo_id
+        item.cargo_id = int(cargo_id)
     if turno:
         item.turno = turno
     if quantidade is not None:
@@ -253,3 +253,15 @@ def escopo_duplicar_proximo_mes(request):
         "success": resumo["ok"],
         "message": resumo["mensagem"]
     })
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def cargo_list(request):
+    """
+    Esta view existe para expor a listagem de todos os cargos do banco de dados em formato JSON.
+    Ela permite que telas como o cadastro e edição de escopos mensais carreguem dinamicamente
+    as opções disponíveis de funções/cargos para preencher os seletores na interface.
+    """
+    cargos = Cargo.objects.all().order_by("nome")
+    serializer = CargoSerializer(cargos, many=True)
+    return Response(serializer.data)

@@ -111,13 +111,7 @@ body {
 */
 
 /* Inputs, Textareas e Selects */
-input[type="text"],
-input[type="password"],
-input[type="email"],
-input[type="number"],
-input[type="date"],
-select,
-textarea {
+:where(input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], select, textarea) {
   background-color: #ffffff;
   color: #1e1e24;
   border: 1px solid #e4e4e7;
@@ -130,24 +124,12 @@ textarea {
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
 }
 
-input[type="text"]:focus,
-input[type="password"]:focus,
-input[type="email"]:focus,
-input[type="number"]:focus,
-input[type="date"]:focus,
-select:focus,
-textarea:focus {
+:where(input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], select, textarea):focus {
   border-color: #18181b;
   box-shadow: 0 0 0 1px #18181b, 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
-input[type="text"]:hover,
-input[type="password"]:hover,
-input[type="email"]:hover,
-input[type="number"]:hover,
-input[type="date"]:hover,
-select:hover,
-textarea:hover {
+:where(input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], select, textarea):hover {
   border-color: #d4d4d8;
 }
 
@@ -266,4 +248,14 @@ tr:hover td {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #a1a1aa;
+}
+
+/* Força o padding esquerdo correto em inputs com ícones à esquerda para evitar sobreposição */
+.input-with-icon-left {
+  padding-left: 2.5rem !important;
+}
+
+/* Força o padding esquerdo correto em inputs com ícones menores à esquerda */
+.input-with-icon-left-sm {
+  padding-left: 2rem !important;
 }

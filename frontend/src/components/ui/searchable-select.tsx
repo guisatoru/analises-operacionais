@@ -101,7 +101,7 @@ export default function SearchableSelect({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={searchPlaceholder}
-              className="w-full pl-8 pr-2.5 py-1.5 border border-neutral-200 dark:border-neutral-800 rounded-md bg-neutral-50 dark:bg-neutral-950 text-xs focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white focus:outline-none"
+              className="w-full input-with-icon-left-sm pr-2.5 py-1.5 border border-neutral-200 dark:border-neutral-800 rounded-md bg-neutral-50 dark:bg-neutral-950 text-xs focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white focus:outline-none"
               onClick={(e) => e.stopPropagation()} // Impede o fechamento do painel ao clicar no input
             />
             {search && (
