@@ -14,6 +14,7 @@ import {
   Briefcase
 } from 'lucide-react';
 import api from '../api/client';
+import SearchableSelect from '../components/ui/searchable-select';
 
 interface ColaboradorTermino {
   id: string;
@@ -99,6 +100,28 @@ export default function Terminos() {
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [coordenadoresOpcoes, setCoordenadoresOpcoes] = useState<string[]>([]);
+
+  // Carrega coordenadores únicos a partir das lojas
+  useEffect(() => {
+    const fetchCoordenadores = async () => {
+      try {
+        const response = await api.get('/lojas/', { params: { page_size: 200 } });
+        if (response.data) {
+          const lojas = response.data.results || response.data || [];
+          const coords = lojas
+            .map((l: any) => l.coordenador)
+            .filter((c: any) => c && c.trim() !== '')
+            .map((c: string) => c.trim().toUpperCase());
+          const uniqueCoords = Array.from(new Set(coords)).sort() as string[];
+          setCoordenadoresOpcoes(uniqueCoords);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar coordenadores:', err);
+      }
+    };
+    fetchCoordenadores();
+  }, []);
 
   useEffect(() => {
     fetchTerminos();
@@ -388,12 +411,14 @@ export default function Terminos() {
             <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1.5">
               Coordenador da Loja
             </label>
-            <input
-              type="text"
-              placeholder="Ex: Marcos Silva..."
+            <SearchableSelect
+              options={[
+                { value: "", label: "Todos os Coordenadores" },
+                ...coordenadoresOpcoes.map((c) => ({ value: c, label: c }))
+              ]}
               value={coordenador}
-              onChange={(e) => setCoordenador(e.target.value)}
-              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+              onChange={setCoordenador}
+              placeholder="Todos os Coordenadores"
             />
           </div>
 

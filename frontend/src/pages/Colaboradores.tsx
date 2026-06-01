@@ -15,6 +15,7 @@ import {
   Layers
 } from 'lucide-react';
 import api from '../api/client';
+import SearchableSelect from '../components/ui/searchable-select';
 
 interface LojaRef {
   id: string;
@@ -354,16 +355,15 @@ export default function Colaboradores() {
             <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1.5">
               Loja TOTVS
             </label>
-            <select
+            <SearchableSelect
+              options={[
+                { value: "", label: "Todas as Lojas" },
+                ...lojasOpcoes.map((l) => ({ value: String(l.id), label: l.nome_referencia }))
+              ]}
               value={lojaFiltro}
-              onChange={(e) => setLojaFiltro(e.target.value)}
-              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-            >
-              <option value="">Todas</option>
-              {lojasOpcoes.map((l) => (
-                <option key={l.id} value={l.id}>{l.nome_referencia}</option>
-              ))}
-            </select>
+              onChange={setLojaFiltro}
+              placeholder="Todas as Lojas"
+            />
           </div>
 
           <div>

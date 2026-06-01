@@ -41,6 +41,7 @@ def usuario_create(request):
     }, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(["POST"])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def api_login(request):
     """
