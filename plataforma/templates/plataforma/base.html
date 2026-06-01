@@ -57,6 +57,21 @@
 
         <!-- Conteúdo Principal -->
         <main class="main-content">
+            <!-- Barra Superior SaaS Premium -->
+            <div class="top-bar">
+                <div class="top-bar-left">
+                    <span class="top-bar-title">Análises Operacionais</span>
+                </div>
+                <div class="top-bar-right">
+                    <div class="top-bar-search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" placeholder="Search..." readonly>
+                    </div>
+                    <div class="top-bar-icon" title="Notificações"><i class="fa-regular fa-bell"></i></div>
+                    <div class="top-bar-avatar" title="{{ request.user.username }}"><i class="fa-solid fa-circle-user"></i></div>
+                </div>
+            </div>
+
             {% if messages %}
                 <div class="messages-container">
                     {% for message in messages %}

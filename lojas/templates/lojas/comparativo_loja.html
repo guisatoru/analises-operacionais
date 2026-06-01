@@ -121,122 +121,134 @@
         </div>
       </div>
 
-      <div class="comparativo-resultado-grid">
-        <div class="comparativo-item-card card-folha">
-          <p class="comparativo-item-card-title">Total folha (import)</p>
-          <p class="comparativo-item-card-value">R$ {{ resultado.folha_total|floatformat:2 }}</p>
-          <p class="comparativo-item-card-subtitle">
-            <i class="fa-regular fa-file-lines"></i>
-            {{ resultado.folha_linhas_count }} linhas processadas
-          </p>
+      <div class="kpi-grid">
+        <!-- Total Folha (Destaque Escuro) -->
+        <div class="kpi-card kpi-dark">
+          <div class="kpi-header">
+            <span class="kpi-title">Total Folha (Importado)</span>
+            <div class="kpi-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+          </div>
+          <span class="kpi-value">R$ {{ resultado.folha_total|floatformat:2 }}</span>
+          <div class="kpi-trend trend-up">
+            <i class="fa-solid fa-file-lines"></i>
+            <span>{{ resultado.folha_linhas_count }} linhas processadas</span>
+          </div>
         </div>
 
-        <div class="comparativo-item-card card-escopo">
-          <p class="comparativo-item-card-title">Total estimado escopo</p>
-          <p class="comparativo-item-card-value">R$ {{ resultado.escopo_total|floatformat:2 }}</p>
-          <p class="comparativo-item-card-subtitle">
-            <i class="fa-regular fa-calendar-check"></i>
-            Base de rubricas
-          </p>
+        <!-- Total Estimado Escopo -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Total Estimado Escopo</span>
+            <div class="kpi-icon"><i class="fa-solid fa-calendar-check"></i></div>
+          </div>
+          <span class="kpi-value">R$ {{ resultado.escopo_total|floatformat:2 }}</span>
+          <div class="kpi-trend trend-up">
+            <i class="fa-solid fa-calculator"></i>
+            <span>Base de rubricas orçadas</span>
+          </div>
         </div>
 
-        <div class="comparativo-item-card {% if resultado.diferenca_folha_menos_escopo > 0 %}card-diferenca-danger{% elif resultado.diferenca_folha_menos_escopo < 0 %}card-diferenca-success{% else %}card-diferenca-neutral{% endif %}">
-          <p class="comparativo-item-card-title">Diferença (folha - escopo)</p>
-          <p class="comparativo-item-card-value {% if resultado.diferenca_folha_menos_escopo > 0 %}text-danger{% elif resultado.diferenca_folha_menos_escopo < 0 %}text-success{% endif %}">
+        <!-- Diferença (Folha - Escopo) -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Diferença (Folha - Escopo)</span>
+            <div class="kpi-icon"><i class="fa-solid fa-scale-balanced"></i></div>
+          </div>
+          <span class="kpi-value {% if resultado.diferenca_folha_menos_escopo > 0 %}text-danger{% elif resultado.diferenca_folha_menos_escopo < 0 %}text-success{% endif %}">
             R$ {{ resultado.diferenca_folha_menos_escopo|floatformat:2 }}
-          </p>
-          <p class="comparativo-item-card-subtitle">
+          </span>
+          <div class="kpi-trend {% if resultado.diferenca_folha_menos_escopo > 0 %}trend-down{% else %}trend-up{% endif %}">
             {% if resultado.diferenca_folha_menos_escopo > 0 %}
               <i class="fa-solid fa-arrow-trend-up"></i>
-              Acima do orçado
+              <span>Acima do orçado</span>
             {% else %}
               <i class="fa-solid fa-arrow-trend-down"></i>
-              Abaixo do orçado
+              <span>Abaixo do orçado</span>
             {% endif %}
-          </p>
+          </div>
         </div>
       </div>
 
-      <div class="section-title-row title-margin-bottom" style="margin-top: 2rem;">
-        <div>
+      <!-- Tabela Detalhada dentro de Card Branco -->
+      <div class="card" style="margin-top: 32px;">
+        <div class="card-header">
           <h3 class="section-title">Visão Detalhada de Rubricas (mesmo período)</h3>
         </div>
+        <div class="card-body">
+          <div class="table-container">
+            <table class="dense-table">
+              <thead>
+                <tr>
+                  <th>Rubrica</th>
+                  <th class="text-right">Valor Estimado</th>
+                  <th class="text-right">Valor Folha</th>
+                  <th class="text-right">Desvio</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Salário base</strong></td>
+                  <td class="text-right">R$ {{ resultado.escopo_base_total|floatformat:2 }}</td>
+                  <td class="text-right">R$ {{ resultado.folha_salario_categoria_total|floatformat:2 }}</td>
+                  <td class="text-right">
+                    <span class="badge {% if resultado.desvio_salario > 0 %}badge-danger{% elif resultado.desvio_salario < 0 %}badge-success{% else %}badge-neutral{% endif %}">
+                      {% if resultado.desvio_salario > 0 %}+{% endif %}{{ resultado.desvio_salario|floatformat:2 }}
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>Insalubridade (Total)</strong></td>
+                  <td class="text-right font-bold">R$ {{ resultado.escopo_insalubridade_total|floatformat:2 }}</td>
+                  <td class="text-right font-bold">R$ {{ resultado.folha_insalubridade_categoria_total|floatformat:2 }}</td>
+                  <td class="text-right">
+                    <span class="badge {% if resultado.desvio_insalubridade > 0 %}badge-danger{% elif resultado.desvio_insalubridade < 0 %}badge-success{% else %}badge-neutral{% endif %}">
+                      {% if resultado.desvio_insalubridade > 0 %}+{% endif %}{{ resultado.desvio_insalubridade|floatformat:2 }}
+                    </span>
+                  </td>
+                </tr>
+                <tr style="opacity: 0.8; font-size: 0.8125rem;">
+                  <td style="padding-left: 36px;">Insalubridade Fixa</td>
+                  <td class="text-right">R$ {{ resultado.escopo_insalubridade_fixa_total|floatformat:2 }}</td>
+                  <td class="text-right">-</td>
+                  <td class="text-right">-</td>
+                </tr>
+                <tr style="opacity: 0.8; font-size: 0.8125rem;">
+                  <td style="padding-left: 36px;">Insalubridade Banheirista</td>
+                  <td class="text-right">R$ {{ resultado.escopo_insalubridade_banheirista_total|floatformat:2 }}</td>
+                  <td class="text-right">-</td>
+                  <td class="text-right">-</td>
+                </tr>
+                <tr>
+                  <td><strong>Adicional noturno</strong></td>
+                  <td class="text-right">R$ {{ resultado.escopo_adicional_noturno_total|floatformat:2 }}</td>
+                  <td class="text-right">R$ {{ resultado.folha_adicional_noturno_categoria_total|floatformat:2 }}</td>
+                  <td class="text-right">
+                    <span class="badge {% if resultado.desvio_adicional_noturno > 0 %}badge-danger{% elif resultado.desvio_adicional_noturno < 0 %}badge-success{% else %}badge-neutral{% endif %}">
+                      {% if resultado.desvio_adicional_noturno > 0 %}+{% endif %}{{ resultado.desvio_adicional_noturno|floatformat:2 }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr style="font-weight: 850; background: #fafafa;">
+                  <td style="padding: 18px 24px;">Total</td>
+                  <td class="text-right" style="padding: 18px 24px;">R$ {{ resultado.tabela_escopo_total|floatformat:2 }}</td>
+                  <td class="text-right" style="padding: 18px 24px;">R$ {{ resultado.tabela_folha_total|floatformat:2 }}</td>
+                  <td class="text-right" style="padding: 18px 24px;">
+                    <span style="color: {% if resultado.tabela_desvio_total > 0 %}#dc2626{% else %}#16a34a{% endif %}">
+                      R$ {{ resultado.tabela_desvio_total|floatformat:2 }}
+                    </span>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
       </div>
 
-      <div class="dashboard-table-container">
-        <table class="dashboard-table">
-          <thead>
-            <tr>
-              <th>Rubrica</th>
-              <th class="number-cell">Valor Estimado</th>
-              <th class="number-cell">Valor Folha</th>
-              <th class="number-cell">Desvio</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><div class="category-title">Salário base</div></td>
-              <td class="number-cell"><span class="main-value text-escopo">R$ {{ resultado.escopo_base_total|floatformat:2 }}</span></td>
-              <td class="number-cell"><span class="main-value text-folha">R$ {{ resultado.folha_salario_categoria_total|floatformat:2 }}</span></td>
-              <td class="number-cell">
-                <span class="desvio-pill {% if resultado.desvio_salario > 0 %}desvio-negative{% elif resultado.desvio_salario < 0 %}desvio-positive{% endif %}">
-                  {% if resultado.desvio_salario > 0 %}+{% endif %}{{ resultado.desvio_salario|floatformat:2 }} 
-                  {% if resultado.desvio_salario > 0 %}↗{% elif resultado.desvio_salario < 0 %}↘{% else %}-{% endif %}
-                </span>
-              </td>
-            </tr>
-            <tr>
-              <td><div class="category-title">Insalubridade (Total)</div></td>
-              <td class="number-cell font-bold text-escopo">R$ {{ resultado.escopo_insalubridade_total|floatformat:2 }}</td>
-              <td class="number-cell font-bold text-folha">R$ {{ resultado.folha_insalubridade_categoria_total|floatformat:2 }}</td>
-              <td class="number-cell">
-                <span class="desvio-pill {% if resultado.desvio_insalubridade > 0 %}desvio-negative{% elif resultado.desvio_insalubridade < 0 %}desvio-positive{% endif %}">
-                  {% if resultado.desvio_insalubridade > 0 %}+{% endif %}{{ resultado.desvio_insalubridade|floatformat:2 }} 
-                  {% if resultado.desvio_insalubridade > 0 %}↗{% elif resultado.desvio_insalubridade < 0 %}↘{% else %}-{% endif %}
-                </span>
-              </td>
-            </tr>
-            <!-- Sub-linhas da Insalubridade -->
-            <tr class="sub-row">
-              <td>Insalubridade Fixa</td>
-              <td class="number-cell">R$ {{ resultado.escopo_insalubridade_fixa_total|floatformat:2 }}</td>
-              <td class="number-cell">-</td>
-              <td class="number-cell">-</td>
-            </tr>
-            <tr class="sub-row">
-              <td>Insalubridade Banheirista</td>
-              <td class="number-cell">R$ {{ resultado.escopo_insalubridade_banheirista_total|floatformat:2 }}</td>
-              <td class="number-cell">-</td>
-              <td class="number-cell">-</td>
-            </tr>
-            <!-- Fim Sub-linhas -->
-            <tr>
-              <td><div class="category-title">Adicional noturno</div></td>
-              <td class="number-cell"><span class="main-value text-escopo">R$ {{ resultado.escopo_adicional_noturno_total|floatformat:2 }}</span></td>
-              <td class="number-cell"><span class="main-value text-folha">R$ {{ resultado.folha_adicional_noturno_categoria_total|floatformat:2 }}</span></td>
-              <td class="number-cell">
-                <span class="desvio-pill {% if resultado.desvio_adicional_noturno > 0 %}desvio-negative{% elif resultado.desvio_adicional_noturno < 0 %}desvio-positive{% endif %}">
-                  {% if resultado.desvio_adicional_noturno > 0 %}+{% endif %}{{ resultado.desvio_adicional_noturno|floatformat:2 }} 
-                  {% if resultado.desvio_adicional_noturno > 0 %}↗{% elif resultado.desvio_adicional_noturno < 0 %}↘{% else %}-{% endif %}
-                </span>
-              </td>
-            </tr>
-          </tbody>
-          <!-- Linha de Total no estilo Mockup -->
-          <tfoot>
-            <tr class="table-total-row">
-              <td>Total</td>
-              <td class="number-cell">R$ {{ resultado.tabela_escopo_total|floatformat:2 }}</td>
-              <td class="number-cell">R$ {{ resultado.tabela_folha_total|floatformat:2 }}</td>
-              <td class="number-cell">R$ {{ resultado.tabela_desvio_total|floatformat:2 }}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-
-      <div role="status" class="status-warning" style="background-color: #f8fafc; border-color: #e2e8f0; color: #475569; margin-bottom: 0;">
+      <div class="badge badge-neutral" style="display: flex; text-transform: none; text-align: left; padding: 12px 18px; margin-top: 16px; border-radius: 12px; line-height: 1.4; letter-spacing: 0;">
         <p>
-          <i class="fa-solid fa-circle-info" style="color: #64748b;"></i>
+          <i class="fa-solid fa-circle-info" style="margin-right: 8px;"></i>
           A última coluna exibe a diferença. O Total Folha soma todas as linhas da competência. 
           As outras somam apenas categorias de rubricas coincidentes. Diferenças indicam a presença de outras categorias.
         </p>
