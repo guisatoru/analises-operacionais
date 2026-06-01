@@ -153,5 +153,16 @@ REST_FRAMEWORK = {
 }
 
 # Permite requisições de origens cruzadas (CORS) para viabilizar a comunicação com o React no frontend.
-CORS_ALLOW_ALL_ORIGINS = True
+# Quando usamos credentials (cookies de sessão), não podemos usar wildcard '*'. Devemos especificar as origens.
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+]
+
+# Origens confiáveis para proteção CSRF do Django, necessária para requisições POST/PUT/DELETE
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+]
 
