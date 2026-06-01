@@ -1,134 +1,118 @@
-"""Views relacionadas a configuracoes e importacoes unificadas."""
-
 import threading
 import uuid
 from io import BytesIO
 
-from django.contrib import messages
 from django.core.cache import cache
-from django.http import JsonResponse
-from django.shortcuts import redirect, render
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
-from ..forms import FolhaImportForm
-from colaboradores.forms import ColaboradorImportForm, GestaoPessoasImportForm
 from colaboradores.services.colaborador_importacao import importar_colaboradores_de_texto
 from colaboradores.services.gestao_importacao import importar_gestao_pessoas
 from lojas.services.folha_importacao import importar_folha_de_texto
 
-
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def importacoes(request):
     """
-    Exibe a Central de Importacoes com todos os formularios em uma unica tela.
+    Retorna os metadados da Central de Importações, informando que o serviço está ativo.
+    Substitui a renderização do antigo template importacoes.html.
     """
-    return render(
-        request,
-        "lojas/importacoes.html",
-        {
-            "folha_form": FolhaImportForm(),
-            "colaborador_form": ColaboradorImportForm(),
-            "gestao_form": GestaoPessoasImportForm(),
-            "titulo": "Central de Importacoes",
-        },
-    )
+    return Response({
+        "status": "active",
+        "message": "Central de Importações pronta para uploads.",
+        "endpoints": {
+            "colaboradores_sra": "/colaboradores/importar/",
+            "gestao_pessoas": "/colaboradores/importar-gestao/",
+            "folha_srd": "/folhas/importar/"
+        }
+    })
 
-
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def colaborador_import_async(request):
     """
-    Inicia a importacao SRA em segundo plano para mostrar progresso ao usuario.
+    Inicia a importação assíncrona do arquivo SRA (TOTVS) via upload multipart/form-data.
     """
-    if request.method == "POST":
-        form = ColaboradorImportForm(request.POST, request.FILES)
+    arquivo = request.FILES.get("arquivo")
+    if not arquivo:
+        return Response({"success": False, "error": "Nenhum arquivo enviado."}, status=status.HTTP_400_BAD_REQUEST)
+    
+    if not arquivo.name.lower().endswith(".csv"):
+        return Response({"success": False, "error": "Envie um arquivo CSV válido."}, status=status.HTTP_400_BAD_REQUEST)
 
-        if form.is_valid():
-            arquivo = form.cleaned_data["arquivo"]
-            try:
-                conteudo = arquivo.read().decode("utf-8-sig")
-            except UnicodeDecodeError:
-                messages.error(
-                    request,
-                    "Nao foi possivel ler o arquivo. Certifique-se de que e um CSV valido em UTF-8.",
-                )
-                return _render_importacoes(request, colaborador_form=form)
+    try:
+        conteudo = arquivo.read().decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return Response({
+            "success": False,
+            "error": "Não foi possível ler o arquivo. Certifique-se de que é um CSV em UTF-8."
+        }, status=status.HTTP_400_BAD_REQUEST)
 
-            return _iniciar_importacao_async(
-                tipo_importacao="sra",
-                payload={"conteudo": conteudo},
-                titulo="Progresso da Importacao SRA",
-                mensagem_inicial="Iniciando processamento do arquivo SRA...",
-            )
-
-    form = ColaboradorImportForm()
-    return _render_importacoes(request, colaborador_form=form)
-
-
-def gestao_import_async(request):
-    """
-    Inicia a importacao da planilha de Gestao em segundo plano.
-    """
-    if request.method == "POST":
-        form = GestaoPessoasImportForm(request.POST, request.FILES)
-
-        if form.is_valid():
-            arquivo = form.cleaned_data["arquivo"]
-            return _iniciar_importacao_async(
-                tipo_importacao="gestao",
-                payload={"conteudo": arquivo.read(), "nome": arquivo.name or "gestao.xlsm"},
-                titulo="Progresso da Importacao Gestao",
-                mensagem_inicial="Iniciando processamento da planilha de Gestao...",
-            )
-
-    form = GestaoPessoasImportForm()
-    return _render_importacoes(request, gestao_form=form)
-
-
-def folha_import_async(request):
-    """
-    Inicia a importacao SRD em segundo plano para mostrar progresso ao usuario.
-    """
-    if request.method == "POST":
-        form = FolhaImportForm(request.POST, request.FILES)
-
-        if form.is_valid():
-            arquivo = form.cleaned_data["arquivo"]
-            try:
-                conteudo = arquivo.read().decode("utf-8-sig")
-            except UnicodeDecodeError:
-                messages.error(
-                    request,
-                    "Nao foi possivel ler o arquivo como UTF-8. Salve o CSV em UTF-8 e tente de novo.",
-                )
-                return _render_importacoes(request, folha_form=form)
-
-            return _iniciar_importacao_async(
-                tipo_importacao="folha",
-                payload={"conteudo": conteudo, "nome": arquivo.name or "folha.csv"},
-                titulo="Progresso da Importacao SRD",
-                mensagem_inicial="Iniciando processamento do arquivo SRD...",
-            )
-
-    form = FolhaImportForm()
-    return _render_importacoes(request, folha_form=form)
-
-
-def _render_importacoes(request, folha_form=None, colaborador_form=None, gestao_form=None):
-    """
-    Mantem a Central consistente quando algum formulario volta com erro de validacao.
-    """
-    return render(
-        request,
-        "lojas/importacoes.html",
-        {
-            "folha_form": folha_form or FolhaImportForm(),
-            "colaborador_form": colaborador_form or ColaboradorImportForm(),
-            "gestao_form": gestao_form or GestaoPessoasImportForm(),
-            "titulo": "Central de Importacoes",
-        },
+    return _iniciar_importacao_async(
+        tipo_importacao="sra",
+        payload={"conteudo": conteudo},
+        titulo="Progresso da Importacao SRA",
+        mensagem_inicial="Iniciando processamento do arquivo SRA...",
     )
 
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def gestao_import_async(request):
+    """
+    Inicia a importação assíncrona da planilha de Gestão de Pessoas (Excel).
+    """
+    arquivo = request.FILES.get("arquivo")
+    if not arquivo:
+        return Response({"success": False, "error": "Nenhum arquivo enviado."}, status=status.HTTP_400_BAD_REQUEST)
+
+    nome = (arquivo.name or "").lower()
+    if not (nome.endswith(".xlsx") or nome.endswith(".xlsm") or nome.endswith(".xls")):
+        return Response({
+            "success": False,
+            "error": "Envie uma planilha Excel válida (.xlsx, .xlsm, .xls)."
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    return _iniciar_importacao_async(
+        tipo_importacao="gestao",
+        payload={"conteudo": arquivo.read(), "nome": arquivo.name or "gestao.xlsm"},
+        titulo="Progresso da Importacao Gestao",
+        mensagem_inicial="Iniciando processamento da planilha de Gestao...",
+    )
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def folha_import_async(request):
+    """
+    Inicia a importação assíncrona do arquivo SRD (Folha TOTVS) via upload.
+    """
+    arquivo = request.FILES.get("arquivo")
+    if not arquivo:
+        return Response({"success": False, "error": "Nenhum arquivo enviado."}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not arquivo.name.lower().endswith(".csv"):
+        return Response({"success": False, "error": "Envie um arquivo CSV de folha válido."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        conteudo = arquivo.read().decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return Response({
+            "success": False,
+            "error": "Não foi possível ler o arquivo. Salve o CSV em UTF-8 e tente de novo."
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    return _iniciar_importacao_async(
+        tipo_importacao="folha",
+        payload={"conteudo": conteudo, "nome": arquivo.name or "folha.csv"},
+        titulo="Progresso da Importacao SRD",
+        mensagem_inicial="Iniciando processamento do arquivo SRD...",
+    )
 
 def _iniciar_importacao_async(tipo_importacao, payload, titulo, mensagem_inicial):
     """
-    Centraliza o inicio do import assincrono para Folha, SRA e Gestao.
+    Função utilitária que inicia a thread de importação em background
+    e retorna o ID para acompanhamento pelo frontend.
     """
     import_id = str(uuid.uuid4())
 
@@ -152,18 +136,18 @@ def _iniciar_importacao_async(tipo_importacao, payload, titulo, mensagem_inicial
     )
     thread.start()
 
-    return redirect("import_progress", import_id=import_id)
-
+    return Response({
+        "success": True,
+        "import_id": import_id,
+        "message": mensagem_inicial,
+        "status": "processing"
+    })
 
 def _processar_importacao_background(import_id, tipo_importacao):
     """
     Processa o arquivo fora da resposta HTTP e atualiza o cache com o progresso.
     """
-
     def atualizar_progresso(progresso, mensagem):
-        """
-        Guarda o progresso para a tela consultar sem travar a navegacao.
-        """
         cache.set(
             f"import_status_{import_id}",
             {
@@ -188,7 +172,7 @@ def _processar_importacao_background(import_id, tipo_importacao):
                 payload["conteudo"],
                 progress_callback=atualizar_progresso,
             )
-            mensagem, status = _montar_mensagem_sra(resultado)
+            mensagem, status_msg = _montar_mensagem_sra(resultado)
         elif tipo_importacao == "gestao":
             arquivo_excel = BytesIO(payload["conteudo"])
             arquivo_excel.name = payload.get("nome", "gestao.xlsm")
@@ -196,7 +180,7 @@ def _processar_importacao_background(import_id, tipo_importacao):
                 arquivo_excel,
                 progress_callback=atualizar_progresso,
             )
-            mensagem, status = _montar_mensagem_gestao(resultado)
+            mensagem, status_msg = _montar_mensagem_gestao(resultado)
         elif tipo_importacao == "folha":
             resultado = importar_folha_de_texto(
                 payload["conteudo"],
@@ -204,7 +188,7 @@ def _processar_importacao_background(import_id, tipo_importacao):
                 dry_run=False,
                 progress_callback=atualizar_progresso,
             )
-            mensagem, status = _montar_mensagem_folha(resultado)
+            mensagem, status_msg = _montar_mensagem_folha(resultado)
         else:
             raise ValueError("Tipo de importacao invalido.")
 
@@ -216,7 +200,7 @@ def _processar_importacao_background(import_id, tipo_importacao):
                 "progress": 100,
                 "message": mensagem,
                 "result": resultado,
-                "msg_type": status,
+                "msg_type": status_msg,
             },
             timeout=600,
         )
@@ -238,11 +222,7 @@ def _processar_importacao_background(import_id, tipo_importacao):
             timeout=600,
         )
 
-
 def _montar_mensagem_sra(resultado):
-    """
-    Mantem o resumo final da SRA igual ao retorno que a Central ja mostrava.
-    """
     if resultado["total"] == 0:
         return "Nenhum colaborador encontrado no arquivo. Verifique o formato.", "warning"
 
@@ -255,11 +235,7 @@ def _montar_mensagem_sra(resultado):
         return mensagem, "warning"
     return mensagem, "success"
 
-
 def _montar_mensagem_gestao(resultado):
-    """
-    Resume a Gestao destacando riscos de loja sem vinculo ou nome duplicado.
-    """
     if resultado["total_planilha"] == 0:
         return "Nenhum colaborador valido encontrado na planilha.", "warning"
 
@@ -287,11 +263,7 @@ def _montar_mensagem_gestao(resultado):
 
     return mensagem, "warning" if tem_alerta else "success"
 
-
 def _montar_mensagem_folha(resultado):
-    """
-    Resume a Folha destacando duplicadas e linhas sem loja para conferencia.
-    """
     if resultado["processadas"] == 0:
         return "Nenhuma linha elegivel encontrada. Verifique verbas e colunas do CSV.", "warning"
 
@@ -306,30 +278,24 @@ def _montar_mensagem_folha(resultado):
         return mensagem, "warning"
     return mensagem, "success"
 
-
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def import_progress(request, import_id):
     """
-    Mostra a barra de progresso que consulta o status por JavaScript.
-    """
-    status_data = cache.get(f"import_status_{import_id}") or {}
-
-    return render(
-        request,
-        "lojas/import_progress.html",
-        {
-            "import_id": import_id,
-            "titulo": status_data.get("titulo", "Progresso da Importacao"),
-        },
-    )
-
-
-def import_status_api(request, import_id):
-    """
-    Retorna o status atual da importacao para a tela de progresso.
+    Retorna o status/progresso atual da importação do arquivo.
     """
     status_data = cache.get(f"import_status_{import_id}")
-
     if not status_data:
-        return JsonResponse({"status": "not_found"}, status=404)
+        return Response({"status": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+    return Response(status_data)
 
-    return JsonResponse(status_data)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def import_status_api(request, import_id):
+    """
+    Retorna o status atual da importação para compatibilidade com rotas.
+    """
+    status_data = cache.get(f"import_status_{import_id}")
+    if not status_data:
+        return Response({"status": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+    return Response(status_data)

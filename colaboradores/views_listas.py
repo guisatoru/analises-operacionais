@@ -1,50 +1,45 @@
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.shortcuts import render
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from lojas.models import Loja
+from lojas.serializers import LojaSerializer
 
 from .models import Colaborador
+from .serializers import ColaboradorSerializer
 from .view_utils import funcao_esta_divergente
 
 
+from rest_framework.pagination import PageNumberPagination
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def colaborador_list(request):
     """
-    Lista colaboradores ativos com filtros para conferência entre TOTVS, Gestão e GeoVictoria.
+    Retorna a lista paginada e filtrada de colaboradores ativos no formato JSON.
     """
     filtros = _ler_filtros_colaboradores(request.GET)
     colaboradores_qs = _buscar_colaboradores_ativos()
     colaboradores_qs = _aplicar_filtros_colaboradores(colaboradores_qs, filtros)
 
-    paginator = Paginator(colaboradores_qs, 10)
-    page_obj = paginator.get_page(request.GET.get("page"))
+    paginator = PageNumberPagination()
+    paginator.page_size = 10
+    page = paginator.paginate_queryset(colaboradores_qs, request)
+    if page is not None:
+        serializer = ColaboradorSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
-    context = {
-        "page_obj": page_obj,
-        "lojas": _buscar_lojas_ativas(),
-        "cargos_opcoes": _buscar_cargos_ativos(),
-        "status_gestao_opcoes": _buscar_status_gestao_ativos(),
-        "loja_query": filtros["loja"],
-        "loja_gestao_query": filtros["loja_gestao"],
-        "re_query": filtros["re"],
-        "nome_query": filtros["nome"],
-        "cargo_query": filtros["cargo"],
-        "status_query": filtros["status"],
-        "status_gestao_query": filtros["status_gestao"],
-        "divergente_query": filtros["divergente"],
-        "funcao_divergente_query": filtros["funcao_divergente"],
-        "so_totvs_query": filtros["so_totvs"],
-        "status_divergente_query": filtros["status_divergente"],
-        "total_status_divergentes": _contar_status_divergentes_ativos(),
-        "pagina_demitidos": False,
-        "titulo": "Colaboradores",
-    }
-    return render(request, "colaboradores/colaborador_list.html", context)
+    serializer = ColaboradorSerializer(colaboradores_qs, many=True)
+    return Response(serializer.data)
 
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def demitido_list(request):
     """
-    Lista colaboradores demitidos separadamente para facilitar a conferência de desligamentos.
+    Retorna a lista paginada e filtrada de colaboradores demitidos no formato JSON.
     """
     filtros = _ler_filtros_demitidos(request.GET)
     colaboradores_qs = Colaborador.objects.filter(status="D").exclude(
@@ -53,23 +48,15 @@ def demitido_list(request):
 
     colaboradores_qs = _aplicar_filtros_demitidos(colaboradores_qs, filtros)
 
-    paginator = Paginator(colaboradores_qs, 10)
-    page_obj = paginator.get_page(request.GET.get("page"))
+    paginator = PageNumberPagination()
+    paginator.page_size = 10
+    page = paginator.paginate_queryset(colaboradores_qs, request)
+    if page is not None:
+        serializer = ColaboradorSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
-    context = {
-        "page_obj": page_obj,
-        "lojas": Loja.objects.filter(status="ATIVA").order_by("nome_referencia"),
-        "cargos_opcoes": _buscar_cargos_demitidos(),
-        "loja_query": filtros["loja"],
-        "re_query": filtros["re"],
-        "nome_query": filtros["nome"],
-        "cargo_query": filtros["cargo"],
-        "status_divergente_query": filtros["status_divergente"],
-        "total_status_divergentes": _contar_status_divergentes_demitidos(),
-        "pagina_demitidos": True,
-        "titulo": "Colaboradores Demitidos",
-    }
-    return render(request, "colaboradores/colaborador_list.html", context)
+    serializer = ColaboradorSerializer(colaboradores_qs, many=True)
+    return Response(serializer.data)
 
 
 def _ler_filtros_colaboradores(params):

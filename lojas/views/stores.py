@@ -1,16 +1,21 @@
-"""Views de cadastro e listagem de lojas."""
-
-from django.contrib import messages
-from django.core.paginator import Paginator
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from unidecode import unidecode
 
-from ..forms import LojaForm, LojaUpdateForm
 from ..models import Loja, STATUS_CHOICES, obter_ou_criar_config_insalubridade_loja
+from ..serializers import LojaSerializer
 
-
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def store_list(request):
-    """Mostra a tabela de lojas com filtros vindos da URL (?busca=...)."""
+    """
+    Retorna a lista paginada e filtrada de lojas.
+    Utiliza a paginação nativa do Django REST Framework.
+    """
     stores = Loja.objects.all().order_by("nome_referencia")
 
     search_text = request.GET.get("busca", "").strip()
@@ -21,21 +26,14 @@ def store_list(request):
     store_code = request.GET.get("codigo_loja", "").strip()
 
     if search_text:
-
         normalized_search = unidecode(search_text).upper()
-
         filtered_store_ids = []
-
         for store in stores:
-
-            normalized_store_name = unidecode(
-                store.nome_referencia
-            ).upper()
-
+            normalized_store_name = unidecode(store.nome_referencia).upper()
             if normalized_search in normalized_store_name:
                 filtered_store_ids.append(store.id)
-
         stores = stores.filter(id__in=filtered_store_ids)
+
     if client_name:
         stores = stores.filter(cliente__icontains=client_name)
     if panel_name:
@@ -45,95 +43,83 @@ def store_list(request):
     if cost_center:
         stores = stores.filter(centro_de_custo__icontains=cost_center)
     if store_code and store_code.isdigit():
-        stores = stores.filter(codigo_loja=store_code)
+        stores = stores.filter(codigo_loja=int(store_code))
 
-    paginator = Paginator(stores, 25)
-    page_number = request.GET.get("page")
-    current_page = paginator.get_page(page_number)
+    paginator = PageNumberPagination()
+    paginator.page_size = 25
+    page = paginator.paginate_queryset(stores, request)
+    if page is not None:
+        serializer = LojaSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
-        # Lista clientes únicos para o filtro suspenso
-    clients = (
-        Loja.objects.exclude(cliente="")
-        .values_list("cliente", flat=True)
-        .distinct()
-        .order_by("cliente")
-    )
+    serializer = LojaSerializer(stores, many=True)
+    return Response(serializer.data)
 
-    context = {
-        "lojas": current_page,
-        "total": paginator.count,
-        "busca": search_text,
-        "cliente": client_name,
-        "clientes": clients,
-        "quadro": panel_name,
-        "status": status_value,
-        "centro_custo": cost_center,
-        "codigo_loja": store_code,
-        "status_choices": STATUS_CHOICES,
-    }
-    return render(request, "lojas/loja_list.html", context)
-
-
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def store_detail(request, pk):
-    """Exibe todos os dados de uma loja específica."""
+    """
+    Retorna os detalhes JSON de uma loja específica identificada pela chave primária (PK).
+    Substitui a renderização do template loja_detail.html.
+    """
     store = get_object_or_404(Loja, pk=pk)
-    return render(request, "lojas/loja_detail.html", {"loja": store})
+    serializer = LojaSerializer(store)
+    return Response({"loja": serializer.data})
 
-
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def store_create(request):
-    """Cria uma nova loja mostrando todos os campos do cadastro."""
-    if request.method == "POST":
-        form = LojaForm(request.POST)
-        if form.is_valid():
-            store = form.save()
-            # Registro de insalubridade por loja (valores padrão por UF); editável na tela dedicada.
-            obter_ou_criar_config_insalubridade_loja(store)
-            messages.success(
-                request,
-                "Loja cadastrada com sucesso.",
-            )
-            return redirect("detalhe_loja", pk=store.pk)
-    else:
-        form = LojaForm()
+    """
+    Cadastra uma nova loja no banco de dados a partir de dados JSON enviados pelo frontend.
+    Após a validação e salvamento bem-sucedido, garante a criação da configuração de insalubridade padrão.
+    """
+    serializer = LojaSerializer(data=request.data)
+    if serializer.is_valid():
+        store = serializer.save()
+        # Garante que os registros padrão de insalubridade baseados na UF da loja sejam criados.
+        obter_ou_criar_config_insalubridade_loja(store)
+        return Response({
+            "success": True,
+            "message": "Loja cadastrada com sucesso.",
+            "loja": LojaSerializer(store).data
+        }, status=status.HTTP_201_CREATED)
+    return Response({
+        "success": False,
+        "errors": serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
 
-    context = {
-        "form": form,
-        "titulo": "Nova Loja",
-        "subtitulo": "Todos os campos aparecem aqui. Nome Referência, Centro de Custo e Quadro são obrigatórios.",
-    }
-    return render(request, "lojas/loja_form.html", context)
-
-
+@api_view(["PUT", "PATCH"])
+@permission_classes([IsAuthenticated])
 def store_update(request, pk):
-    """Edita qualquer campo de uma loja existente."""
+    """
+    Atualiza as informações de uma loja existente identificada pela chave primária (PK).
+    Aceita requisições PUT (atualização total) ou PATCH (atualização parcial) com dados JSON.
+    """
     store = get_object_or_404(Loja, pk=pk)
+    serializer = LojaSerializer(store, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({
+            "success": True,
+            "message": "Loja atualizada com sucesso.",
+            "loja": serializer.data
+        })
+    return Response({
+        "success": False,
+        "errors": serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
 
-    if request.method == "POST":
-        form = LojaUpdateForm(request.POST, instance=store)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Loja atualizada com sucesso.")
-            return redirect("detalhe_loja", pk=store.pk)
-    else:
-        form = LojaUpdateForm(instance=store)
-
-    context = {
-        "form": form,
-        "titulo": f"Editar Loja: {store.nome_referencia}",
-        "subtitulo": "Atualize os campos necessários e clique em Salvar.",
-        "loja": store,
-    }
-    return render(request, "lojas/loja_form.html", context)
-
-
+@api_view(["POST", "DELETE"])
+@permission_classes([IsAuthenticated])
 def store_delete(request, pk):
-    """Remove uma loja após confirmação do usuário."""
+    """
+    Exclui uma loja específica identificada por PK.
+    Esta view lida com a confirmação de exclusão pela API de forma direta.
+    """
     store = get_object_or_404(Loja, pk=pk)
-
-    if request.method == "POST":
-        store_name = store.nome_referencia
-        store.delete()
-        messages.success(request, f"Loja '{store_name}' excluída.")
-        return redirect("lista_lojas")
-
-    return render(request, "lojas/loja_confirm_delete.html", {"loja": store})
+    store_name = store.nome_referencia
+    store.delete()
+    return Response({
+        "success": True,
+        "message": f"Loja '{store_name}' excluída com sucesso."
+    })

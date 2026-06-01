@@ -51,12 +51,15 @@ INSTALLED_APPS = [
     "lojas",
     "colaboradores",
     "usuarios",
-    'django_select2',
+    "django_select2",
+    "rest_framework",
+    "corsheaders",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -137,3 +140,18 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = config(
     default=True,
     cast=bool,
 )
+
+# Configurações do Django REST Framework
+# Define a autenticação padrão como SessionAuthentication e a permissão padrão como IsAuthenticated.
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+}
+
+# Permite requisições de origens cruzadas (CORS) para viabilizar a comunicação com o React no frontend.
+CORS_ALLOW_ALL_ORIGINS = True
+

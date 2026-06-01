@@ -2,7 +2,11 @@ import csv
 import threading
 from datetime import date
 
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from .services.geovictoria_lojas_sync import (
     get_progresso_sync_lojas,
@@ -26,15 +30,13 @@ from .views_terminos import (
     _processar_colaboradores_termino,
 )
 
-
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def sync_lojas_geovictoria(request):
     """
-    Sincroniza a loja GeoVictoria apenas dos colaboradores filtrados na tela de ativos.
+    Sincroniza a loja GeoVictoria em segundo plano apenas para os colaboradores ativos filtrados.
     """
-    if request.method != "POST":
-        return JsonResponse({"error": "Método não permitido."}, status=405)
-
-    filtros = _ler_filtros_colaboradores(request.POST)
+    filtros = _ler_filtros_colaboradores(request.data)
     colaboradores_qs = _buscar_colaboradores_ativos()
     colaboradores_qs = _aplicar_filtros_colaboradores(colaboradores_qs, filtros)
     colaboradores = list(colaboradores_qs)
@@ -52,33 +54,34 @@ def sync_lojas_geovictoria(request):
     )
     thread.start()
 
-    return JsonResponse({
+    return Response({
         "status": "started",
         "message": f"Sincronizando loja GeoVictoria de {len(colaboradores)} colaboradores...",
         "total": len(colaboradores),
     })
 
-
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def sync_lojas_geovictoria_progress(request):
     """
-    Retorna o progresso da sincronização de lojas GeoVictoria para atualizar a interface.
+    Retorna o progresso atual da sincronização de lojas da GeoVictoria.
     """
     progresso = get_progresso_sync_lojas()
     if not progresso:
-        return JsonResponse({"status": "not_found"}, status=404)
-    return JsonResponse(progresso)
+        return Response({"status": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+    return Response(progresso)
 
-
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def exportar_pendencias_lojas_geovictoria(request, tipo):
     """
-    Exporta pendências da última sincronização para conferência manual sem alterar dados.
+    Exporta a lista de pendências da última sincronização como arquivo CSV.
     """
     resultado = get_resultado_sync_lojas()
     if not resultado:
-        return HttpResponse(
-            "Nenhum resultado de sincronização encontrado. Rode a sincronização novamente.",
-            status=404,
-            content_type="text/plain; charset=utf-8",
+        return Response(
+            {"error": "Nenhum resultado de sincronização encontrado. Rode a sincronização novamente."},
+            status=status.HTTP_404_NOT_FOUND,
         )
 
     detalhes_por_tipo = {
@@ -103,10 +106,9 @@ def exportar_pendencias_lojas_geovictoria(request, tipo):
             ]
 
     if linhas is None:
-        return HttpResponse(
-            "Tipo de pendência inválido.",
-            status=400,
-            content_type="text/plain; charset=utf-8",
+        return Response(
+            {"error": "Tipo de pendência inválido."},
+            status=status.HTTP_400_BAD_REQUEST,
         )
 
     response = HttpResponse(content_type="text/csv; charset=utf-8")
@@ -131,11 +133,14 @@ def exportar_pendencias_lojas_geovictoria(request, tipo):
 
     return response
 
-
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def sync_geovictoria(request):
     """
-    Sincroniza faltas e atestados dos colaboradores exibidos na listagem de términos.
+    Sincroniza as faltas e atestados da GeoVictoria dos colaboradores da listagem de termos em background.
     """
+    # Como os filtros na listagem de termos são passados via parâmetros GET na URL,
+    # continuamos lendo do request.GET para esta chamada de sincronização.
     search_query = request.GET.get("search", "").strip().lower()
     data_filtro = request.GET.get("data_filtro", "")
     data_fim = request.GET.get("data_fim", "")
@@ -179,22 +184,22 @@ def sync_geovictoria(request):
     )
     thread.start()
 
-    return JsonResponse({
+    return Response({
         "status": "started",
         "message": f"Sincronizando {len(cpfs_para_sincronizar)} colaboradores...",
         "total": len(cpfs_para_sincronizar),
     })
 
-
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def sync_geovictoria_progress(request):
     """
-    Retorna o progresso da sincronização de faltas e atestados para atualizar a interface.
+    Retorna o progresso atual da sincronização de faltas e atestados da GeoVictoria.
     """
     progresso = get_progresso_sync()
     if not progresso:
-        return JsonResponse({"status": "not_found"}, status=404)
-    return JsonResponse(progresso)
-
+        return Response({"status": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+    return Response(progresso)
 
 def _sync_lojas_geovictoria_background(colaboradores):
     """
@@ -219,7 +224,6 @@ def _sync_lojas_geovictoria_background(colaboradores):
         )
     except Exception as exc:
         set_progresso_sync_lojas(0, f"Erro: {str(exc)}", "error")
-
 
 def _sync_geovictoria_background(cpfs_para_sincronizar):
     """

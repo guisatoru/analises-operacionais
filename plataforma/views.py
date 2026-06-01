@@ -1,13 +1,16 @@
-from django.shortcuts import render
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
-
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def home(request):
     """
     Exibe a entrada global do dashboard corporativo.
     
-    Esta view renderiza a página inicial (home.html) que agrupa as seções operacionais
-    de acordo com a estrutura do layout.
+    Esta view existe para prover metadados iniciais e informações de status da plataforma
+    ao frontend React, substituindo o antigo template home.html por um retorno JSON unificado.
     """
-    return render(request, "plataforma/home.html")
-
-
+    return Response({
+        "status": "online"
+    })

@@ -2,47 +2,53 @@ from datetime import date
 from io import BytesIO
 
 import pandas as pd
-from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db import models
 from django.db.models import Q
-from django.http import HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from lojas.models import Loja
 
 from .models import Colaborador, ControleTermino
+from .serializers import TerminoColaboradorSerializer, ControleTerminoSerializer
 from .services import geovictoria
 from .view_utils import derive_termino_state
 
 
+from rest_framework.pagination import PageNumberPagination
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
 def terminos_list(request):
     """
-    Exibe colaboradores próximos das datas de término de experiência e registra ações do controle.
+    Lista colaboradores próximos das datas de término de experiência (GET)
+    ou registra uma ação no controle de término (POST).
     """
     if request.method == "POST":
-        colaborador_id = request.POST.get("colaborador_id")
-        acao = request.POST.get("acao")
-        observacao = request.POST.get("observacao", "")
-        etapa = request.POST.get("etapa")
+        colaborador_id = request.data.get("colaborador_id")
+        acao = request.data.get("acao")
+        observacao = request.data.get("observacao", "")
+        etapa = request.data.get("etapa")
 
         colaborador = get_object_or_404(Colaborador, id=colaborador_id)
 
         if acao and etapa:
-            ControleTermino.objects.create(
+            controle = ControleTermino.objects.create(
                 colaborador=colaborador,
                 etapa=int(etapa),
                 acao=acao,
                 observacao=observacao,
-                respondido_por=request.user.username
-                if request.user.is_authenticated
-                else "Usuário",
+                respondido_por=request.user.username if request.user.is_authenticated else "Usuário",
             )
-            messages.success(
-                request,
-                f"Controle de término para {colaborador.nome} registrado com sucesso!",
-            )
-        return redirect("colaboradores:terminos_list")
+            return Response(ControleTerminoSerializer(controle).data, status=status.HTTP_201_CREATED)
+        return Response({
+            "error": "Ação e etapa são obrigatórias para registro."
+        }, status=status.HTTP_400_BAD_REQUEST)
 
     colaboradores_qs = _buscar_colaboradores_com_termino()
 
@@ -71,46 +77,25 @@ def terminos_list(request):
     ordenar_por = request.GET.get("ordenar", "data")
     _ordenar_colaboradores_termino(processed_colaboradores, ordenar_por)
 
-    paginator = Paginator(processed_colaboradores, 10)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
-    _preencher_resumo_geovictoria(page_obj)
+    paginator = PageNumberPagination()
+    paginator.page_size = 10
+    page = paginator.paginate_queryset(processed_colaboradores, request)
+    if page is not None:
+        _preencher_resumo_geovictoria(page)
+        serializer = TerminoColaboradorSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
-    coordenadores = Loja.objects.exclude(coordenador="").values_list(
-        "coordenador",
-        flat=True,
-    ).distinct().order_by("coordenador")
-
-    status_gestao_unicos = Colaborador.objects.exclude(status="D").exclude(
-        cargo="AUXILIAR ADMINISTRAT"
-    ).values_list("status_gestao", flat=True)
-    status_gestao_opcoes = sorted(
-        set(
-            status.strip().upper()
-            for status in status_gestao_unicos
-            if status and status.strip()
-        )
-    )
-
-    context = {
-        "page_obj": page_obj,
-        "search_query": search_query,
-        "data_filtro": data_filtro,
-        "data_fim": data_fim,
-        "coordenador_query": coordenador_query,
-        "status_gestao_query": status_gestao_query,
-        "coordenadores": coordenadores,
-        "status_gestao_opcoes": status_gestao_opcoes,
-        "cache_info": cache_info,
-        "ordenar_por": ordenar_por,
-        "titulo": "Controle de Términos",
-    }
-    return render(request, "colaboradores/terminos_list.html", context)
+    _preencher_resumo_geovictoria(processed_colaboradores)
+    serializer = TerminoColaboradorSerializer(processed_colaboradores, many=True)
+    return Response(serializer.data)
 
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def exportar_terminos_excel(request):
     """
-    Exporta os términos filtrados para Excel para conferência fora do sistema.
+    Exporta os términos filtrados para Excel.
+    Garante o retorno do arquivo binário gerado a partir do DataFrame pandas.
     """
     colaboradores_qs = _buscar_colaboradores_com_termino()
 
@@ -136,8 +121,10 @@ def exportar_terminos_excel(request):
     )
 
     if not processed_colaboradores:
-        messages.warning(request, "Não há dados para exportar com os filtros selecionados.")
-        return redirect("colaboradores:terminos_list")
+        return Response({
+            "success": False,
+            "error": "Não há dados para exportar com os filtros selecionados."
+        }, status=status.HTTP_400_BAD_REQUEST)
 
     data_rows = []
     for item in processed_colaboradores:
@@ -179,16 +166,18 @@ def exportar_terminos_excel(request):
     return response
 
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def colaborador_geovictoria_summary(request, colaborador_id):
     """
-    Retorna faltas e atestados da GeoVictoria para atualizar a tela sem recarregar a página.
+    Retorna faltas e atestados da GeoVictoria via chamada de API.
     """
     colaborador = get_object_or_404(Colaborador, id=colaborador_id)
 
     if not colaborador.cpf:
-        return JsonResponse(
+        return Response(
             {"error": "CPF do colaborador não cadastrado. Reimporte os dados da TOTVS."},
-            status=400,
+            status=status.HTTP_400_BAD_REQUEST,
         )
 
     try:
@@ -200,14 +189,14 @@ def colaborador_geovictoria_summary(request, colaborador_id):
         )
 
         if not summary:
-            return JsonResponse(
+            return Response(
                 {"error": "Não foi possível obter o resumo da GeoVictoria"},
-                status=500,
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        return JsonResponse(summary)
+        return Response(summary)
     except Exception as exc:
-        return JsonResponse({"error": str(exc)}, status=500)
+        return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 def _buscar_colaboradores_com_termino():

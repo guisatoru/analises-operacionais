@@ -1,58 +1,107 @@
-from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from django.shortcuts import redirect, render
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.response import Response
+from rest_framework.authentication import SessionAuthentication
 
-from .constants import ADMINISTRADOR_ROLE
-from .decorators import administrador_required
-from .forms import UsuarioCreateForm
+from .permissions import IsAdministrador
+from .serializers import UsuarioSerializer, UsuarioCreateSerializer
 
-
-@administrador_required
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsAdministrador])
 def usuario_list(request):
-    """Lista usuários para que administradores acompanhem quem tem acesso ao sistema."""
+    """
+    Retorna uma lista JSON de todos os usuários cadastrados no sistema, ordenada por username.
+    Esta view exige autenticação e permissão de administrador corporativo.
+    """
     usuarios = User.objects.all().order_by("username")
-    usuarios_para_tela = []
+    serializer = UsuarioSerializer(usuarios, many=True)
+    return Response(serializer.data)
 
-    for usuario in usuarios:
-        usuario.role_label = (
-            "Administrador"
-            if usuario.is_superuser
-            or usuario.groups.filter(name=ADMINISTRADOR_ROLE).exists()
-            else "Sem role"
-        )
-        usuarios_para_tela.append(usuario)
-
-    return render(
-        request,
-        "usuarios/usuario_list.html",
-        {
-            "usuarios": usuarios_para_tela,
-            "titulo": "Usuários",
-        },
-    )
-
-
-@administrador_required
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsAdministrador])
 def usuario_create(request):
-    """Cadastra usuários pela plataforma para evitar criação manual no banco."""
-    if request.method == "POST":
-        form = UsuarioCreateForm(request.POST)
+    """
+    Cria um novo usuário administrador a partir de um payload JSON.
+    Esta view exige privilégios de administrador para evitar o cadastro de contas arbitrárias.
+    """
+    serializer = UsuarioCreateSerializer(data=request.data)
+    if serializer.is_valid():
+        novo_usuario = serializer.save()
+        return Response({
+            "success": True,
+            "message": f"Usuário {novo_usuario.username} cadastrado como administrador.",
+            "usuario": UsuarioSerializer(novo_usuario).data
+        }, status=status.HTTP_201_CREATED)
+    return Response({
+        "success": False,
+        "errors": serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
 
-        if form.is_valid():
-            novo_usuario = form.save()
-            messages.success(
-                request,
-                f"Usuário {novo_usuario.username} cadastrado como administrador.",
-            )
-            return redirect("usuarios:list")
-    else:
-        form = UsuarioCreateForm()
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def api_login(request):
+    """
+    Realiza a autenticação e inicia a sessão (cookie-based) para o usuário.
+    Esta view é pública para permitir o login do frontend React.
+    """
+    username = request.data.get("username")
+    password = request.data.get("password")
+    
+    if not username or not password:
+        return Response({
+            "success": False,
+            "error": "Por favor, forneça usuário e senha."
+        }, status=status.HTTP_400_BAD_REQUEST)
+        
+    user = authenticate(request, username=username, password=password)
+    
+    if user is not None:
+        if user.is_active:
+            login(request, user)
+            return Response({
+                "success": True,
+                "message": "Autenticação bem-sucedida.",
+                "user": UsuarioSerializer(user).data
+            })
+        return Response({
+            "success": False,
+            "error": "Esta conta de usuário está desativada."
+        }, status=status.HTTP_403_FORBIDDEN)
+        
+    return Response({
+        "success": False,
+        "error": "Usuário ou senha incorretos."
+    }, status=status.HTTP_401_UNAUTHORIZED)
 
-    return render(
-        request,
-        "usuarios/usuario_form.html",
-        {
-            "form": form,
-            "titulo": "Novo usuário",
-        },
-    )
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def api_logout(request):
+    """
+    Finaliza a sessão do usuário ativo, limpando os cookies de sessão.
+    Disponível para qualquer requisição para facilitar o encerramento seguro.
+    """
+    logout(request)
+    return Response({
+        "success": True,
+        "message": "Sessão encerrada com sucesso."
+    })
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def api_me(request):
+    """
+    Retorna os detalhes do usuário atualmente autenticado na sessão ativa.
+    Útil para o frontend React verificar o estado de login na inicialização da página.
+    """
+    if request.user.is_authenticated:
+        return Response({
+            "authenticated": True,
+            "user": UsuarioSerializer(request.user).data
+        })
+    return Response({
+        "authenticated": False,
+        "user": None
+    })
