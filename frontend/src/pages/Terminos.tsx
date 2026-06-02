@@ -118,17 +118,16 @@ export default function Terminos() {
   const [actionLoading, setActionLoading] = useState(false);
   const [coordenadoresOpcoes, setCoordenadoresOpcoes] = useState<string[]>([]);
 
-  // Carrega coordenadores únicos a partir das lojas
+  // Carrega coordenadores únicos a partir do banco de dados
   useEffect(() => {
     const fetchCoordenadores = async () => {
       try {
-        const response = await api.get('/lojas/', { params: { sem_paginacao: 'true' } });
+        const response = await api.get('/lojas/api/coordenadores/');
         if (response.data) {
-          const lojas = response.data.results || response.data || [];
-          const coords = lojas
-            .map((l: any) => l.coordenador)
-            .filter((c: any) => c && c.trim() !== '')
-            .map((c: string) => c.trim().toUpperCase());
+          const coords = response.data
+            .map((c: any) => c.nome)
+            .filter((nome: any) => nome && nome.trim() !== '')
+            .map((nome: string) => nome.trim().toUpperCase());
           const uniqueCoords = Array.from(new Set(coords)).sort() as string[];
           setCoordenadoresOpcoes(uniqueCoords);
         }
