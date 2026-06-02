@@ -95,6 +95,7 @@ export default function Colaboradores() {
 
   // Cache de opções para o filtro
   const [lojasOpcoes, setLojasOpcoes] = useState<LojaRef[]>([]);
+  const [statusGestaoOpcoes, setStatusGestaoOpcoes] = useState<string[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Estados para sincronização de lojas da GeoVictoria
@@ -117,14 +118,25 @@ export default function Colaboradores() {
         console.error('Erro ao buscar lojas para filtro:', err);
       }
     };
+
+    const fetchStatusGestaoOpcoes = async () => {
+      try {
+        const response = await api.get('/colaboradores/status-gestao-opcoes/');
+        setStatusGestaoOpcoes(response.data || []);
+      } catch (err) {
+        console.error('Erro ao buscar opções de status gestão:', err);
+      }
+    };
+
     fetchLojasFiltro();
+    fetchStatusGestaoOpcoes();
   }, []);
 
   // Recarrega os dados ao trocar de página, aba ou filtros rápidos
   // Efeito reativo: recarrega a busca com página 1 se mudar filtros de abas ou dropdowns
   useEffect(() => {
     fetchColaboradores(true);
-  }, [activeTab, statusDivergenteQuery, funcaoDivergenteQuery, divergenteQuery, soTotvsQuery, lojaFiltro, statusFiltro]);
+  }, [activeTab, statusDivergenteQuery, funcaoDivergenteQuery, divergenteQuery, soTotvsQuery, lojaFiltro, statusFiltro, statusGestaoFiltro]);
 
   // Recarrega se mudar a página corrente
   useEffect(() => {
@@ -150,7 +162,7 @@ export default function Colaboradores() {
           cargo: cargoFiltro || undefined,
           loja: lojaFiltro || undefined,
           status: activeTab === 'ativos' ? (statusFiltro || undefined) : undefined,
-          status_gestao: activeTab === 'ativos' ? (statusGestaoFiltro || undefined) : undefined,
+          status_gestao: statusGestaoFiltro || undefined,
           
           // Parâmetros dos Chips de auditoria de inconsistências
           status_divergente: statusDivergenteQuery || undefined,
@@ -501,37 +513,40 @@ export default function Colaboradores() {
           </div>
 
           {activeTab === 'ativos' && (
-            <>
-              <div>
-                <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
-                  Status TOTVS
-                </label>
-                <select
-                  value={statusFiltro}
-                  onChange={(e) => setStatusFiltro(e.target.value)}
-                  className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-                >
-                  <option value="">Todos</option>
-                  <option value="ativo">Ativo (Normal)</option>
-                  <option value="A">Afastado</option>
-                  <option value="F">Férias</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
-                  Status Gestão
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex: ADMITIDO / DESLIGADO..."
-                  value={statusGestaoFiltro}
-                  onChange={(e) => setStatusGestaoFiltro(e.target.value)}
-                  className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-                />
-              </div>
-            </>
+            <div>
+              <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
+                Status TOTVS
+              </label>
+              <select
+                value={statusFiltro}
+                onChange={(e) => setStatusFiltro(e.target.value)}
+                className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+              >
+                <option value="">Todos</option>
+                <option value="ativo">Ativo (Normal)</option>
+                <option value="A">Afastado</option>
+                <option value="F">Férias</option>
+              </select>
+            </div>
           )}
+
+          <div>
+            <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
+              Status Gestão
+            </label>
+            <select
+              value={statusGestaoFiltro}
+              onChange={(e) => setStatusGestaoFiltro(e.target.value)}
+              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+            >
+              <option value="">Todos</option>
+              {statusGestaoOpcoes.map((op) => (
+                <option key={op} value={op}>
+                  {op}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="flex justify-end gap-3 pt-2">

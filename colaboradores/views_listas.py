@@ -59,6 +59,24 @@ def demitido_list(request):
     return Response(serializer.data)
 
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def status_gestao_opcoes(request):
+    """
+    Esta view existe para retornar ao frontend todas as opções distintas de status de gestão
+    salvas no banco de dados, permitindo que a tela renderize um menu select dinamicamente.
+    """
+    status_unicos = Colaborador.objects.values_list("status_gestao", flat=True)
+    opcoes = sorted(
+        set(
+            status.strip().upper()
+            for status in status_unicos
+            if status and status.strip()
+        )
+    )
+    return Response(opcoes)
+
+
 def _ler_filtros_colaboradores(params):
     """
     Centraliza a leitura dos filtros para a tela e para a sincronização usarem os mesmos nomes.
@@ -87,6 +105,7 @@ def _ler_filtros_demitidos(params):
         "re": params.get("re", ""),
         "nome": params.get("nome", ""),
         "cargo": params.get("cargo", ""),
+        "status_gestao": params.get("status_gestao", ""),
         "status_divergente": params.get("status_divergente", ""),
     }
 
@@ -183,6 +202,11 @@ def _aplicar_filtros_demitidos(colaboradores_qs, filtros):
 
     if filtros["cargo"]:
         colaboradores_qs = colaboradores_qs.filter(cargo__iexact=filtros["cargo"])
+
+    if filtros["status_gestao"]:
+        colaboradores_qs = colaboradores_qs.filter(
+            status_gestao__iexact=filtros["status_gestao"]
+        )
 
     if filtros["status_divergente"] == "S":
         colaboradores_qs = colaboradores_qs.filter(_filtro_status_divergente_demitido())

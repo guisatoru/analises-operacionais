@@ -4,7 +4,7 @@ from .view_utils import (
     funcao_esta_divergente,
     normalizar_funcao_para_comparacao,
 )
-from .views_listas import colaborador_list, demitido_list
+from .views_listas import colaborador_list, demitido_list, status_gestao_opcoes
 from .views_sync import (
     exportar_pendencias_lojas_geovictoria,
     sync_geovictoria,
@@ -23,6 +23,7 @@ __all__ = [
     "colaborador_geovictoria_summary",
     "colaborador_list",
     "demitido_list",
+    "status_gestao_opcoes",
     "derive_termino_state",
     "encontrar_grupos_funcao",
     "exportar_pendencias_lojas_geovictoria",
