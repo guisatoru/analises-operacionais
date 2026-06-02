@@ -738,7 +738,7 @@ export default function Colaboradores() {
                             {!colab.loja_gestao_divergente && !colab.loja_geo_divergente && !colab.funcao_divergente && (
                               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold bg-green-500/10 text-green-600 border border-green-500/20">
                                 <FileCheck2 className="h-3 w-3" />
-                                Consiliado
+                                Conciliado
                               </span>
                             )}
                           </>
