@@ -156,7 +156,7 @@ export default function Sidebar({ username = 'Usuário', onLogout }: SidebarProp
                         isActive={location.pathname === '/colaboradores'}
                       >
                         <Link to="/colaboradores">
-                          <span className="truncate">Auditoria de Equipe</span>
+                          <span className="truncate">Base de Colaboradores</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuSubItem>

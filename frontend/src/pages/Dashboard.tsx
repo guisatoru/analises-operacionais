@@ -7,7 +7,10 @@ import {
   CheckCircle2, 
   XCircle,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  Layers,
+  TrendingUp,
+  Database
 } from 'lucide-react';
 import api from '../api/client';
 
@@ -40,6 +43,7 @@ export default function Dashboard() {
     checkApi();
   }, []);
 
+  // Lista de cards para os atalhos da tela inicial, facilitando o acesso rápido a todos os módulos do sistema.
   const cards = [
     {
       title: 'Gestão de Lojas',
@@ -58,6 +62,24 @@ export default function Dashboard() {
       description: 'Acompanhe os prazos de vencimento dos contratos de experiência para tomadas de decisão de efetivação.',
       path: '/terminos',
       icon: Clock,
+    },
+    {
+      title: 'Escopos Mensais',
+      description: 'Defina o quadro planejado de funcionários por loja, cargos e turnos com estimativa orçamentária.',
+      path: '/escopos',
+      icon: Layers,
+    },
+    {
+      title: 'Raio-X de Custos',
+      description: 'Compare em tempo real os custos orçados (escopo) com os custos reais (folha de pagamento SRD).',
+      path: '/comparativo',
+      icon: TrendingUp,
+    },
+    {
+      title: 'Central de Importações',
+      description: 'Realize o upload dos arquivos SRA (TOTVS), SRD (Folha) e planilhas de Gestão de Pessoas.',
+      path: '/importacoes',
+      icon: Database,
     },
   ];
 
