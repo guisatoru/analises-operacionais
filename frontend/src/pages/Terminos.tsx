@@ -588,8 +588,8 @@ export default function Terminos() {
                 <th className="py-4 px-6">Coordenador</th>
                 <th className="py-4 px-6">Status Gestão</th>
                 <th className="py-4 px-6 text-center">Faltas / Atestados</th>
-                <th className="py-4 px-6">Término 1º Per. (45d)</th>
-                <th className="py-4 px-6">Término 2º Per. (90d)</th>
+                <th className="py-4 px-6">Término 1º Per. (30d)</th>
+                <th className="py-4 px-6">Término 2º Per. (60d)</th>
                 <th className="py-4 px-6 text-right">Ação</th>
               </tr>
             </thead>
