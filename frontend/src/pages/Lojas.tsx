@@ -30,6 +30,21 @@ interface Loja {
   centro_de_custo: string;
   codigo_loja: string | null;
   dispensa_gestao_pessoas: boolean;
+  cnpj?: string;
+  cep?: string;
+  rua?: string;
+  bairro?: string;
+  municipio?: string;
+  uf?: string;
+  sub_regiao?: string;
+  coordenador?: string; // ID do coordenador relacional
+  supervisor?: string; // ID do supervisor relacional
+  nome_totvs?: string;
+  nome_geovictoria?: string;
+  nome_gestao?: string;
+  nome_financeiro?: string;
+  nome_findme?: string;
+  nome_metricas?: string;
 }
 
 interface InsalubridadeConfig {
@@ -44,13 +59,18 @@ interface InsalubridadeConfig {
   insalubridade_fixa_recebedores_quantidade: number | null;
 }
 
+interface Responsavel {
+  id: string;
+  nome: string;
+}
+
 /**
  * Página de Gestão de Lojas.
  * 
  * Por que existe: Permite listar todas as lojas cadastradas no sistema com 
- * paginação e busca dinâmica na API do Django. Oferece modais simples para 
- * criar novas lojas, editar os dados cadastrais das lojas existentes e ajustar 
- * individualmente as configurações de insalubridade de cada loja.
+ * paginação e busca dinâmica na API do Django. Oferece modais organizados 
+ * em abas para criar novas lojas, editar os dados cadastrais das lojas existentes 
+ * e ajustar individualmente as configurações de insalubridade de cada loja.
  */
 export default function Lojas() {
   // Estados para listagem e paginação
@@ -73,7 +93,14 @@ export default function Lojas() {
   // Estado da loja sendo criada/editada
   const [selectedLoja, setSelectedLoja] = useState<Loja | null>(null);
   
-  // Estado dos formulários
+  // Abas do Modal de Cadastro/Edição
+  const [activeTab, setActiveTab] = useState<'geral' | 'localizacao' | 'responsaveis' | 'integracoes'>('geral');
+
+  // Listagem de Coordenadores e Supervisores do banco
+  const [coordenadores, setCoordenadores] = useState<Responsavel[]>([]);
+  const [supervisores, setSupervisores] = useState<Responsavel[]>([]);
+
+  // Estados dos formulários de Loja
   const [formNome, setFormNome] = useState('');
   const [formCliente, setFormCliente] = useState('');
   const [formQuadro, setFormQuadro] = useState('');
@@ -81,6 +108,23 @@ export default function Lojas() {
   const [formCentroCusto, setFormCentroCusto] = useState('');
   const [formCodigo, setFormCodigo] = useState('');
   const [formDispensaGestao, setFormDispensaGestao] = useState(false);
+  
+  const [formCnpj, setFormCnpj] = useState('');
+  const [formCep, setFormCep] = useState('');
+  const [formRua, setFormRua] = useState('');
+  const [formBairro, setFormBairro] = useState('');
+  const [formMunicipio, setFormMunicipio] = useState('');
+  const [formUf, setFormUf] = useState('');
+  const [formSubRegiao, setFormSubRegiao] = useState('');
+  const [formCoordenador, setFormCoordenador] = useState('');
+  const [formSupervisor, setFormSupervisor] = useState('');
+
+  const [formNomeTotvs, setFormNomeTotvs] = useState('');
+  const [formNomeGeovictoria, setFormNomeGeovictoria] = useState('');
+  const [formNomeGestao, setFormNomeGestao] = useState('');
+  const [formNomeFinanceiro, setFormNomeFinanceiro] = useState('');
+  const [formNomeFindme, setFormNomeFindme] = useState('');
+  const [formNomeMetricas, setFormNomeMetricas] = useState('');
 
   // Formulário de insalubridade
   const [insalConfig, setInsalConfig] = useState<InsalubridadeConfig>({
@@ -97,7 +141,6 @@ export default function Lojas() {
   const [actionLoading, setActionLoading] = useState(false);
 
   // Carrega as lojas ao inicializar ou mudar de página/filtros
-  // Efeito reativo: recarrega as lojas se mudar a página ou o filtro de status
   useEffect(() => {
     fetchLojas(true);
   }, [statusFiltro]);
@@ -105,6 +148,30 @@ export default function Lojas() {
   useEffect(() => {
     fetchLojas();
   }, [currentPage]);
+
+  // Carrega coordenadores e supervisores para os selects
+  useEffect(() => {
+    fetchCoordenadores();
+    fetchSupervisores();
+  }, []);
+
+  const fetchCoordenadores = async () => {
+    try {
+      const response = await api.get('/lojas/api/coordenadores/');
+      setCoordenadores(response.data || []);
+    } catch (err) {
+      console.error('Erro ao buscar coordenadores:', err);
+    }
+  };
+
+  const fetchSupervisores = async () => {
+    try {
+      const response = await api.get('/lojas/api/supervisores/');
+      setSupervisores(response.data || []);
+    } catch (err) {
+      console.error('Erro ao buscar supervisores:', err);
+    }
+  };
 
   const fetchLojas = async (resetPage = false) => {
     setLoading(true);
@@ -125,14 +192,11 @@ export default function Lojas() {
         }
       });
 
-      // Se a API retornar formato paginado do DRF (com key 'results')
       if (response.data && response.data.results) {
         setLojas(response.data.results);
         setCount(response.data.count);
-        // Calcula o número total de páginas (assumindo page_size = 25 configurado no Django)
         setTotalPages(Math.ceil(response.data.count / 25) || 1);
       } else {
-        // Fallback caso não venha paginado
         setLojas(response.data || []);
         setCount(response.data ? response.data.length : 0);
         setTotalPages(1);
@@ -155,7 +219,6 @@ export default function Lojas() {
     setCliente('');
     setStatusFiltro('');
     setCentroCusto('');
-    // Força a recarga imediata limpando os campos
     setTimeout(() => {
       fetchLojas(true);
     }, 50);
@@ -171,6 +234,25 @@ export default function Lojas() {
     setFormCentroCusto('');
     setFormCodigo('');
     setFormDispensaGestao(false);
+    
+    setFormCnpj('');
+    setFormCep('');
+    setFormRua('');
+    setFormBairro('');
+    setFormMunicipio('');
+    setFormUf('');
+    setFormSubRegiao('');
+    setFormCoordenador('');
+    setFormSupervisor('');
+
+    setFormNomeTotvs('');
+    setFormNomeGeovictoria('');
+    setFormNomeGestao('');
+    setFormNomeFinanceiro('');
+    setFormNomeFindme('');
+    setFormNomeMetricas('');
+
+    setActiveTab('geral');
     setErrorMsg(null);
     setShowCadastroModal(true);
   };
@@ -178,15 +260,68 @@ export default function Lojas() {
   // Abre modal para editar loja existente
   const handleOpenEdicao = (loja: Loja) => {
     setSelectedLoja(loja);
-    setFormNome(loja.nome_referencia);
-    setFormCliente(loja.cliente);
+    setFormNome(loja.nome_referencia || '');
+    setFormCliente(loja.cliente || '');
     setFormQuadro(loja.quadro || '');
-    setFormStatus(loja.status);
-    setFormCentroCusto(loja.centro_de_custo);
+    setFormStatus(loja.status || 'ATIVA');
+    setFormCentroCusto(loja.centro_de_custo || '');
     setFormCodigo(loja.codigo_loja || '');
-    setFormDispensaGestao(loja.dispensa_gestao_pessoas);
+    setFormDispensaGestao(loja.dispensa_gestao_pessoas || false);
+    
+    setFormCnpj(loja.cnpj || '');
+    setFormCep(loja.cep || '');
+    setFormRua(loja.rua || '');
+    setFormBairro(loja.bairro || '');
+    setFormMunicipio(loja.municipio || '');
+    setFormUf(loja.uf || '');
+    setFormSubRegiao(loja.sub_regiao || '');
+    setFormCoordenador(loja.coordenador || '');
+    setFormSupervisor(loja.supervisor || '');
+
+    setFormNomeTotvs(loja.nome_totvs || '');
+    setFormNomeGeovictoria(loja.nome_geovictoria || '');
+    setFormNomeGestao(loja.nome_gestao || '');
+    setFormNomeFinanceiro(loja.nome_financeiro || '');
+    setFormNomeFindme(loja.nome_findme || '');
+    setFormNomeMetricas(loja.nome_metricas || '');
+
+    setActiveTab('geral');
     setErrorMsg(null);
     setShowCadastroModal(true);
+  };
+
+  // Cadastra coordenador na hora (botão "+")
+  const handleAddCoordenador = async () => {
+    const nome = prompt('Digite o nome do novo Coordenador:');
+    if (!nome || !nome.trim()) return;
+
+    try {
+      const response = await api.post('/lojas/api/coordenadores/', { nome: nome.trim() });
+      const newCoord = response.data;
+      setCoordenadores(prev => [...prev, newCoord].sort((a, b) => a.nome.localeCompare(b.nome)));
+      setFormCoordenador(newCoord.id);
+      toast.success(`Coordenador "${newCoord.nome}" cadastrado com sucesso!`);
+    } catch (err: any) {
+      console.error('Erro ao criar coordenador:', err);
+      toast.error('Erro ao cadastrar coordenador. Verifique se o nome já existe.');
+    }
+  };
+
+  // Cadastra supervisor na hora (botão "+")
+  const handleAddSupervisor = async () => {
+    const nome = prompt('Digite o nome do novo Supervisor:');
+    if (!nome || !nome.trim()) return;
+
+    try {
+      const response = await api.post('/lojas/api/supervisores/', { nome: nome.trim() });
+      const newSup = response.data;
+      setSupervisores(prev => [...prev, newSup].sort((a, b) => a.nome.localeCompare(b.nome)));
+      setFormSupervisor(newSup.id);
+      toast.success(`Supervisor "${newSup.nome}" cadastrado com sucesso!`);
+    } catch (err: any) {
+      console.error('Erro ao criar supervisor:', err);
+      toast.error('Erro ao cadastrar supervisor. Verifique se o nome já existe.');
+    }
   };
 
   // Salva o cadastro de criação ou edição
@@ -202,16 +337,31 @@ export default function Lojas() {
       status: formStatus,
       centro_de_custo: formCentroCusto,
       codigo_loja: formCodigo ? parseInt(formCodigo) : null,
-      dispensa_gestao_pessoas: formDispensaGestao
+      dispensa_gestao_pessoas: formDispensaGestao,
+      
+      cnpj: formCnpj || '',
+      cep: formCep || '',
+      rua: formRua || '',
+      bairro: formBairro || '',
+      municipio: formMunicipio || '',
+      uf: formUf || null,
+      sub_regiao: formSubRegiao || '',
+      coordenador: formCoordenador || null,
+      supervisor: formSupervisor || null,
+
+      nome_totvs: formNomeTotvs || '',
+      nome_geovictoria: formNomeGeovictoria || '',
+      nome_gestao: formNomeGestao || '',
+      nome_financeiro: formNomeFinanceiro || '',
+      nome_findme: formNomeFindme || '',
+      nome_metricas: formNomeMetricas || ''
     };
 
     try {
       if (selectedLoja) {
-        // Atualização (PUT ou PATCH)
         await api.patch(`/lojas/${selectedLoja.id}/editar/`, payload);
         toast.success('Loja atualizada com sucesso!');
       } else {
-        // Criação (POST)
         await api.post('/lojas/nova/', payload);
         toast.success('Loja cadastrada com sucesso!');
       }
@@ -401,7 +551,8 @@ export default function Lojas() {
                 <th className="py-4 px-6">Nome de Referência</th>
                 <th className="py-4 px-6">Cliente/Regional</th>
                 <th className="py-4 px-6">Centro de Custo</th>
-                <th className="py-4 px-6">Quadro</th>
+                <th className="py-4 px-6">Coordenador</th>
+                <th className="py-4 px-6">Supervisor</th>
                 <th className="py-4 px-6">Status</th>
                 <th className="py-4 px-6 text-right">Ações</th>
               </tr>
@@ -414,14 +565,15 @@ export default function Lojas() {
                     <td className="py-4 px-6"><Skeleton className="h-5 w-40" /></td>
                     <td className="py-4 px-6"><Skeleton className="h-5 w-24" /></td>
                     <td className="py-4 px-6"><Skeleton className="h-5 w-20" /></td>
-                    <td className="py-4 px-6"><Skeleton className="h-5 w-12" /></td>
+                    <td className="py-4 px-6"><Skeleton className="h-5 w-24" /></td>
+                    <td className="py-4 px-6"><Skeleton className="h-5 w-24" /></td>
                     <td className="py-4 px-6"><Skeleton className="h-5 w-16" /></td>
                     <td className="py-4 px-6 text-right"><Skeleton className="h-8 w-24 ml-auto" /></td>
                   </tr>
                 ))
               ) : lojas.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-10 text-center text-neutral-400">
+                  <td colSpan={8} className="py-10 text-center text-neutral-400">
                     Nenhuma loja encontrada com os filtros selecionados.
                   </td>
                 </tr>
@@ -434,7 +586,12 @@ export default function Lojas() {
                     </td>
                     <td className="py-4 px-6">{loja.cliente}</td>
                     <td className="py-4 px-6 font-mono text-neutral-600">{loja.centro_de_custo}</td>
-                    <td className="py-4 px-6">{loja.quadro || '-'}</td>
+                    <td className="py-4 px-6">
+                      {coordenadores.find(c => c.id === loja.coordenador)?.nome || '—'}
+                    </td>
+                    <td className="py-4 px-6">
+                      {supervisores.find(s => s.id === loja.supervisor)?.nome || '—'}
+                    </td>
                     <td className="py-4 px-6">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                         loja.status === 'ATIVA' 
@@ -455,14 +612,14 @@ export default function Lojas() {
                       </button>
                       <button
                         onClick={() => handleOpenEdicao(loja)}
-                        className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-md transition-colors inline-block text-neutral-700"
+                        className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-md transition-colors inline-block text-neutral-750 dark:text-neutral-300"
                         title="Editar Loja"
                       >
                         <Edit2 className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteLoja(loja)}
-                        className="p-1.5 hover:bg-red-100 dark:hover:bg-red-950/50 rounded-md transition-colors inline-block text-red-600"
+                        className="p-1.5 hover:bg-red-100 dark:hover:bg-red-950/50 rounded-md transition-colors inline-block text-red-650"
                         title="Excluir Loja"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -519,7 +676,7 @@ export default function Lojas() {
       {/* Modal de Cadastro/Edição de Loja */}
       {showCadastroModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs shadow-xl w-full max-w-lg overflow-hidden animate-scale-in">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs shadow-xl w-full max-w-xl overflow-hidden animate-scale-in">
             <div className="flex items-center justify-between p-6 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850">
               <h3 className="font-bold text-lg text-neutral-900 dark:text-neutral-100">
                 {selectedLoja ? 'Editar Loja' : 'Cadastrar Nova Loja'}
@@ -532,111 +689,375 @@ export default function Lojas() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveLoja} className="p-6 space-y-4">
+            {/* Abas do Modal */}
+            <div className="flex border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 px-4">
+              {(['geral', 'localizacao', 'responsaveis', 'integracoes'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-4 py-3 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
+                    activeTab === tab
+                      ? 'border-neutral-900 text-neutral-900 dark:border-white dark:text-white'
+                      : 'border-transparent text-neutral-400 hover:text-neutral-600'
+                  }`}
+                >
+                  {tab === 'geral' && 'Geral'}
+                  {tab === 'localizacao' && 'Localização'}
+                  {tab === 'responsaveis' && 'Responsáveis'}
+                  {tab === 'integracoes' && 'Integrações'}
+                </button>
+              ))}
+            </div>
+
+            <form onSubmit={handleSaveLoja} className="p-6">
               {errorMsg && (
-                <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 rounded-md text-xs flex gap-2">
+                <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 rounded-md text-xs flex gap-2">
                   <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
                   <span>{errorMsg}</span>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
-                    Nome de Referência *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formNome}
-                    onChange={(e) => setFormNome(e.target.value)}
-                    className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-                    placeholder="Ex: Loja São Paulo Centro"
-                  />
-                </div>
+              {/* Conteúdo da Aba Geral */}
+              {activeTab === 'geral' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
+                      Nome de Referência *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formNome}
+                      onChange={(e) => setFormNome(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                      placeholder="Ex: Loja São Paulo Centro"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
-                    Cliente / Regional *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formCliente}
-                    onChange={(e) => setFormCliente(e.target.value)}
-                    className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-                    placeholder="Ex: Grupo Norte"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
+                      Cliente / Regional *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formCliente}
+                      onChange={(e) => setFormCliente(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                      placeholder="Ex: Grupo Norte"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
-                    Código Loja (Númerico)
-                  </label>
-                  <input
-                    type="number"
-                    value={formCodigo}
-                    onChange={(e) => setFormCodigo(e.target.value)}
-                    className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-                    placeholder="Ex: 104"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
+                      Código Loja (Numérico)
+                    </label>
+                    <input
+                      type="number"
+                      value={formCodigo}
+                      onChange={(e) => setFormCodigo(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                      placeholder="Ex: 104"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
-                    Centro de Custo *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formCentroCusto}
-                    onChange={(e) => setFormCentroCusto(e.target.value)}
-                    className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-                    placeholder="Ex: 20100"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
+                      Centro de Custo *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formCentroCusto}
+                      onChange={(e) => setFormCentroCusto(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                      placeholder="Ex: 20100"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
-                    Quadro Estimado
-                  </label>
-                  <input
-                    type="text"
-                    value={formQuadro}
-                    onChange={(e) => setFormQuadro(e.target.value)}
-                    className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-                    placeholder="Ex: 12"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
+                      Quadro Estimado
+                    </label>
+                    <input
+                      type="text"
+                      value={formQuadro}
+                      onChange={(e) => setFormQuadro(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                      placeholder="Ex: 12"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
-                    Status
-                  </label>
-                  <select
-                    value={formStatus}
-                    onChange={(e) => setFormStatus(e.target.value)}
-                    className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-                  >
-                    <option value="ATIVA">Ativa</option>
-                    <option value="INATIVA">Inativa</option>
-                  </select>
-                </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
+                      CNPJ
+                    </label>
+                    <input
+                      type="text"
+                      value={formCnpj}
+                      onChange={(e) => setFormCnpj(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                      placeholder="Ex: 00.000.000/0000-00"
+                    />
+                  </div>
 
-                <div className="col-span-2 flex items-center gap-2.5 pt-2">
-                  <input
-                    type="checkbox"
-                    id="dispensa_gestao"
-                    checked={formDispensaGestao}
-                    onChange={(e) => setFormDispensaGestao(e.target.checked)}
-                    className="rounded border-neutral-200 dark:border-neutral-800 text-primary focus:ring-primary h-4 w-4"
-                  />
-                  <label htmlFor="dispensa_gestao" className="text-sm text-neutral-700 select-none">
-                    Dispensar esta loja do controle de Gestão de Pessoas
-                  </label>
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
+                      Status
+                    </label>
+                    <select
+                      value={formStatus}
+                      onChange={(e) => setFormStatus(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                    >
+                      <option value="ATIVA">Ativa</option>
+                      <option value="INATIVA">Inativa</option>
+                    </select>
+                  </div>
                 </div>
-              </div>
+              )}
 
+              {/* Conteúdo da Aba Localização */}
+              {activeTab === 'localizacao' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
+                      CEP
+                    </label>
+                    <input
+                      type="text"
+                      value={formCep}
+                      onChange={(e) => setFormCep(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                      placeholder="Ex: 01000-000"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
+                      UF
+                    </label>
+                    <select
+                      value={formUf}
+                      onChange={(e) => setFormUf(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                    >
+                      <option value="">Selecione a UF</option>
+                      {['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO','BR'].map(state => (
+                        <option key={state} value={state}>{state}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="col-span-2">
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
+                      Rua / Endereço
+                    </label>
+                    <input
+                      type="text"
+                      value={formRua}
+                      onChange={(e) => setFormRua(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                      placeholder="Ex: Av. Paulista, 1000"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
+                      Bairro
+                    </label>
+                    <input
+                      type="text"
+                      value={formBairro}
+                      onChange={(e) => setFormBairro(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                      placeholder="Ex: Bela Vista"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
+                      Município
+                    </label>
+                    <input
+                      type="text"
+                      value={formMunicipio}
+                      onChange={(e) => setFormMunicipio(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                      placeholder="Ex: São Paulo"
+                    />
+                  </div>
+
+                  <div className="col-span-2">
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
+                      Sub-Região
+                    </label>
+                    <input
+                      type="text"
+                      value={formSubRegiao}
+                      onChange={(e) => setFormSubRegiao(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                      placeholder="Ex: São Paulo - Capital"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Conteúdo da Aba Responsáveis */}
+              {activeTab === 'responsaveis' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
+                      Coordenador
+                    </label>
+                    <div className="flex gap-2">
+                      <select
+                        value={formCoordenador}
+                        onChange={(e) => setFormCoordenador(e.target.value)}
+                        className="flex-1 px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                      >
+                        <option value="">Sem Coordenador</option>
+                        {coordenadores.map(c => (
+                          <option key={c.id} value={c.id}>{c.nome}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={handleAddCoordenador}
+                        className="px-3 py-2 border border-neutral-200 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-350 rounded-lg text-sm font-bold transition-colors cursor-pointer"
+                        title="Cadastrar Novo Coordenador"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
+                      Supervisor
+                    </label>
+                    <div className="flex gap-2">
+                      <select
+                        value={formSupervisor}
+                        onChange={(e) => setFormSupervisor(e.target.value)}
+                        className="flex-1 px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                      >
+                        <option value="">Sem Supervisor</option>
+                        {supervisores.map(s => (
+                          <option key={s.id} value={s.id}>{s.nome}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={handleAddSupervisor}
+                        className="px-3 py-2 border border-neutral-200 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-350 rounded-lg text-sm font-bold transition-colors cursor-pointer"
+                        title="Cadastrar Novo Supervisor"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Conteúdo da Aba Integrações */}
+              {activeTab === 'integracoes' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
+                      Nome TOTVS
+                    </label>
+                    <input
+                      type="text"
+                      value={formNomeTotvs}
+                      onChange={(e) => setFormNomeTotvs(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                      placeholder="Ex: FILIAL SAO PAULO"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
+                      Nome GeoVictoria
+                    </label>
+                    <input
+                      type="text"
+                      value={formNomeGeovictoria}
+                      onChange={(e) => setFormNomeGeovictoria(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                      placeholder="Ex: SP Centro"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
+                      Nome Gestão
+                    </label>
+                    <input
+                      type="text"
+                      value={formNomeGestao}
+                      onChange={(e) => setFormNomeGestao(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                      placeholder="Ex: São Paulo"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
+                      Nome Financeiro
+                    </label>
+                    <input
+                      type="text"
+                      value={formNomeFinanceiro}
+                      onChange={(e) => setFormNomeFinanceiro(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                      placeholder="Ex: SP FIN"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
+                      Nome FindMe
+                    </label>
+                    <input
+                      type="text"
+                      value={formNomeFindme}
+                      onChange={(e) => setFormNomeFindme(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                      placeholder="Ex: SP FM"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
+                      Nome Métricas
+                    </label>
+                    <input
+                      type="text"
+                      value={formNomeMetricas}
+                      onChange={(e) => setFormNomeMetricas(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+                      placeholder="Ex: SP MET"
+                    />
+                  </div>
+
+                  <div className="col-span-2 flex items-center gap-2.5 pt-2">
+                    <input
+                      type="checkbox"
+                      id="dispensa_gestao"
+                      checked={formDispensaGestao}
+                      onChange={(e) => setFormDispensaGestao(e.target.checked)}
+                      className="rounded border-neutral-200 dark:border-neutral-800 text-primary focus:ring-primary h-4 w-4"
+                    />
+                    <label htmlFor="dispensa_gestao" className="text-sm text-neutral-700 select-none">
+                      Dispensar esta loja do controle de Gestão de Pessoas
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Botões de Ação do Modal */}
               <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200 dark:border-neutral-800 mt-6">
                 <button
                   type="button"
@@ -681,7 +1102,7 @@ export default function Lojas() {
             <form onSubmit={handleSaveInsalubridade} className="p-6 space-y-4">
               {errorMsg && (
                 <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 rounded-md text-xs flex gap-2">
-                  <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
+                  <AlertCircle className="h-4 w-4 text-red-450 shrink-0" />
                   <span>{errorMsg}</span>
                 </div>
               )}
@@ -798,6 +1219,7 @@ export default function Lojas() {
                 </div>
               </div>
 
+              {/* Botões de Ação do Modal */}
               <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200 dark:border-neutral-800 mt-6">
                 <button
                   type="button"
@@ -812,7 +1234,7 @@ export default function Lojas() {
                   className="px-6 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full text-xs font-bold hover:bg-neutral-850 dark:hover:bg-neutral-100 shadow-xs disabled:opacity-50 transition-colors flex items-center gap-2"
                 >
                   {actionLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Confirmar Configuração
+                  Salvar Configuração
                 </button>
               </div>
             </form>

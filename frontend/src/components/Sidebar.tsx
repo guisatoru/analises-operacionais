@@ -34,6 +34,7 @@ import api from '../api/client';
 interface SidebarProps {
   username?: string;
   onLogout: () => void;
+  role?: string;
 }
 
 /**
@@ -43,7 +44,7 @@ interface SidebarProps {
  * Utiliza o visual e componentes oficiais do Shadcn UI (grupos, switcher de workspace,
  * rodapé com dados do perfil e submenus colapsáveis).
  */
-export default function Sidebar({ username = 'Usuário', onLogout }: SidebarProps) {
+export default function Sidebar({ username = 'Usuário', onLogout, role }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { open } = useSidebar();
@@ -216,6 +217,21 @@ export default function Sidebar({ username = 'Usuário', onLogout }: SidebarProp
           <SidebarGroupLabel>Configurações</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              {role === 'Administrador' && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={location.pathname === '/usuarios'}
+                    title={!open ? "Usuários" : undefined}
+                  >
+                    <Link to="/usuarios">
+                      <Users className="h-5 w-5 shrink-0" />
+                      {open && <span className="truncate">Usuários</span>}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+
               <SidebarMenuItem>
                 <SidebarMenuButton 
                   asChild 

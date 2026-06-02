@@ -13,6 +13,7 @@ interface LayoutProps {
   isAuthenticated: boolean;
   username: string;
   onLogout: () => void;
+  role?: string;
 }
 
 /**
@@ -24,7 +25,7 @@ interface LayoutProps {
  * de conteúdo ao lado da barra lateral. Inclui também o cabeçalho com o sistema
  * de breadcrumbs dinâmicos para facilitar a navegação do usuário.
  */
-export default function Layout({ isAuthenticated, username, onLogout }: LayoutProps) {
+export default function Layout({ isAuthenticated, username, onLogout, role }: LayoutProps) {
   const location = useLocation();
 
   if (!isAuthenticated) {
@@ -54,6 +55,9 @@ export default function Layout({ isAuthenticated, username, onLogout }: LayoutPr
   } else if (path === 'importacoes') {
     sector = 'Configurações';
     pageName = 'Importações';
+  } else if (path === 'usuarios') {
+    sector = 'Configurações';
+    pageName = 'Usuários';
   } else {
     sector = 'Geral';
     pageName = 'Dashboard';
@@ -62,12 +66,12 @@ export default function Layout({ isAuthenticated, username, onLogout }: LayoutPr
   return (
     <SidebarProvider>
       {/* Menu Lateral de Navegação */}
-      <Sidebar username={username} onLogout={onLogout} />
+      <Sidebar username={username} onLogout={onLogout} role={role} />
 
       {/* Conteúdo Principal da Área de Trabalho */}
-      <SidebarInset>
+      <SidebarInset className="h-screen overflow-hidden">
         {/* Cabeçalho Superior com Gatilho da Sidebar */}
-        <header className="h-16 border-b border-neutral-250 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-6 flex items-center justify-between sticky top-0 z-10">
+        <header className="h-16 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-6 flex items-center justify-between sticky top-0 z-20">
           <div className="flex items-center gap-4">
             {/* Botão para colapsar/expandir a Sidebar */}
             <SidebarTrigger />

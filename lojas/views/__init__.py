@@ -22,6 +22,8 @@ from .stores import (
     store_detail,
     store_list,
     store_update,
+    coordenador_list_create,
+    supervisor_list_create,
 )
 
 from .comparativo import comparativo_loja
@@ -46,4 +48,6 @@ __all__ = [
     "folha_duplicadas_list",
     "escopo_duplicar_proximo_mes",
     "loja_config_insalubridade",
+    "coordenador_list_create",
+    "supervisor_list_create",
 ]

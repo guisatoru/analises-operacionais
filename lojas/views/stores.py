@@ -6,8 +6,8 @@ from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from unidecode import unidecode
 
-from ..models import Loja, STATUS_CHOICES, obter_ou_criar_config_insalubridade_loja
-from ..serializers import LojaSerializer
+from ..models import Loja, STATUS_CHOICES, obter_ou_criar_config_insalubridade_loja, Coordenador, Supervisor
+from ..serializers import LojaSerializer, CoordenadorSerializer, SupervisorSerializer
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -127,3 +127,47 @@ def store_delete(request, pk):
         "success": True,
         "message": f"Loja '{store_name}' excluída com sucesso."
     })
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def coordenador_list_create(request):
+    """
+    Lista todos os coordenadores cadastrados (GET) ou cria um novo coordenador (POST)
+    recebendo as informações do formulário/modal do frontend.
+    """
+    if request.method == "POST":
+        serializer = CoordenadorSerializer(data=request.data)
+        if serializer.is_valid():
+            coord = serializer.save()
+            return Response(CoordenadorSerializer(coord).data, status=status.HTTP_201_CREATED)
+        return Response({
+            "success": False,
+            "errors": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    coordenadores = Coordenador.objects.all().order_by("nome")
+    serializer = CoordenadorSerializer(coordenadores, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def supervisor_list_create(request):
+    """
+    Lista todos os supervisores cadastrados (GET) ou cria um novo supervisor (POST)
+    recebendo as informações do formulário/modal do frontend.
+    """
+    if request.method == "POST":
+        serializer = SupervisorSerializer(data=request.data)
+        if serializer.is_valid():
+            sup = serializer.save()
+            return Response(SupervisorSerializer(sup).data, status=status.HTTP_201_CREATED)
+        return Response({
+            "success": False,
+            "errors": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    supervisores = Supervisor.objects.all().order_by("nome")
+    serializer = SupervisorSerializer(supervisores, many=True)
+    return Response(serializer.data)

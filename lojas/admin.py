@@ -13,6 +13,8 @@ from .models import (
     Salario,
     Verba,
     LinhaFolhaDuplicada,
+    Coordenador,
+    Supervisor,
 )
 from .forms import EscopoMensalForm
 
@@ -46,8 +48,8 @@ class LojaAdmin(admin.ModelAdmin):
         "cnpj",
         "cliente",
         "nome_metricas",
-        "coordenador",
-        "supervisor",
+        "coordenador__nome",
+        "supervisor__nome",
     )
     ordering = ("nome_referencia",)
     readonly_fields = ("created_at", "updated_at")
@@ -113,6 +115,22 @@ class LojaAdmin(admin.ModelAdmin):
 
 @admin.register(Cargo)
 class CargoAdmin(admin.ModelAdmin):
+    search_fields = ("nome",)
+    list_display = ("nome",)
+
+
+@admin.register(Coordenador)
+class CoordenadorAdmin(admin.ModelAdmin):
+    """Permite listar e pesquisar coordenadores no admin Django."""
+
+    search_fields = ("nome",)
+    list_display = ("nome",)
+
+
+@admin.register(Supervisor)
+class SupervisorAdmin(admin.ModelAdmin):
+    """Permite listar e pesquisar supervisores no admin Django."""
+
     search_fields = ("nome",)
     list_display = ("nome",)
 

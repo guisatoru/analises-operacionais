@@ -9,7 +9,39 @@ from .models import (
     LinhaFolhaDuplicada,
     escala_insalubridade_fixa_para_escopo,
     montar_caches_salario_para_itens,
+    Coordenador,
+    Supervisor,
 )
+
+class CoordenadorSerializer(serializers.ModelSerializer):
+    """
+    Este serializer existe para formatar as informações de coordenadores de loja,
+    convertendo o ID em string para o frontend.
+    """
+    class Meta:
+        model = Coordenador
+        fields = "__all__"
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if "id" in data and data["id"] is not None:
+            data["id"] = str(data["id"])
+        return data
+
+class SupervisorSerializer(serializers.ModelSerializer):
+    """
+    Este serializer existe para formatar as informações de supervisores de loja,
+    convertendo o ID em string para o frontend.
+    """
+    class Meta:
+        model = Supervisor
+        fields = "__all__"
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if "id" in data and data["id"] is not None:
+            data["id"] = str(data["id"])
+        return data
 
 class LojaSerializer(serializers.ModelSerializer):
     """
@@ -33,6 +65,10 @@ class LojaSerializer(serializers.ModelSerializer):
             data["codigo_loja"] = str(data["codigo_loja"])
         if "centro_de_custo" in data and data["centro_de_custo"] is not None:
             data["centro_de_custo"] = str(data["centro_de_custo"])
+        if "coordenador" in data and data["coordenador"] is not None:
+            data["coordenador"] = str(data["coordenador"])
+        if "supervisor" in data and data["supervisor"] is not None:
+            data["supervisor"] = str(data["supervisor"])
         return data
 
 class ConfiguracaoInsalubridadeLojaSerializer(serializers.ModelSerializer):

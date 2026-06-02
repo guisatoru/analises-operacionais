@@ -15,7 +15,7 @@ class ColaboradorSerializer(serializers.ModelSerializer):
     funcao_divergente = serializers.SerializerMethodField()
     
     loja_nome = serializers.SerializerMethodField()
-    loja_coordenador = serializers.CharField(source="loja.coordenador", read_only=True)
+    loja_coordenador = serializers.CharField(source="loja.coordenador.nome", read_only=True)
     loja_gestao_nome = serializers.SerializerMethodField()
     loja_geo_nome = serializers.SerializerMethodField()
 

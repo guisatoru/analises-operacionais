@@ -54,6 +54,40 @@ TIPO_VERBA_CHOICES = [
 ]
 
 
+class Coordenador(models.Model):
+    """
+    Este modelo existe para gerenciar a lista de coordenadores de lojas de forma padronizada,
+    evitando digitação duplicada ou inconsistências no cadastro de lojas e términos.
+    """
+
+    nome = models.CharField("Nome", max_length=120, unique=True)
+
+    class Meta:
+        verbose_name = "Coordenador"
+        verbose_name_plural = "Coordenadores"
+        ordering = ["nome"]
+
+    def __str__(self):
+        return self.nome
+
+
+class Supervisor(models.Model):
+    """
+    Este modelo existe para gerenciar a lista de supervisores de lojas de forma padronizada,
+    evitando digitação duplicada ou inconsistências no cadastro de lojas e termos.
+    """
+
+    nome = models.CharField("Nome", max_length=120, unique=True)
+
+    class Meta:
+        verbose_name = "Supervisor"
+        verbose_name_plural = "Supervisores"
+        ordering = ["nome"]
+
+    def __str__(self):
+        return self.nome
+
+
 class Loja(models.Model):
     """Representa uma loja cadastrada no sistema."""
 
@@ -163,15 +197,21 @@ class Loja(models.Model):
         max_length=80,
         blank=True,
     )
-    coordenador = models.CharField(
-        "Coordenador",
-        max_length=120,
+    coordenador = models.ForeignKey(
+        Coordenador,
+        on_delete=models.SET_NULL,
+        null=True,
         blank=True,
+        related_name="lojas",
+        verbose_name="Coordenador",
     )
-    supervisor = models.CharField(
-        "Supervisor",
-        max_length=120,
+    supervisor = models.ForeignKey(
+        Supervisor,
+        on_delete=models.SET_NULL,
+        null=True,
         blank=True,
+        related_name="lojas",
+        verbose_name="Supervisor",
     )
 
     # ---------------------------------------------------------------

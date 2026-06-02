@@ -137,7 +137,7 @@ def exportar_terminos_excel(request):
             "RE": colaborador.re,
             "Nome": colaborador.nome,
             "Loja": colaborador.loja.nome_referencia if colaborador.loja else colaborador.centro_custo,
-            "Coordenador": colaborador.loja.coordenador if colaborador.loja else "-",
+            "Coordenador": colaborador.loja.coordenador.nome if colaborador.loja and colaborador.loja.coordenador else "-",
             "Admissão": colaborador.data_admissao.strftime("%d/%m/%Y") if colaborador.data_admissao else "",
             "Término 1": colaborador.termino_1.strftime("%d/%m/%Y") if colaborador.termino_1 else "",
             "Término 2": colaborador.termino_2.strftime("%d/%m/%Y") if colaborador.termino_2 else "",
@@ -225,7 +225,7 @@ def _filtrar_terminos_queryset(
         )
 
     if coordenador_query:
-        colaboradores_qs = colaboradores_qs.filter(loja__coordenador=coordenador_query)
+        colaboradores_qs = colaboradores_qs.filter(loja__coordenador__nome=coordenador_query)
 
     if status_gestao_query:
         colaboradores_qs = colaboradores_qs.filter(status_gestao__iexact=status_gestao_query)

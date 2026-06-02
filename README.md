@@ -704,15 +704,6 @@ docker compose up --build
 
 ---
 
-# ⚠️ Problemas Técnicos Identificados
-
-1.  **Processamento Assíncrono sem Filas Persistentes:** O uso de `threading.Thread` nativo é simples e eficiente para o tamanho atual do projeto, porém oferece riscos em escala: se o servidor for reiniciado durante uma importação, a tarefa morre sem aviso. Em produção de larga escala, o uso de Celery + Redis é recomendado.
-2.  **Lógica Complexa de Centro de Custo no CSV:** O processamento em `folha_importacao.py` que infere o local correto do colaborador baseando-se no histórico anterior de lançamentos da verba `001` pode ter gargalo de performance se o volume histórico de linhas no banco crescer de forma exponencial.
-3.  **Falta de Validação de Transações de Importação no Frontend:** Se o usuário fechar o navegador durante um processamento assíncrono pesado, as informações no cache durarão apenas 10 minutos (timeout do cache).
-4.  **Inexistência de Migração Automática de Lojas:** Lojas novas dependem de que o usuário as insira de forma manual no sistema. Recomenda-se integrar no futuro uma importação automática de filiais baseada na planilha SRA.
-
----
-
 # Roadmap de Melhorias
 
 ### Alta Prioridade

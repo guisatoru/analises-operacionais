@@ -106,3 +106,62 @@ def api_me(request):
         "authenticated": False,
         "user": None
     })
+
+@api_view(["PUT", "PATCH"])
+@permission_classes([IsAuthenticated, IsAdministrador])
+def usuario_update(request, pk):
+    """
+    Esta view existe para permitir a edição de usuários do sistema por outros administradores,
+    garantindo que se possa atualizar os dados de cadastro (nome, e-mail), redefinir senhas
+    e ativar/desativar contas, com validações de segurança para que um administrador não
+    consiga desativar o seu próprio acesso.
+    """
+    try:
+        usuario = User.objects.get(pk=pk)
+    except User.DoesNotExist:
+        return Response({
+            "success": False,
+            "error": "Usuário não encontrado."
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    # Não permitir desativar a si próprio para evitar lockout acidental do sistema
+    is_active = request.data.get("is_active")
+    if is_active is not None and not bool(is_active) and usuario == request.user:
+        return Response({
+            "success": False,
+            "error": "Você não pode desativar o seu próprio usuário administrador."
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    username = request.data.get("username")
+    first_name = request.data.get("first_name")
+    last_name = request.data.get("last_name")
+    email = request.data.get("email")
+    password = request.data.get("password")
+
+    if username:
+        if User.objects.filter(username=username).exclude(pk=pk).exists():
+            return Response({
+                "success": False,
+                "error": "Este nome de usuário já está sendo utilizado."
+            }, status=status.HTTP_400_BAD_REQUEST)
+        usuario.username = username
+
+    if first_name is not None:
+        usuario.first_name = first_name
+    if last_name is not None:
+        usuario.last_name = last_name
+    if email is not None:
+        usuario.email = email
+    if is_active is not None:
+        usuario.is_active = bool(is_active)
+
+    if password:
+        usuario.set_password(password)
+
+    usuario.save()
+
+    return Response({
+        "success": True,
+        "message": f"Usuário {usuario.username} atualizado com sucesso.",
+        "usuario": UsuarioSerializer(usuario).data
+    })

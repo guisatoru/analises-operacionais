@@ -12,6 +12,7 @@ import Terminos from './pages/Terminos';
 import Importacoes from './pages/Importacoes';
 import Escopos from './pages/Escopos';
 import Comparativo from './pages/Comparativo';
+import Usuarios from './pages/Usuarios';
 import { Toaster } from './components/ui/sonner';
 
 /**
@@ -25,6 +26,7 @@ import { Toaster } from './components/ui/sonner';
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [username, setUsername] = useState<string>('');
+  const [role, setRole] = useState<string>('');
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
 
   // Verifica o status do login no backend ao montar a aplicação
@@ -35,13 +37,16 @@ function App() {
         if (response.data.authenticated) {
           setIsAuthenticated(true);
           setUsername(response.data.user.username);
+          setRole(response.data.user.role || '');
         } else {
           setIsAuthenticated(false);
           setUsername('');
+          setRole('');
         }
       } catch (error) {
         console.error('Erro ao verificar sessão ativa no backend:', error);
         setIsAuthenticated(false);
+        setRole('');
       } finally {
         setCheckingAuth(false);
       }
@@ -50,14 +55,16 @@ function App() {
     verifyAuth();
   }, []);
 
-  const handleLoginSuccess = (userLogin: string) => {
+  const handleLoginSuccess = (userLogin: string, userRole: string) => {
     setIsAuthenticated(true);
     setUsername(userLogin);
+    setRole(userRole);
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
     setUsername('');
+    setRole('');
   };
 
   // Enquanto verifica o status de autenticação, exibe um spinner centralizado
@@ -86,13 +93,13 @@ function App() {
           } 
         />
 
-        {/* Rotas Protegidas envolvidas pelo Layout Administrativo */}
         <Route 
           element={
             <Layout 
               isAuthenticated={isAuthenticated} 
               username={username} 
               onLogout={handleLogout} 
+              role={role}
             />
           }
         >
@@ -103,6 +110,16 @@ function App() {
           <Route path="/colaboradores" element={<Colaboradores />} />
           <Route path="/terminos" element={<Terminos />} />
           <Route path="/importacoes" element={<Importacoes />} />
+          <Route 
+            path="/usuarios" 
+            element={
+              role === 'Administrador' ? (
+                <Usuarios />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            } 
+          />
         </Route>
 
         {/* Redirecionamento de rotas inexistentes para o Dashboard ou Login */}
