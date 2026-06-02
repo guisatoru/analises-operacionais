@@ -117,8 +117,9 @@ export default function Terminos() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [coordenadoresOpcoes, setCoordenadoresOpcoes] = useState<string[]>([]);
+  const [statusGestaoOpcoes, setStatusGestaoOpcoes] = useState<string[]>([]);
 
-  // Carrega coordenadores únicos a partir do banco de dados
+  // Carrega coordenadores e opções de status de gestão do banco
   useEffect(() => {
     const fetchCoordenadores = async () => {
       try {
@@ -135,7 +136,18 @@ export default function Terminos() {
         console.error('Erro ao buscar coordenadores:', err);
       }
     };
+
+    const fetchStatusGestaoOpcoes = async () => {
+      try {
+        const response = await api.get('/colaboradores/status-gestao-opcoes/');
+        setStatusGestaoOpcoes(response.data || []);
+      } catch (err) {
+        console.error('Erro ao buscar opções de status gestão:', err);
+      }
+    };
+
     fetchCoordenadores();
+    fetchStatusGestaoOpcoes();
   }, []);
 
   // Efeito reativo: recarrega os prazos se mudar filtros dropdowns, ordenação, coordenador ou datas
@@ -454,13 +466,18 @@ export default function Terminos() {
             <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Status de Gestão
             </label>
-            <input
-              type="text"
-              placeholder="Ex: ATIVO / AFASTADO..."
+            <select
               value={statusGestao}
-              onChange={(e) => setStatusGestao(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatusGestao(e.target.value)}
               className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-            />
+            >
+              <option value="">Todos</option>
+              {statusGestaoOpcoes.map((op) => (
+                <option key={op} value={op}>
+                  {op}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
