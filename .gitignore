@@ -17,8 +17,11 @@ env/
 *.sqlite3
 *.sqlite3-journal
 *.json
+!package.json
+!package-lock.json
+!components.json
+!tsconfig*.json
 
-# Django
 *.log
 local_settings.py
 db.sqlite3
