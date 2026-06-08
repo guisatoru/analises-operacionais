@@ -833,7 +833,7 @@ export default function Terminos() {
                 </div>
                 {selectedItem.state.etapaAtual === 2 && (
                   <small className="block text-[10px] text-neutral-400 mt-1">
-                    * Prorrogação desativada por se tratar da 2ª etapa de experiência (máximo 90 dias).
+                    * Prorrogação desativada por se tratar da 2ª etapa de experiência.
                   </small>
                 )}
               </div>
