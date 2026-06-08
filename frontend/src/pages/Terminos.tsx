@@ -10,7 +10,8 @@ import {
   CheckCircle2,
   Clock,
   Briefcase,
-  CalendarDays
+  CalendarDays,
+  Edit
 } from 'lucide-react';
 import api from '../api/client';
 import SearchableSelect from '../components/ui/searchable-select';
@@ -59,7 +60,7 @@ interface TerminoHistory {
   acao: string;
   acao_display?: string;
   observacao: string;
-  criado_em: string;
+  created_at: string;
   respondido_por: string;
 }
 
@@ -107,6 +108,7 @@ export default function Terminos() {
   const [selectedItem, setSelectedItem] = useState<TerminoItem | null>(null);
   const [selectedAcao, setSelectedAcao] = useState('EFETIVAR');
   const [observacao, setObservacao] = useState('');
+  const [selectedEtapa, setSelectedEtapa] = useState<number>(1);
 
   // Estados de Sincronização GeoVictoria (Relógio Ponto)
   const [syncLoading, setSyncLoading] = useState(false);
@@ -279,10 +281,22 @@ export default function Terminos() {
     }, 50);
   };
 
+  // Efeito para sincronizar a ação selecionada com a etapa escolhida e o histórico existente
+  useEffect(() => {
+    if (!selectedItem) return;
+    // Encontra a última ação tomada na etapa selecionada no histórico do colaborador
+    const latestForEtapa = selectedItem.history.find(h => h.etapa === selectedEtapa);
+    if (latestForEtapa) {
+      setSelectedAcao(latestForEtapa.acao.toUpperCase());
+    } else {
+      setSelectedAcao(selectedEtapa === 1 ? 'PRORROGADO' : 'MANTER');
+    }
+  }, [selectedEtapa, selectedItem]);
+
   // Abre modal para registrar uma decisão de RH
   const handleOpenAcao = (item: TerminoItem) => {
     setSelectedItem(item);
-    setSelectedAcao('EFETIVAR');
+    setSelectedEtapa(item.state.etapaAtual);
     setObservacao('');
     setErrorMsg(null);
     setShowAcaoModal(true);
@@ -301,7 +315,7 @@ export default function Terminos() {
         colaborador_id: selectedItem.colaborador.id,
         acao: selectedAcao.toLowerCase(), // Backend espera minúsculo ('prorrogado', 'termino', 'manter')
         observacao: observacao,
-        etapa: selectedItem.state.etapaAtual
+        etapa: selectedEtapa
       });
 
       setShowAcaoModal(false);
@@ -688,10 +702,23 @@ export default function Terminos() {
                         {item.state.statusControle && getStatusBadge(item.state.statusControle)}
                         <button
                           onClick={() => handleOpenAcao(item)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-md transition-all"
+                          className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold border rounded-md transition-all ${
+                            item.state.statusControle && !item.state.statusControle.toUpperCase().includes('PENDENTE')
+                              ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 border-amber-500/20 dark:text-amber-400'
+                              : 'bg-primary/10 hover:bg-primary/20 text-primary border-primary/20'
+                          }`}
                         >
-                          <Sparkles className="h-3.5 w-3.5" />
-                          Decidir
+                          {item.state.statusControle && !item.state.statusControle.toUpperCase().includes('PENDENTE') ? (
+                            <>
+                              <Edit className="h-3.5 w-3.5" />
+                              Alterar
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="h-3.5 w-3.5" />
+                              Decidir
+                            </>
+                          )}
                         </button>
                       </div>
                     </td>
@@ -744,156 +771,217 @@ export default function Terminos() {
       </div>
 
       {/* Modal de Registro de Decisão */}
-      {showAcaoModal && selectedItem && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs shadow-xl w-full max-w-lg overflow-hidden animate-scale-in">
-            <div className="flex items-center justify-between p-6 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850">
-              <div>
-                <h3 className="font-bold text-lg text-neutral-900 dark:text-neutral-100">
-                  Decisão de Término
-                </h3>
-                <p className="text-xs text-neutral-500">{selectedItem.colaborador.nome} ({selectedItem.state.tipoTermino})</p>
-              </div>
-              <button
-                onClick={() => setShowAcaoModal(false)}
-                className="p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+      {showAcaoModal && selectedItem && (() => {
+        const latestStage1 = selectedItem.history.find(h => h.etapa === 1);
+        const isStage2Disabled = latestStage1
+          ? (latestStage1.acao === 'manter' || latestStage1.acao === 'termino')
+          : selectedItem.state.etapaAtual !== 2;
 
-            <form onSubmit={handleSaveAcao} className="p-6 space-y-4">
-              {errorMsg && (
-                <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 rounded-md text-xs flex gap-2">
-                  <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
-                  <span>{errorMsg}</span>
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+            <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden animate-scale-in">
+              <div className="flex items-center justify-between p-6 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 shrink-0">
+                <div>
+                  <h3 className="font-bold text-lg text-neutral-900 dark:text-neutral-100">
+                    Decisão de Término
+                  </h3>
+                  <p className="text-xs text-neutral-500">{selectedItem.colaborador.nome} ({selectedItem.state.tipoTermino})</p>
                 </div>
-              )}
-
-              {/* Informações GeoVictoria */}
-              <div className="bg-neutral-50 dark:bg-neutral-850 p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 space-y-2">
-                <h4 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
-                  <Clock className="h-4 w-4" />
-                  Dados do Relógio GeoVictoria
-                </h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-card p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 text-center">
-                    <span className="block text-[10px] font-bold text-neutral-400 uppercase">Faltas Coletadas</span>
-                    <span className="text-xl font-bold text-red-500">{selectedItem.faltas}</span>
-                  </div>
-                  <div className="bg-card p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 text-center">
-                    <span className="block text-[10px] font-bold text-neutral-400 uppercase">Atestados Coletados</span>
-                    <span className="text-xl font-bold text-amber-500">{selectedItem.atestados}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Ação */}
-              <div>
-                <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1.5">
-                  Ação Selecionada *
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedAcao('MANTER')}
-                    className={`py-3 px-2 border rounded-lg text-xs font-bold transition-all ${
-                      selectedAcao === 'MANTER' 
-                        ? 'border-green-500 ring-2 ring-green-500 bg-green-500/10 text-green-600' 
-                        : 'border-green-500/30 text-green-600 hover:bg-green-500/5'
-                    }`}
-                  >
-                    Efetivar
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={selectedItem.state.etapaAtual === 2}
-                    onClick={() => setSelectedAcao('PRORROGADO')}
-                    className={`py-3 px-2 border rounded-lg text-xs font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
-                      selectedAcao === 'PRORROGADO' 
-                        ? 'border-blue-500 ring-2 ring-blue-500 bg-blue-500/10 text-blue-600' 
-                        : 'border-blue-500/30 text-blue-600 hover:bg-blue-500/5'
-                    }`}
-                  >
-                    Prorrogar
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setSelectedAcao('TERMINO')}
-                    className={`py-3 px-2 border rounded-lg text-xs font-bold transition-all ${
-                      selectedAcao === 'TERMINO' 
-                        ? 'border-red-500 ring-2 ring-red-500 bg-red-500/10 text-red-600' 
-                        : 'border-red-500/30 text-red-600 hover:bg-red-500/5'
-                    }`}
-                  >
-                    Dispensar
-                  </button>
-                </div>
-                {selectedItem.state.etapaAtual === 2 && (
-                  <small className="block text-[10px] text-neutral-400 mt-1">
-                    * Prorrogação desativada por se tratar da 2ª etapa de experiência.
-                  </small>
-                )}
-              </div>
-
-              {/* Justificativa */}
-              <div>
-                <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
-                  Justificativa / Observação Interna
-                </label>
-                <textarea
-                  required
-                  value={observacao}
-                  onChange={(e) => setObservacao(e.target.value)}
-                  className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white h-24 resize-none"
-                  placeholder="Descreva o motivo da decisão..."
-                />
-              </div>
-
-              {/* Histórico anterior se houver */}
-              {selectedItem.history && selectedItem.history.length > 0 && (
-                <div className="space-y-2 border-t border-neutral-200 dark:border-neutral-800 pt-4">
-                  <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider flex items-center gap-1">
-                    <Briefcase className="h-4 w-4" />
-                    Histórico de Acompanhamento
-                  </h4>
-                  <div className="space-y-2 max-h-28 overflow-y-auto">
-                    {selectedItem.history.map((hist) => (
-                      <div key={hist.id} className="p-2 bg-neutral-50 dark:bg-neutral-850 rounded border border-neutral-200 dark:border-neutral-800 text-xs">
-                        <div className="flex justify-between font-semibold mb-1">
-                          <span className="text-primary capitalize">{hist.acao_display || hist.acao}</span>
-                          <span className="text-neutral-400">{hist.respondido_por || 'Sistema'}</span>
-                        </div>
-                        <p className="text-neutral-500">{hist.observacao}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200 dark:border-neutral-800 mt-6">
                 <button
-                  type="button"
                   onClick={() => setShowAcaoModal(false)}
-                  className="px-5 py-2.5 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 rounded-full text-xs font-bold text-neutral-700 dark:text-neutral-300 text-sm font-semibold transition-colors"
+                  className="p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
                 >
-                  Voltar
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading}
-                  className="px-6 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full text-xs font-bold hover:bg-neutral-850 dark:hover:bg-neutral-100 shadow-xs disabled:opacity-50 transition-colors flex items-center gap-2"
-                >
-                  {actionLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Salvar Decisão
+                  <X className="h-5 w-5" />
                 </button>
               </div>
-            </form>
+
+              <form onSubmit={handleSaveAcao} className="flex-1 flex flex-col overflow-hidden">
+                <div className="p-6 space-y-4 overflow-y-auto flex-1">
+                  {errorMsg && (
+                    <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 rounded-md text-xs flex gap-2">
+                      <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
+                      <span>{errorMsg}</span>
+                    </div>
+                  )}
+
+                  {/* Se já houver histórico para a etapa selecionada, exibe o aviso de alteração */}
+                  {selectedItem.history.some(h => h.etapa === selectedEtapa) && (
+                    <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 text-amber-700 dark:text-amber-300 rounded-md text-xs flex gap-2">
+                      <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                      <span>
+                        <strong>Aviso:</strong> Já existe uma decisão registrada para esta etapa. Registrar uma nova decisão irá atualizar o status do colaborador e manterá a decisão anterior no histórico para auditoria.
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Informações GeoVictoria */}
+                  <div className="bg-neutral-50 dark:bg-neutral-850 p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 space-y-2">
+                    <h4 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                      <Clock className="h-4 w-4" />
+                      Dados do Relógio GeoVictoria
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-card p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 text-center">
+                        <span className="block text-[10px] font-bold text-neutral-400 uppercase">Faltas Coletadas</span>
+                        <span className="text-xl font-bold text-red-500">{selectedItem.faltas}</span>
+                      </div>
+                      <div className="bg-card p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 text-center">
+                        <span className="block text-[10px] font-bold text-neutral-400 uppercase">Atestados Coletados</span>
+                        <span className="text-xl font-bold text-amber-500">{selectedItem.atestados}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Seletor de Etapa (Apenas se houver data de 2º término) */}
+                  {selectedItem.colaborador.termino_2 && (
+                    <div>
+                      <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1.5">
+                        Etapa da Decisão *
+                      </label>
+                      <div className="flex gap-6 p-3 bg-neutral-50 dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-lg">
+                        <label className="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="selectedEtapa"
+                            value={1}
+                            checked={selectedEtapa === 1}
+                            onChange={() => setSelectedEtapa(1)}
+                            className="text-primary focus:ring-primary h-4 w-4"
+                          />
+                          Termino 1
+                        </label>
+                        <label className={`flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300 ${
+                          isStage2Disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
+                        }`}>
+                          <input
+                            type="radio"
+                            name="selectedEtapa"
+                            value={2}
+                            checked={selectedEtapa === 2}
+                            disabled={isStage2Disabled}
+                            onChange={() => setSelectedEtapa(2)}
+                            className="text-primary focus:ring-primary h-4 w-4 disabled:opacity-50"
+                          />
+                          Termino 2
+                        </label>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Ação */}
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1.5">
+                      Ação Selecionada *
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {selectedEtapa === 2 ? (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedAcao('MANTER')}
+                          className={`py-3 px-2 border rounded-lg text-xs font-bold transition-all ${
+                            selectedAcao === 'MANTER' 
+                              ? 'border-green-500 ring-2 ring-green-500 bg-green-500/10 text-green-600' 
+                              : 'border-green-500/30 text-green-600 hover:bg-green-500/5'
+                          }`}
+                        >
+                          Efetivar
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedAcao('PRORROGADO')}
+                          className={`py-3 px-2 border rounded-lg text-xs font-bold transition-all ${
+                            selectedAcao === 'PRORROGADO' 
+                              ? 'border-blue-500 ring-2 ring-blue-500 bg-blue-500/10 text-blue-600' 
+                              : 'border-blue-500/30 text-blue-600 hover:bg-blue-500/5'
+                          }`}
+                        >
+                          Prorrogar
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedAcao('TERMINO')}
+                        className={`py-3 px-2 border rounded-lg text-xs font-bold transition-all ${
+                          selectedAcao === 'TERMINO' 
+                            ? 'border-red-500 ring-2 ring-red-500 bg-red-500/10 text-red-600' 
+                            : 'border-red-500/30 text-red-600 hover:bg-red-500/5'
+                        }`}
+                      >
+                        Dispensar
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Justificativa */}
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
+                      Justificativa / Observação Interna
+                    </label>
+                    <textarea
+                      required
+                      value={observacao}
+                      onChange={(e) => setObservacao(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white h-24 resize-none"
+                      placeholder="Descreva o motivo da decisão..."
+                    />
+                  </div>
+
+                  {/* Histórico anterior se houver */}
+                  {selectedItem.history && selectedItem.history.length > 0 && (
+                    <div className="space-y-2 border-t border-neutral-200 dark:border-neutral-800 pt-4">
+                      <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider flex items-center gap-1">
+                        <Briefcase className="h-4 w-4" />
+                        Histórico de Acompanhamento
+                      </h4>
+                      <div className="space-y-2 max-h-36 overflow-y-auto">
+                        {selectedItem.history.map((hist) => (
+                          <div key={hist.id} className="p-2.5 bg-neutral-50 dark:bg-neutral-850 rounded-lg border border-neutral-200 dark:border-neutral-800 text-xs space-y-1">
+                            <div className="flex justify-between items-center font-semibold">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-primary capitalize">{hist.acao_display || hist.acao}</span>
+                                <span className="text-[10px] bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 px-1.5 py-0.5 rounded">
+                                  Término {hist.etapa}
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-neutral-400">
+                                {hist.created_at ? format(parseISO(hist.created_at), 'dd/MM/yyyy HH:mm') : '-'}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-neutral-500">
+                              Respondido por: <span className="font-semibold">{hist.respondido_por || 'Sistema'}</span>
+                            </div>
+                            <p className="text-neutral-600 bg-white dark:bg-neutral-900/40 p-2 rounded border border-neutral-100 dark:border-neutral-800/40 mt-1">{hist.observacao}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-3 p-6 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowAcaoModal(false)}
+                    className="px-5 py-2.5 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 rounded-full text-xs font-bold text-neutral-700 dark:text-neutral-300 text-sm font-semibold transition-colors"
+                  >
+                    Voltar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={actionLoading}
+                    className="px-6 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full text-xs font-bold hover:bg-neutral-850 dark:hover:bg-neutral-100 shadow-xs disabled:opacity-50 transition-colors flex items-center gap-2"
+                  >
+                    {actionLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                    Salvar Decisão
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
