@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Colaborador
+from .models import Colaborador, ControleTermino
 
 @admin.register(Colaborador)
 class ColaboradorAdmin(admin.ModelAdmin):
@@ -51,3 +51,17 @@ class ColaboradorAdmin(admin.ModelAdmin):
     
     # Campos que não podem ser editados manualmente (datas automáticas)
     readonly_fields = ("created_at", "updated_at")
+
+
+@admin.register(ControleTermino)
+class ControleTerminoAdmin(admin.ModelAdmin):
+    """
+    Registra as decisões de término no painel de administração do Django.
+    Permite auditar de forma visual, filtrar e remover registros de testes criados
+    durante o desenvolvimento.
+    """
+    list_display = ("colaborador", "etapa", "acao", "respondido_por", "created_at")
+    list_filter = ("etapa", "acao", "created_at")
+    search_fields = ("colaborador__nome", "colaborador__re", "observacao", "respondido_por")
+    ordering = ("-created_at",)
+
