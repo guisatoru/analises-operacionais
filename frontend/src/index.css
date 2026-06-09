@@ -259,3 +259,26 @@ tr:hover td {
 .input-with-icon-left-sm {
   padding-left: 2rem !important;
 }
+
+/* 
+  Reset de Estilos de Tabela para o Calendário
+  
+  Por que existe: Os seletores globais de table, th e td no index.css aplicam paddings e cores
+  que conflitam com o componente de calendário (react-day-picker v9/v10), que também é construído
+  com elementos de tabela. Este reset garante que o calendário tenha suas dimensões corretas.
+*/
+[data-slot="calendar"] table,
+[data-slot="calendar"] .rdp-month_grid {
+  width: 100% !important;
+  border-collapse: collapse !important;
+}
+
+[data-slot="calendar"] th,
+[data-slot="calendar"] td,
+[data-slot="calendar"] .rdp-weekday,
+[data-slot="calendar"] .rdp-day {
+  padding: 0 !important;
+  background-color: transparent !important;
+  border: none !important;
+}
+

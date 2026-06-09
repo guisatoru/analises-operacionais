@@ -509,7 +509,7 @@ export default function Terminos() {
                   <span>Selecione a data</span>
                 )}
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800" align="start">
+              <PopoverContent className="w-72 p-0 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800" align="start">
                 <Calendar
                   mode="single"
                   selected={dataFiltro ? parseISO(dataFiltro) : undefined}
@@ -537,7 +537,7 @@ export default function Terminos() {
                   <span>Selecione a data</span>
                 )}
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800" align="start">
+              <PopoverContent className="w-72 p-0 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800" align="start">
                 <Calendar
                   mode="single"
                   selected={dataFim ? parseISO(dataFim) : undefined}
