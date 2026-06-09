@@ -11,7 +11,8 @@ import {
   ChevronsUpDown,
   ChevronDown,
   ChevronRight,
-  Building2
+  Building2,
+  CalendarCheck
 } from 'lucide-react';
 import { 
   Sidebar as ShadcnSidebar, 
@@ -205,6 +206,19 @@ export default function Sidebar({ username = 'Usuário', onLogout, role }: Sideb
                   <Link to="/comparativo">
                     <TrendingUp className="h-5 w-5 shrink-0" />
                     {open && <span className="truncate">Raio-X</span>}
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  asChild 
+                  isActive={location.pathname === '/diarias'}
+                  title={!open ? "Diárias" : undefined}
+                >
+                  <Link to="/diarias">
+                    <CalendarCheck className="h-5 w-5 shrink-0" />
+                    {open && <span className="truncate">Diárias</span>}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

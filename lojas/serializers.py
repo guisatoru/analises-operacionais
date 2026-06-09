@@ -11,6 +11,7 @@ from .models import (
     montar_caches_salario_para_itens,
     Coordenador,
     Supervisor,
+    Diaria,
 )
 
 class CoordenadorSerializer(serializers.ModelSerializer):
@@ -281,3 +282,27 @@ class LinhaFolhaDuplicadaSerializer(serializers.ModelSerializer):
         if "centro_custo_real" in data and data["centro_custo_real"] is not None:
             data["centro_custo_real"] = str(data["centro_custo_real"])
         return data
+
+
+class DiariaSerializer(serializers.ModelSerializer):
+    """
+    Este serializer existe para mapear o modelo de Diaria operacionais em payloads JSON,
+    preservando chaves primárias e valores numéricos como string de acordo com as regras de design.
+    """
+    loja_nome = serializers.CharField(source="loja.nome_referencia", read_only=True)
+
+    class Meta:
+        model = Diaria
+        fields = "__all__"
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Preserva ID e valor como strings
+        if "id_diaria" in data and data["id_diaria"] is not None:
+            data["id_diaria"] = str(data["id_diaria"])
+        if "loja" in data and data["loja"] is not None:
+            data["loja"] = str(data["loja"])
+        if "valor" in data and data["valor"] is not None:
+            data["valor"] = str(data["valor"])
+        return data
+

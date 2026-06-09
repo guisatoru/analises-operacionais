@@ -33,6 +33,7 @@ export default function Importacoes() {
   const [sraFile, setSraFile] = useState<File | null>(null);
   const [gestaoFile, setGestaoFile] = useState<File | null>(null);
   const [folhaFile, setFolhaFile] = useState<File | null>(null);
+  const [diariaFile, setDiariaFile] = useState<File | null>(null);
 
   // Estados de controle do processo de importação
   const [activeImportId, setActiveImportId] = useState<string | null>(null);
@@ -58,6 +59,7 @@ export default function Importacoes() {
           setSraFile(null);
           setGestaoFile(null);
           setFolhaFile(null);
+          setDiariaFile(null);
         } else if (data.status === 'error') {
           clearInterval(intervalId);
           setLoading(false);
@@ -74,7 +76,7 @@ export default function Importacoes() {
     }, 1000);
   };
 
-  const handleUpload = async (tipo: 'sra' | 'gestao' | 'folha', file: File | null) => {
+  const handleUpload = async (tipo: 'sra' | 'gestao' | 'folha' | 'diaria', file: File | null) => {
     if (!file) {
       alert('Selecione um arquivo primeiro.');
       return;
@@ -97,6 +99,7 @@ export default function Importacoes() {
     if (tipo === 'sra') endpoint = '/colaboradores/importar/';
     else if (tipo === 'gestao') endpoint = '/colaboradores/importar-gestao/';
     else if (tipo === 'folha') endpoint = '/folhas/importar/';
+    else if (tipo === 'diaria') endpoint = '/diarias/importar/';
 
     try {
       const response = await api.post(endpoint, formData, {
@@ -136,7 +139,7 @@ export default function Importacoes() {
       )}
 
       {/* Grid de Cards de Upload */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Card Colaboradores SRA */}
         <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs p-6 shadow-sm flex flex-col justify-between space-y-4">
           <div className="space-y-2">
@@ -247,6 +250,44 @@ export default function Importacoes() {
             >
               {loading && !activeImportId && <Loader2 className="h-4 w-4 animate-spin" />}
               Importar Folha SRD
+            </button>
+          </div>
+        </div>
+
+        {/* Card Diárias Operacionais */}
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs p-6 shadow-sm flex flex-col justify-between space-y-4">
+          <div className="space-y-2">
+            <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500">
+              <FileSpreadsheet className="h-6 w-6" />
+            </div>
+            <h3 className="font-bold text-lg text-neutral-950 dark:text-neutral-50">Diárias Operacionais</h3>
+            <p className="text-xs text-neutral-400">
+              Carga das diárias e custos das filiais. Formato aceito: CSV delimitado por ponto e vírgula.
+            </p>
+          </div>
+
+          <div className="space-y-3 pt-2">
+            <label className="border border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-50 dark:bg-neutral-850 transition-colors">
+              <UploadCloud className="h-6 w-6 text-purple-500 mb-2" />
+              <span className="text-xs font-semibold text-neutral-500">
+                {diariaFile ? diariaFile.name : 'Selecionar arquivo CSV'}
+              </span>
+              <input
+                type="file"
+                accept=".csv"
+                className="hidden"
+                disabled={loading}
+                onChange={(e) => setDiariaFile(e.target.files?.[0] || null)}
+              />
+            </label>
+
+            <button
+              onClick={() => handleUpload('diaria', diariaFile)}
+              disabled={loading || !diariaFile}
+              className="w-full py-2.5 bg-neutral-900 hover:bg-neutral-850 dark:bg-white dark:text-neutral-900 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-full text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs"
+            >
+              {loading && !activeImportId && <Loader2 className="h-4 w-4 animate-spin" />}
+              Importar Diárias
             </button>
           </div>
         </div>

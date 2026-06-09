@@ -11,6 +11,8 @@ from rest_framework.response import Response
 from colaboradores.services.colaborador_importacao import importar_colaboradores_de_texto
 from colaboradores.services.gestao_importacao import importar_gestao_pessoas
 from lojas.services.folha_importacao import importar_folha_de_texto
+from lojas.services.diaria_importacao import importar_diarias_de_texto
+
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -25,7 +27,8 @@ def importacoes(request):
         "endpoints": {
             "colaboradores_sra": "/colaboradores/importar/",
             "gestao_pessoas": "/colaboradores/importar-gestao/",
-            "folha_srd": "/folhas/importar/"
+            "folha_srd": "/folhas/importar/",
+            "diarias": "/diarias/importar/"
         }
     })
 
@@ -109,6 +112,38 @@ def folha_import_async(request):
         mensagem_inicial="Iniciando processamento do arquivo SRD...",
     )
 
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def diaria_import_async(request):
+    """
+    Inicia a importação assíncrona do arquivo CSV de Diárias via upload.
+    """
+    arquivo = request.FILES.get("arquivo")
+    if not arquivo:
+        return Response({"success": False, "error": "Nenhum arquivo enviado."}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not arquivo.name.lower().endswith(".csv"):
+        return Response({"success": False, "error": "Envie um arquivo CSV de diárias válido."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        conteudo = arquivo.read().decode("utf-8-sig")
+    except UnicodeDecodeError:
+        try:
+            # Tenta decodificar como ISO-8859-1 se falhar em UTF-8
+            conteudo = arquivo.read().decode("iso-8859-1")
+        except UnicodeDecodeError:
+            return Response({
+                "success": False,
+                "error": "Não foi possível ler o arquivo. Salve o CSV em UTF-8 e tente de novo."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    return _iniciar_importacao_async(
+        tipo_importacao="diaria",
+        payload={"conteudo": conteudo, "nome": arquivo.name or "diarias.csv"},
+        titulo="Progresso da Importacao de Diarias",
+        mensagem_inicial="Iniciando processamento do arquivo de diárias...",
+    )
+
 def _iniciar_importacao_async(tipo_importacao, payload, titulo, mensagem_inicial):
     """
     Função utilitária que inicia a thread de importação em background
@@ -189,6 +224,12 @@ def _processar_importacao_background(import_id, tipo_importacao):
                 progress_callback=atualizar_progresso,
             )
             mensagem, status_msg = _montar_mensagem_folha(resultado)
+        elif tipo_importacao == "diaria":
+            resultado = importar_diarias_de_texto(
+                payload["conteudo"],
+                progress_callback=atualizar_progresso,
+            )
+            mensagem, status_msg = _montar_mensagem_diaria(resultado)
         else:
             raise ValueError("Tipo de importacao invalido.")
 
@@ -275,6 +316,19 @@ def _montar_mensagem_folha(resultado):
     )
 
     if resultado["gravadas"] == 0 or resultado["ignoradas_duplicadas"] > 0 or resultado["sem_loja"] > 0:
+        return mensagem, "warning"
+    return mensagem, "success"
+
+def _montar_mensagem_diaria(resultado):
+    if resultado["total"] == 0:
+        return "Nenhuma diária processada. Verifique as colunas do CSV.", "warning"
+
+    mensagem = (
+        f"Importação de Diárias concluída: {resultado['total']} linhas processadas. "
+        f"{resultado['criados']} criadas, {resultado['atualizados']} atualizadas."
+    )
+    if resultado["erros"] > 0:
+        mensagem += f" {resultado['erros']} erros ignorados."
         return mensagem, "warning"
     return mensagem, "success"
 

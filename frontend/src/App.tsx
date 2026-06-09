@@ -12,6 +12,7 @@ import Terminos from './pages/Terminos';
 import Importacoes from './pages/Importacoes';
 import Escopos from './pages/Escopos';
 import Comparativo from './pages/Comparativo';
+import Diarias from './pages/Diarias';
 import Usuarios from './pages/Usuarios';
 import { Toaster } from './components/ui/sonner';
 
@@ -107,6 +108,7 @@ function App() {
           <Route path="/lojas" element={<Lojas />} />
           <Route path="/escopos" element={<Escopos />} />
           <Route path="/comparativo" element={<Comparativo />} />
+          <Route path="/diarias" element={<Diarias />} />
           <Route path="/colaboradores" element={<Colaboradores />} />
           <Route path="/terminos" element={<Terminos />} />
           <Route path="/importacoes" element={<Importacoes />} />

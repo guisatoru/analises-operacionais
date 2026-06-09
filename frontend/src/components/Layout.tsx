@@ -52,6 +52,9 @@ export default function Layout({ isAuthenticated, username, onLogout, role }: La
   } else if (path === 'comparativo') {
     sector = 'Planejamento & BI';
     pageName = 'Raio-X (Comparativo)';
+  } else if (path === 'diarias') {
+    sector = 'Planejamento & BI';
+    pageName = 'Painel de Diárias';
   } else if (path === 'importacoes') {
     sector = 'Configurações';
     pageName = 'Importações';

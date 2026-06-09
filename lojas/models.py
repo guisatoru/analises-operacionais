@@ -821,3 +821,43 @@ def montar_caches_salario_para_itens(itens):
             cache_minimo_br[sal.ano] = sal
 
     return cache_regional, cache_minimo_br
+
+
+class Diaria(models.Model):
+    """
+    Este modelo existe para gerenciar e armazenar o histórico de diárias operacionais
+    solicitadas pelas filiais, permitindo a conciliação financeira e a análise em dashboards.
+    A chave primária é mantida como string para preservar o ID original da planilha.
+    """
+
+    id_diaria = models.CharField("ID da Diária", max_length=50, primary_key=True)
+    diarista = models.CharField("Nome do Diarista", max_length=255)
+    local = models.CharField("Local (texto original)", max_length=255)
+    loja = models.ForeignKey(
+        Loja,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="diarias",
+        verbose_name="Loja Associada (TOTVS)",
+    )
+    data_servico = models.DateField("Data do Serviço")
+    turno = models.CharField("Turno", max_length=100)
+    motivo = models.CharField("Motivo", max_length=255)
+    solicitante = models.CharField("Solicitante", max_length=255)
+    valor = models.DecimalField("Valor da Diária", max_digits=12, decimal_places=2)
+    status = models.CharField("Status do Pagamento", max_length=100)
+    ultima_atualizacao = models.DateField("Última Atualização")
+    justificativa = models.TextField("Justificativa", blank=True, default="")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Diária"
+        verbose_name_plural = "Diárias"
+        ordering = ["-data_servico", "id_diaria"]
+
+    def __str__(self):
+        return f"{self.id_diaria} — {self.diarista} — {self.local}"
+

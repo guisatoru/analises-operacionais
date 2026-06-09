@@ -30,6 +30,11 @@ urlpatterns = [
     path("folhas/importar/", configuracoes.folha_import_async, name="importar_folha"),
     path("folhas/duplicadas/", views.folha_duplicadas_list, name="lista_folha_duplicadas"),
     
+    # ========== DIÁRIAS (BI & Importador) ==========
+    path("diarias/importar/", configuracoes.diaria_import_async, name="importar_diarias"),
+    path("diarias/", views.diarias_list_api, name="lista_diarias"),
+    path("diarias/filtro-opcoes/", views.diarias_filtro_opcoes_api, name="diarias_filtro_opcoes"),
+    
     # ========== NOVAS URLs (usando configuracoes) ==========
     path("importacoes/", configuracoes.importacoes, name="importacoes"),
     path("colaboradores/importar/", configuracoes.colaborador_import_async, name="colaborador_import"),

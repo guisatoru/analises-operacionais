@@ -29,6 +29,7 @@ from .stores import (
 
 from .comparativo import comparativo_loja
 from .folha_duplicadas import folha_duplicadas_list
+from .diarias import diarias_list_api, diarias_filtro_opcoes_api
 
 __all__ = [
     "api_item_escopo_delete",
@@ -52,4 +53,7 @@ __all__ = [
     "coordenador_list_create",
     "supervisor_list_create",
     "store_filtro_opcoes",
+    "diarias_list_api",
+    "diarias_filtro_opcoes_api",
 ]
+
