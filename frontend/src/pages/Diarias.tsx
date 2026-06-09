@@ -60,31 +60,6 @@ interface FiltroOpcoes {
 // Cores harmônicas e profissionais para os gráficos Recharts
 const CORES_PIE = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#6b7280'];
 
-// Funções utilitárias para abreviação de textos longos na tabela
-const abreviarNome = (nomeCompleto: string) => {
-  if (!nomeCompleto) return "";
-  const partes = nomeCompleto.trim().split(/\s+/);
-  if (partes.length <= 2) return nomeCompleto;
-  return `${partes[0]} ${partes[partes.length - 1]}`;
-};
-
-const abreviarLoja = (nomeLoja: string) => {
-  if (!nomeLoja) return "";
-  return nomeLoja
-    .replace(/SOCIEDADE LIMITADA/gi, "")
-    .replace(/LIMITADA/gi, "")
-    .replace(/LTDA/gi, "")
-    .replace(/S\/A/gi, "")
-    .replace(/S\.A\./gi, "")
-    .replace(/\s+/g, " ")
-    .trim();
-};
-
-const abreviarTurno = (turno: string) => {
-  if (!turno) return "";
-  return turno.replace(/Turno\s+/i, "").trim();
-};
-
 /**
  * Página do Dashboard de Diárias Operacionais (BI).
  * 
@@ -233,41 +208,36 @@ export default function Diarias() {
     return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
-  // Formatação de valores monetários para Real sem o prefixo R$ (para tabelas compactas)
-  const formatarRealSemPrefixo = (valor: number) => {
-    return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
-
   // Badge colorido baseado no status da diária
   const getStatusBadge = (statusStr: string) => {
     const lower = statusStr.toLowerCase();
     if (lower.includes('pago')) {
       return (
-        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-          <CheckCircle2 className="h-2.5 w-2.5" />
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+          <CheckCircle2 className="h-3 w-3" />
           {statusStr}
         </span>
       );
     }
     if (lower.includes('pendente')) {
       return (
-        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/20 animate-pulse">
-          <Clock className="h-2.5 w-2.5" />
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/20 animate-pulse">
+          <Clock className="h-3 w-3" />
           {statusStr}
         </span>
       );
     }
     if (lower.includes('rejeitado') || lower.includes('cancelado')) {
       return (
-        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-red-500/10 text-red-600 border border-red-500/20">
-          <XCircle className="h-2.5 w-2.5" />
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-500/10 text-red-600 border border-red-500/20">
+          <XCircle className="h-3 w-3" />
           {statusStr}
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-neutral-100 text-neutral-600 border border-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-neutral-700">
-        <HelpCircle className="h-2.5 w-2.5" />
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-neutral-100 text-neutral-600 border border-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-neutral-700">
+        <HelpCircle className="h-3 w-3" />
         {statusStr}
       </span>
     );
@@ -698,46 +668,40 @@ export default function Diarias() {
                   <span>Carregando tabela de diárias...</span>
                 </div>
               ) : diarias.length === 0 ? (
-                <div className="py-20 text-center text-neutral-450 italic text-xs">
+                <div className="py-20 text-center text-neutral-450 italic text-sm">
                   Nenhuma diária localizada para os filtros especificados.
                 </div>
               ) : (
-                <table className="w-full text-left border-collapse text-[10px]">
+                <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-neutral-200 dark:border-neutral-850 bg-neutral-50 dark:bg-neutral-850/50 text-[9px] font-bold text-neutral-500 uppercase tracking-wider whitespace-nowrap">
-                      <th className="py-2.5 px-3">ID</th>
-                      <th className="py-2.5 px-3">Diarista</th>
-                      <th className="py-2.5 px-3">Local</th>
-                      <th className="py-2.5 px-3">Loja TOTVS</th>
-                      <th className="py-2.5 px-3">Data</th>
-                      <th className="py-2.5 px-3">Turno</th>
-                      <th className="py-2.5 px-3">Motivo</th>
-                      <th className="py-2.5 px-3">Solicitante</th>
-                      <th className="py-2.5 px-3 text-right">Valor (R$)</th>
-                      <th className="py-2.5 px-3 text-center">Status</th>
+                    <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-100 text-xs font-bold text-neutral-700 uppercase tracking-wider">
+                      <th className="py-4 px-6">Diarista</th>
+                      <th className="py-4 px-6">Loja</th>
+                      <th className="py-4 px-6">Data</th>
+                      <th className="py-4 px-6">Motivo</th>
+                      <th className="py-4 px-6">Solicitante</th>
+                      <th className="py-4 px-6 text-right">Valor</th>
+                      <th className="py-4 px-6 text-center">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-neutral-100 dark:divide-neutral-850 text-[10px] whitespace-nowrap">
+                  <tbody className="divide-y divide-border text-sm">
                     {diarias.map((d) => (
-                      <tr key={d.id_diaria} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-850/10">
-                        <td className="py-2 px-3 font-mono font-bold text-neutral-500 text-[9px]">{d.id_diaria}</td>
-                        <td className="py-2 px-3 font-semibold text-neutral-900 dark:text-neutral-100">{abreviarNome(d.diarista)}</td>
-                        <td className="py-2 px-3 text-neutral-500 max-w-xs truncate" title={d.local}>{d.local}</td>
-                        <td className="py-2 px-3">
+                      <tr key={d.id_diaria} className="hover:bg-neutral-50 dark:bg-neutral-850 transition-colors">
+                        <td className="py-4 px-6 font-semibold text-neutral-900 dark:text-neutral-100">{d.diarista}</td>
+                        <td className="py-4 px-6">
                           {d.loja_nome ? (
-                            <span className="font-semibold text-neutral-800 dark:text-neutral-200">{abreviarLoja(d.loja_nome)}</span>
+                            <span className="font-semibold text-neutral-800 dark:text-neutral-200">{d.loja_nome}</span>
                           ) : (
                             <span className="text-red-400 italic">Não vinculada</span>
                           )}
                         </td>
-                        <td className="py-2 px-3 text-neutral-600 dark:text-neutral-400">
+                        <td className="py-4 px-6 text-neutral-600 dark:text-neutral-400">
                           {new Date(d.data_servico).toLocaleDateString('pt-BR')}
                         </td>
-                        <td className="py-2 px-3 text-neutral-600 dark:text-neutral-400">{abreviarTurno(d.turno)}</td>
-                        <td className="py-2 px-3 text-neutral-600 dark:text-neutral-400 max-w-xs truncate" title={d.motivo}>{d.motivo}</td>
-                        <td className="py-2 px-3 text-neutral-600 dark:text-neutral-400">{abreviarNome(d.solicitante).toUpperCase()}</td>
-                        <td className="py-2 px-3 text-right font-mono font-bold text-neutral-900 dark:text-neutral-100">{formatarRealSemPrefixo(parseFloat(d.valor))}</td>
-                        <td className="py-2 px-3 text-center">{getStatusBadge(d.status)}</td>
+                        <td className="py-4 px-6 text-neutral-600 dark:text-neutral-400">{d.motivo}</td>
+                        <td className="py-4 px-6 text-neutral-600 dark:text-neutral-400">{d.solicitante.toUpperCase()}</td>
+                        <td className="py-4 px-6 text-right font-mono font-bold text-neutral-900 dark:text-neutral-100">{formatarReal(parseFloat(d.valor))}</td>
+                        <td className="py-4 px-6 text-center">{getStatusBadge(d.status)}</td>
                       </tr>
                     ))}
                   </tbody>
