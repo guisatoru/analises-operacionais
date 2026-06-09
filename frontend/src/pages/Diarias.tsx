@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { 
   Loader2, 
   AlertCircle, 
-  Search, 
   RotateCcw, 
   Coins, 
   ClipboardList, 
@@ -103,8 +102,6 @@ export default function Diarias() {
   const [filtroMotivo, setFiltroMotivo] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('');
   const [filtroSolicitante, setFiltroSolicitante] = useState('');
-  const [buscaGeral, setBuscaGeral] = useState('');
-  const [deboucedBusca, setDeboucedBusca] = useState('');
 
   // Estados de paginação e UI
   const [currentPage, setCurrentPage] = useState(1);
@@ -113,14 +110,7 @@ export default function Diarias() {
   const [loadingFiltros, setLoadingFiltros] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Efeito de Debounce para a busca textual (evita requisições excessivas)
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDeboucedBusca(buscaGeral);
-      setCurrentPage(1);
-    }, 450);
-    return () => clearTimeout(handler);
-  }, [buscaGeral]);
+
 
   // Carrega as opções de filtro ao montar o componente
   useEffect(() => {
@@ -154,7 +144,6 @@ export default function Diarias() {
         if (filtroMotivo) params.append('motivo', filtroMotivo);
         if (filtroStatus) params.append('status', filtroStatus);
         if (filtroSolicitante) params.append('solicitante', filtroSolicitante);
-        if (deboucedBusca) params.append('search', deboucedBusca);
 
         const response = await api.get(`/diarias/?${params.toString()}`);
         
@@ -186,8 +175,7 @@ export default function Diarias() {
     filtroTurno,
     filtroMotivo,
     filtroStatus,
-    filtroSolicitante,
-    deboucedBusca
+    filtroSolicitante
   ]);
 
   // Função para limpar todos os filtros aplicados
@@ -199,7 +187,6 @@ export default function Diarias() {
     setFiltroMotivo('');
     setFiltroStatus('');
     setFiltroSolicitante('');
-    setBuscaGeral('');
     setCurrentPage(1);
   };
 
@@ -277,20 +264,6 @@ export default function Diarias() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          {/* Campo de Busca Geral */}
-          <div className="space-y-1.5">
-            <label className="block text-[10px] font-bold text-neutral-500 uppercase">Busca Geral</label>
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-neutral-400" />
-              <input
-                type="text"
-                placeholder="Diarista, Local ou Solicitante..."
-                value={buscaGeral}
-                onChange={(e) => setBuscaGeral(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg text-xs bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-              />
-            </div>
-          </div>
 
           {/* Mês/Ano */}
           <div className="space-y-1.5">
