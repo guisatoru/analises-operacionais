@@ -99,6 +99,7 @@ export default function Colaboradores() {
   // Armazena as opções de RE e Nome calculadas dinamicamente com base em outros filtros
   const [colabReOpcoes, setColabReOpcoes] = useState<{ value: string; label: string }[]>([]);
   const [colabNomeOpcoes, setColabNomeOpcoes] = useState<{ value: string; label: string }[]>([]);
+  const [loadingOpcoes, setLoadingOpcoes] = useState(false);
   
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -108,37 +109,11 @@ export default function Colaboradores() {
   const [syncLojasMessage, setSyncLojasMessage] = useState<string>('');
   const [syncLojasStatus, setSyncLojasStatus] = useState<'idle' | 'processing' | 'completed' | 'error'>('idle');
 
-  // Carrega opções de lojas para preencher o select de busca
-  useEffect(() => {
-    const fetchLojasFiltro = async () => {
-      try {
-        const response = await api.get('/lojas/', { params: { sem_paginacao: 'true' } });
-        if (response.data && response.data.results) {
-          setLojasOpcoes(response.data.results);
-        } else {
-          setLojasOpcoes(response.data || []);
-        }
-      } catch (err) {
-        console.error('Erro ao buscar lojas para filtro:', err);
-      }
-    };
-
-    const fetchStatusGestaoOpcoes = async () => {
-      try {
-        const response = await api.get('/colaboradores/status-gestao-opcoes/');
-        setStatusGestaoOpcoes(response.data || []);
-      } catch (err) {
-        console.error('Erro ao buscar opções de status gestão:', err);
-      }
-    };
-
-    fetchLojasFiltro();
-    fetchStatusGestaoOpcoes();
-  }, []);
-
-  // Busca dinamicamente do backend as opções válidas de RE e Nome baseadas nos filtros ativos
+  // Busca dinamicamente do backend as opções válidas para todos os filtros (RE, Nome, Lojas, Status Gestão)
+  // De acordo com o comportamento do Excel, cada filtro é calculado considerando todos os outros filtros ativos.
   useEffect(() => {
     const fetchFiltroOpcoes = async () => {
+      setLoadingOpcoes(true);
       try {
         const response = await api.get('/colaboradores/filtro-opcoes/', {
           params: {
@@ -151,15 +126,21 @@ export default function Colaboradores() {
             funcao_divergente: activeTab === 'ativos' ? (funcaoDivergenteQuery || undefined) : undefined,
             divergente: activeTab === 'ativos' ? (divergenteQuery || undefined) : undefined,
             so_totvs: activeTab === 'ativos' ? (soTotvsQuery || undefined) : undefined,
+            re: reBusca || undefined,
+            nome: nomeBusca || undefined,
           }
         });
         
         if (response.data) {
           setColabReOpcoes(response.data.res || []);
           setColabNomeOpcoes(response.data.nomes || []);
+          setLojasOpcoes(response.data.lojas || []);
+          setStatusGestaoOpcoes(response.data.status_gestao || []);
         }
       } catch (err) {
-        console.error('Erro ao buscar opções de RE/Nome:', err);
+        console.error('Erro ao buscar opções de filtros:', err);
+      } finally {
+        setLoadingOpcoes(false);
       }
     };
 
@@ -173,7 +154,9 @@ export default function Colaboradores() {
     statusDivergenteQuery,
     funcaoDivergenteQuery,
     divergenteQuery,
-    soTotvsQuery
+    soTotvsQuery,
+    reBusca,
+    nomeBusca
   ]);
 
   // Recarrega os dados ao trocar de página, aba ou filtros rápidos
@@ -521,6 +504,7 @@ export default function Colaboradores() {
               onChange={setLojaFiltro}
               placeholder="Todas as Lojas"
               multiple={true}
+              loading={loadingOpcoes}
             />
           </div>
 
@@ -538,6 +522,7 @@ export default function Colaboradores() {
               onChange={setReBusca}
               placeholder="Todas as Matrículas"
               multiple={true}
+              loading={loadingOpcoes}
             />
           </div>
 
@@ -555,6 +540,7 @@ export default function Colaboradores() {
               onChange={setNomeBusca}
               placeholder="Todos os Colaboradores"
               multiple={true}
+              loading={loadingOpcoes}
             />
           </div>
 
@@ -587,6 +573,7 @@ export default function Colaboradores() {
                 onChange={setStatusFiltro}
                 placeholder="Todos"
                 multiple={true}
+                loading={loadingOpcoes}
               />
             </div>
           )}
@@ -604,6 +591,7 @@ export default function Colaboradores() {
               onChange={setStatusGestaoFiltro}
               placeholder="Todos"
               multiple={true}
+              loading={loadingOpcoes}
             />
           </div>
         </div>

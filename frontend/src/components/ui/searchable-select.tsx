@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ChevronDown, Search, X } from 'lucide-react';
+import { ChevronDown, Search, X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -22,6 +22,7 @@ interface SearchableSelectProps {
   emptyMessage?: string;
   className?: string;
   multiple?: boolean;
+  loading?: boolean;
 }
 
 /**
@@ -42,7 +43,8 @@ export default function SearchableSelect({
   searchPlaceholder = "Pesquisar...",
   emptyMessage = "Nenhum resultado encontrado.",
   className,
-  multiple = false
+  multiple = false,
+  loading = false
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
@@ -137,7 +139,11 @@ export default function SearchableSelect({
         <div className="absolute left-0 mt-1.5 w-full z-50 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-md p-2 flex flex-col gap-1.5 max-h-60">
           {/* Caixa de Entrada de Pesquisa */}
           <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-neutral-400" />
+            {loading ? (
+              <Loader2 className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-neutral-400 animate-spin" />
+            ) : (
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-neutral-400" />
+            )}
             <input
               type="text"
               value={search}
@@ -156,6 +162,13 @@ export default function SearchableSelect({
               </button>
             )}
           </div>
+
+          {/* Banner de Atualização Reativa */}
+          {loading && (
+            <div className="text-[10px] text-neutral-400 text-center py-1 bg-neutral-50 dark:bg-neutral-950 rounded-md animate-pulse">
+              Atualizando opções...
+            </div>
+          )}
 
           {/* Lista de Opções Filtradas */}
           <div className="flex-1 overflow-y-auto space-y-0.5 max-h-40 min-h-[50px] pr-1">

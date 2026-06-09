@@ -328,56 +328,184 @@ def _filtro_status_divergente_demitido():
 @permission_classes([IsAuthenticated])
 def colaborador_filtro_opcoes(request):
     """
-    Retorna as opções de Nome e RE disponíveis com base nos outros filtros aplicados.
-    Isso permite que os filtros de RE e Nome se comuniquem e mostrem apenas opções
-    válidas (ex: se o usuário filtra por uma loja, os dropdowns de nome/RE mostram
-    apenas colaboradores daquela loja).
+    Retorna as opções de busca para os seletores (RE, Nome, Loja, Coordenador, Status) de forma reativa.
+    Para reproduzir o comportamento do Excel, as opções de cada filtro são calculadas
+    aplicando-se todos os outros filtros ativos, EXCETO o filtro do próprio campo. Isso evita
+    que a seleção de uma opção oculte todas as outras opções do mesmo seletor.
     """
     is_demitido = request.GET.get("is_demitido") == "true"
     is_termino = request.GET.get("is_termino") == "true"
     
-    if is_termino:
-        from .views_terminos import _buscar_colaboradores_com_termino, _filtrar_terminos_queryset
-        colaboradores_qs = _buscar_colaboradores_com_termino()
-        coordenador_query = request.GET.get("coordenador", "")
-        status_gestao_query = request.GET.get("status_gestao", "")
-        colaboradores_qs = _filtrar_terminos_queryset(
-            colaboradores_qs,
-            search_query="",
-            coordenador_query=coordenador_query,
-            status_gestao_query=status_gestao_query,
-        )
-        # Para termos de experiência, também aplicamos o filtro da aba ativa (etapaAtual) se necessário.
-        # Mas as opções de filtro mostram todas as pessoas elegíveis para o termo.
-    elif is_demitido:
-        filtros = _ler_filtros_demitidos(request.GET)
-        filtros["re"] = ""
-        filtros["nome"] = ""
-        colaboradores_qs = Colaborador.objects.filter(status="D").exclude(
-            cargo="AUXILIAR ADMINISTRAT"
-        ).select_related("loja")
-        colaboradores_qs = _aplicar_filtros_demitidos(colaboradores_qs, filtros)
-    else:
-        filtros = _ler_filtros_colaboradores(request.GET)
-        filtros["re"] = ""
-        filtros["nome"] = ""
-        colaboradores_qs = _buscar_colaboradores_ativos()
-        colaboradores_qs = _aplicar_filtros_colaboradores(colaboradores_qs, filtros)
+    res_list = []
+    nomes_list = []
+    lojas_list = []
+    status_list = []
+    status_gestao_list = []
+    coordenadores_list = []
 
-    valores = colaboradores_qs.values_list("re", "nome")
-    
-    res_set = set()
-    nomes_set = set()
-    for re_val, nome_val in valores:
-        if re_val and re_val.strip():
-            res_set.add(re_val.strip())
-        if nome_val and nome_val.strip():
-            nomes_set.add(nome_val.strip().upper())
-            
-    res_list = sorted(list(res_set))
-    nomes_list = sorted(list(nomes_set))
+    if is_termino:
+        from .views_terminos import (
+            _buscar_colaboradores_com_termino,
+            _filtrar_terminos_queryset,
+            _processar_colaboradores_termino
+        )
+        from datetime import date
+        today = date.today()
+
+        coordenador_val = request.GET.get("coordenador", "")
+        status_gestao_val = request.GET.get("status_gestao", "")
+        data_filtro = request.GET.get("data_filtro", "")
+        data_fim = request.GET.get("data_fim", "")
+        re_val = request.GET.get("re", "")
+        nome_val = request.GET.get("nome", "")
+
+        # 1. Opções de RE (ignora a seleção de RE)
+        qs_re = _buscar_colaboradores_com_termino()
+        qs_re = _filtrar_terminos_queryset(
+            qs_re,
+            search_query="",
+            coordenador_query=coordenador_val,
+            status_gestao_query=status_gestao_val,
+            nome_query=nome_val,
+        )
+        proc_re = _processar_colaboradores_termino(qs_re, today, data_filtro, data_fim)
+        res_set = set(item["colaborador"].re.strip() for item in proc_re if item["colaborador"].re)
+        res_list = sorted(list(res_set))
+
+        # 2. Opções de Nome (ignora a seleção de Nome)
+        qs_nome = _buscar_colaboradores_com_termino()
+        qs_nome = _filtrar_terminos_queryset(
+            qs_nome,
+            search_query="",
+            coordenador_query=coordenador_val,
+            status_gestao_query=status_gestao_val,
+            re_query=re_val,
+        )
+        proc_nome = _processar_colaboradores_termino(qs_nome, today, data_filtro, data_fim)
+        nomes_set = set(item["colaborador"].nome.strip().upper() for item in proc_nome if item["colaborador"].nome)
+        nomes_list = sorted(list(nomes_set))
+
+        # 3. Opções de Coordenador (ignora a seleção de Coordenador)
+        qs_coord = _buscar_colaboradores_com_termino()
+        qs_coord = _filtrar_terminos_queryset(
+            qs_coord,
+            search_query="",
+            coordenador_query="",
+            status_gestao_query=status_gestao_val,
+            re_query=re_val,
+            nome_query=nome_val,
+        )
+        proc_coord = _processar_colaboradores_termino(qs_coord, today, data_filtro, data_fim)
+        coords_set = set()
+        for item in proc_coord:
+            colab = item["colaborador"]
+            if colab.loja and colab.loja.coordenador and colab.loja.coordenador.nome:
+                coords_set.add(colab.loja.coordenador.nome.strip().upper())
+        coordenadores_list = sorted(list(coords_set))
+
+        # 4. Opções de Status de Gestão (ignora a seleção de Status Gestão)
+        qs_sg = _buscar_colaboradores_com_termino()
+        qs_sg = _filtrar_terminos_queryset(
+            qs_sg,
+            search_query="",
+            coordenador_query=coordenador_val,
+            status_gestao_query="",
+            re_query=re_val,
+            nome_query=nome_val,
+        )
+        proc_sg = _processar_colaboradores_termino(qs_sg, today, data_filtro, data_fim)
+        sg_set = set(item["colaborador"].status_gestao.strip().upper() for item in proc_sg if item["colaborador"].status_gestao)
+        status_gestao_list = sorted(list(sg_set))
+
+    elif is_demitido:
+        filtros_base = _ler_filtros_demitidos(request.GET)
+
+        # 1. Opções de RE
+        filtros_re = filtros_base.copy()
+        filtros_re["re"] = ""
+        qs_re = Colaborador.objects.filter(status="D").exclude(cargo="AUXILIAR ADMINISTRAT").select_related("loja")
+        qs_re = _aplicar_filtros_demitidos(qs_re, filtros_re)
+        res_set = set(qs_re.values_list("re", flat=True).distinct())
+        res_list = sorted(list(r.strip() for r in res_set if r and r.strip()))
+
+        # 2. Opções de Nome
+        filtros_nome = filtros_base.copy()
+        filtros_nome["nome"] = ""
+        qs_nome = Colaborador.objects.filter(status="D").exclude(cargo="AUXILIAR ADMINISTRAT").select_related("loja")
+        qs_nome = _aplicar_filtros_demitidos(qs_nome, filtros_nome)
+        nomes_set = set(qs_nome.values_list("nome", flat=True).distinct())
+        nomes_list = sorted(list(n.strip().upper() for n in nomes_set if n and n.strip()))
+
+        # 3. Opções de Loja
+        filtros_loja = filtros_base.copy()
+        filtros_loja["loja"] = ""
+        qs_loja = Colaborador.objects.filter(status="D").exclude(cargo="AUXILIAR ADMINISTRAT").select_related("loja")
+        qs_loja = _aplicar_filtros_demitidos(qs_loja, filtros_loja)
+        lojas_set = set(qs_loja.filter(loja__isnull=False).values_list("loja_id", "loja__nome_referencia"))
+        lojas_list = sorted(
+            [{"id": str(lid), "nome_referencia": lref} for lid, lref in lojas_set],
+            key=lambda x: x["nome_referencia"]
+        )
+
+        # 4. Opções de Status Gestão
+        filtros_sg = filtros_base.copy()
+        filtros_sg["status_gestao"] = ""
+        qs_sg = Colaborador.objects.filter(status="D").exclude(cargo="AUXILIAR ADMINISTRAT").select_related("loja")
+        qs_sg = _aplicar_filtros_demitidos(qs_sg, filtros_sg)
+        sg_set = set(qs_sg.values_list("status_gestao", flat=True).distinct())
+        status_gestao_list = sorted(list(s.strip().upper() for s in sg_set if s and s.strip()))
+
+    else:  # ativos
+        filtros_base = _ler_filtros_colaboradores(request.GET)
+
+        # 1. Opções de RE
+        filtros_re = filtros_base.copy()
+        filtros_re["re"] = ""
+        qs_re = _buscar_colaboradores_ativos()
+        qs_re = _aplicar_filtros_colaboradores(qs_re, filtros_re)
+        res_set = set(qs_re.values_list("re", flat=True).distinct())
+        res_list = sorted(list(r.strip() for r in res_set if r and r.strip()))
+
+        # 2. Opções de Nome
+        filtros_nome = filtros_base.copy()
+        filtros_nome["nome"] = ""
+        qs_nome = _buscar_colaboradores_ativos()
+        qs_nome = _aplicar_filtros_colaboradores(qs_nome, filtros_nome)
+        nomes_set = set(qs_nome.values_list("nome", flat=True).distinct())
+        nomes_list = sorted(list(n.strip().upper() for n in nomes_set if n and n.strip()))
+
+        # 3. Opções de Loja
+        filtros_loja = filtros_base.copy()
+        filtros_loja["loja"] = ""
+        qs_loja = _buscar_colaboradores_ativos()
+        qs_loja = _aplicar_filtros_colaboradores(qs_loja, filtros_loja)
+        lojas_set = set(qs_loja.filter(loja__isnull=False).values_list("loja_id", "loja__nome_referencia"))
+        lojas_list = sorted(
+            [{"id": str(lid), "nome_referencia": lref} for lid, lref in lojas_set],
+            key=lambda x: x["nome_referencia"]
+        )
+
+        # 4. Opções de Status
+        filtros_st = filtros_base.copy()
+        filtros_st["status"] = ""
+        qs_st = _buscar_colaboradores_ativos()
+        qs_st = _aplicar_filtros_colaboradores(qs_st, filtros_st)
+        status_set = set(qs_st.values_list("status", flat=True).distinct())
+        status_list = sorted(list(s.strip().upper() for s in status_set if s and s.strip()))
+
+        # 5. Opções de Status Gestão
+        filtros_sg = filtros_base.copy()
+        filtros_sg["status_gestao"] = ""
+        qs_sg = _buscar_colaboradores_ativos()
+        qs_sg = _aplicar_filtros_colaboradores(qs_sg, filtros_sg)
+        sg_set = set(qs_sg.values_list("status_gestao", flat=True).distinct())
+        status_gestao_list = sorted(list(s.strip().upper() for s in sg_set if s and s.strip()))
 
     return Response({
         "res": [{"value": r, "label": r} for r in res_list],
-        "nomes": [{"value": n, "label": n} for n in nomes_list]
+        "nomes": [{"value": n, "label": n} for n in nomes_list],
+        "lojas": lojas_list,
+        "status": status_list,
+        "status_gestao": status_gestao_list,
+        "coordenadores": coordenadores_list
     })

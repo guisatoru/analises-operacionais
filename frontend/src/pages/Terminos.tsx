@@ -126,41 +126,13 @@ export default function Terminos() {
   const [actionLoading, setActionLoading] = useState(false);
   const [coordenadoresOpcoes, setCoordenadoresOpcoes] = useState<string[]>([]);
   const [statusGestaoOpcoes, setStatusGestaoOpcoes] = useState<string[]>([]);
+  const [loadingOpcoes, setLoadingOpcoes] = useState(false);
 
-  // Carrega coordenadores e opções de status de gestão do banco
-  useEffect(() => {
-    const fetchCoordenadores = async () => {
-      try {
-        const response = await api.get('/lojas/api/coordenadores/');
-        if (response.data) {
-          const coords = response.data
-            .map((c: any) => c.nome)
-            .filter((nome: any) => nome && nome.trim() !== '')
-            .map((nome: string) => nome.trim().toUpperCase());
-          const uniqueCoords = Array.from(new Set(coords)).sort() as string[];
-          setCoordenadoresOpcoes(uniqueCoords);
-        }
-      } catch (err) {
-        console.error('Erro ao buscar coordenadores:', err);
-      }
-    };
-
-    const fetchStatusGestaoOpcoes = async () => {
-      try {
-        const response = await api.get('/colaboradores/status-gestao-opcoes/');
-        setStatusGestaoOpcoes(response.data || []);
-      } catch (err) {
-        console.error('Erro ao buscar opções de status gestão:', err);
-      }
-    };
-
-    fetchCoordenadores();
-    fetchStatusGestaoOpcoes();
-  }, []);
-
-  // Carrega do backend as opções de RE e Nome dinamicamente baseando-se em outros filtros ativos na tela de términos
+  // Carrega do backend as opções de RE, Nome, Coordenador e Status de Gestão de forma reativa.
+  // De acordo com o comportamento do Excel, cada filtro é calculado considerando todos os outros filtros ativos.
   useEffect(() => {
     const fetchFiltroOpcoes = async () => {
+      setLoadingOpcoes(true);
       try {
         const response = await api.get('/colaboradores/filtro-opcoes/', {
           params: {
@@ -169,20 +141,26 @@ export default function Terminos() {
             status_gestao: statusGestao || undefined,
             data_filtro: dataFiltro || undefined,
             data_fim: dataFim || undefined,
+            re: reFiltro || undefined,
+            nome: nomeFiltro || undefined,
           }
         });
         
         if (response.data) {
           setColabReOpcoes(response.data.res || []);
           setColabNomeOpcoes(response.data.nomes || []);
+          setCoordenadoresOpcoes(response.data.coordenadores || []);
+          setStatusGestaoOpcoes(response.data.status_gestao || []);
         }
       } catch (err) {
-        console.error('Erro ao buscar opções de RE/Nome para termos:', err);
+        console.error('Erro ao buscar opções de filtros para termos:', err);
+      } finally {
+        setLoadingOpcoes(false);
       }
     };
 
     fetchFiltroOpcoes();
-  }, [coordenador, statusGestao, dataFiltro, dataFim]);
+  }, [coordenador, statusGestao, dataFiltro, dataFim, reFiltro, nomeFiltro]);
 
   // Efeito reativo: recarrega os prazos se mudar filtros dropdowns, ordenação, coordenador, datas, reFiltro ou nomeFiltro
   useEffect(() => {
@@ -496,6 +474,7 @@ export default function Terminos() {
               onChange={setReFiltro}
               placeholder="Todas as Matrículas"
               multiple={true}
+              loading={loadingOpcoes}
             />
           </div>
 
@@ -513,6 +492,7 @@ export default function Terminos() {
               onChange={setNomeFiltro}
               placeholder="Todos os Colaboradores"
               multiple={true}
+              loading={loadingOpcoes}
             />
           </div>
 
@@ -529,6 +509,7 @@ export default function Terminos() {
               onChange={setCoordenador}
               placeholder="Todos os Coordenadores"
               multiple={true}
+              loading={loadingOpcoes}
             />
           </div>
 
@@ -545,6 +526,7 @@ export default function Terminos() {
               onChange={setStatusGestao}
               placeholder="Todos"
               multiple={true}
+              loading={loadingOpcoes}
             />
           </div>
 
