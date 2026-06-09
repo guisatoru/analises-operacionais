@@ -82,6 +82,7 @@ export default function Colaboradores() {
   const [lojaFiltro, setLojaFiltro] = useState('');
   const [statusFiltro, setStatusFiltro] = useState('');
   const [statusGestaoFiltro, setStatusGestaoFiltro] = useState('');
+  const [fetchTrigger, setFetchTrigger] = useState(0);
 
   // Queries ativas de filtros rápidos (Chips)
   const [statusDivergenteQuery, setStatusDivergenteQuery] = useState('');
@@ -136,7 +137,7 @@ export default function Colaboradores() {
   // Efeito reativo: recarrega a busca com página 1 se mudar filtros de abas ou dropdowns
   useEffect(() => {
     fetchColaboradores(true);
-  }, [activeTab, statusDivergenteQuery, funcaoDivergenteQuery, divergenteQuery, soTotvsQuery, lojaFiltro, statusFiltro, statusGestaoFiltro]);
+  }, [activeTab, statusDivergenteQuery, funcaoDivergenteQuery, divergenteQuery, soTotvsQuery, lojaFiltro, statusFiltro, statusGestaoFiltro, fetchTrigger]);
 
   // Recarrega se mudar a página corrente
   useEffect(() => {
@@ -246,7 +247,7 @@ export default function Colaboradores() {
           if (statusVal === 'completed' || statusVal === 'error') {
             window.clearInterval(intervalId);
             setSyncingLojas(false);
-            // Ao concluir, recarrega a listagem para refletir os novos dados
+            // Ao concluir, recarrega a listagem to refletir os novos dados
             fetchColaboradores();
           }
         }
@@ -262,7 +263,7 @@ export default function Colaboradores() {
 
   const handleFilterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchColaboradores(true);
+    setFetchTrigger(prev => prev + 1);
   };
 
   const handleClearFilters = () => {
@@ -279,9 +280,7 @@ export default function Colaboradores() {
     setDivergenteQuery('');
     setSoTotvsQuery('');
     
-    setTimeout(() => {
-      fetchColaboradores(true);
-    }, 50);
+    setFetchTrigger(prev => prev + 1);
   };
 
   // Liga/desliga filtro rápido mantendo controle exclusivo
@@ -466,6 +465,7 @@ export default function Colaboradores() {
               value={lojaFiltro}
               onChange={setLojaFiltro}
               placeholder="Todas as Lojas"
+              multiple={true}
             />
           </div>
 
@@ -517,16 +517,18 @@ export default function Colaboradores() {
               <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
                 Status TOTVS
               </label>
-              <select
+              <SearchableSelect
+                options={[
+                  { value: "", label: "Todos" },
+                  { value: "ativo", label: "Ativo (Normal)" },
+                  { value: "A", label: "Afastado" },
+                  { value: "F", label: "Férias" }
+                ]}
                 value={statusFiltro}
-                onChange={(e) => setStatusFiltro(e.target.value)}
-                className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-              >
-                <option value="">Todos</option>
-                <option value="ativo">Ativo (Normal)</option>
-                <option value="A">Afastado</option>
-                <option value="F">Férias</option>
-              </select>
+                onChange={setStatusFiltro}
+                placeholder="Todos"
+                multiple={true}
+              />
             </div>
           )}
 
@@ -534,18 +536,16 @@ export default function Colaboradores() {
             <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Status Gestão
             </label>
-            <select
+            <SearchableSelect
+              options={[
+                { value: "", label: "Todos" },
+                ...statusGestaoOpcoes.map((op) => ({ value: op, label: op }))
+              ]}
               value={statusGestaoFiltro}
-              onChange={(e) => setStatusGestaoFiltro(e.target.value)}
-              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-            >
-              <option value="">Todos</option>
-              {statusGestaoOpcoes.map((op) => (
-                <option key={op} value={op}>
-                  {op}
-                </option>
-              ))}
-            </select>
+              onChange={setStatusGestaoFiltro}
+              placeholder="Todos"
+              multiple={true}
+            />
           </div>
         </div>
 

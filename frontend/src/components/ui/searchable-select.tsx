@@ -21,6 +21,7 @@ interface SearchableSelectProps {
   searchPlaceholder?: string;
   emptyMessage?: string;
   className?: string;
+  multiple?: boolean;
 }
 
 /**
@@ -30,6 +31,8 @@ interface SearchableSelectProps {
  * do navegador (combobox). Permite carregar listas extensas de opções (como lojas 
  * ou coordenadores) e filtrar itens em tempo real através de um campo de digitação, 
  * facilitando a usabilidade em planilhas e auditorias.
+ * 
+ * Suporta multiseleção por checkboxes quando `multiple` é definido como true.
  */
 export default function SearchableSelect({
   options,
@@ -38,7 +41,8 @@ export default function SearchableSelect({
   placeholder,
   searchPlaceholder = "Pesquisar...",
   emptyMessage = "Nenhum resultado encontrado.",
-  className
+  className,
+  multiple = false
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
@@ -65,16 +69,54 @@ export default function SearchableSelect({
     );
   }, [options, search]);
 
-  // Encontra a opção atualmente selecionada
-  const selectedOption = React.useMemo(() => {
-    return options.find(opt => opt.value === value);
-  }, [options, value]);
+  // Valores selecionados como lista (para multiseleção)
+  const selectedValues = React.useMemo(() => {
+    if (!multiple) return [];
+    if (!value) return [];
+    return value.split(',').filter(Boolean);
+  }, [value, multiple]);
 
-  // Seleciona um item e fecha o dropdown limpando a pesquisa
+  // Encontra a opção ou opções atualmente selecionadas para exibir no botão gatilho
+  const triggerText = React.useMemo(() => {
+    if (multiple) {
+      if (selectedValues.length === 0) {
+        const defaultOpt = options.find(opt => opt.value === "");
+        return defaultOpt ? defaultOpt.label : placeholder;
+      }
+      const selectedLabels = selectedValues
+        .map(val => options.find(opt => opt.value === val)?.label)
+        .filter(Boolean);
+      
+      if (selectedLabels.length <= 2) {
+        return selectedLabels.join(', ');
+      }
+      return `${selectedLabels.length} selecionados`;
+    } else {
+      const selectedOption = options.find(opt => opt.value === value);
+      return selectedOption ? selectedOption.label : placeholder;
+    }
+  }, [options, value, selectedValues, multiple, placeholder]);
+
+  // Seleciona um item. Se for multiseleção, alterna a presença do item no array.
   const handleSelect = (val: string) => {
-    onChange(val);
-    setIsOpen(false);
-    setSearch("");
+    if (multiple) {
+      let nextList: string[];
+      if (val === "") {
+        // Clicar na opção vazia (ex: "Todos") limpa todas as outras seleções
+        nextList = [];
+      } else {
+        if (selectedValues.includes(val)) {
+          nextList = selectedValues.filter(v => v !== val);
+        } else {
+          nextList = [...selectedValues, val];
+        }
+      }
+      onChange(nextList.join(','));
+    } else {
+      onChange(val);
+      setIsOpen(false);
+      setSearch("");
+    }
   };
 
   return (
@@ -84,10 +126,10 @@ export default function SearchableSelect({
         onClick={() => setIsOpen(!isOpen)}
         className="flex w-full items-center justify-between gap-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 px-3 py-2 text-sm text-neutral-800 dark:text-neutral-200 cursor-pointer shadow-xs hover:border-neutral-350 dark:hover:border-neutral-700 select-none min-h-[38px] transition-colors"
       >
-        <span className={cn("truncate", !selectedOption && "text-neutral-400")}>
-          {selectedOption ? selectedOption.label : placeholder}
+        <span className={cn("truncate", !value && !multiple && "text-neutral-400")}>
+          {triggerText}
         </span>
-        <ChevronDown className="h-4 w-4 shrink-0 text-neutral-450" />
+        <ChevronDown className="h-4 w-4 shrink-0 text-neutral-455" />
       </div>
 
       {/* Painel Flutuante (Popover) */}
@@ -123,17 +165,37 @@ export default function SearchableSelect({
               </div>
             ) : (
               filteredOptions.map((opt) => {
-                const isSelected = opt.value === value;
+                // Para multiseleção: a opção "Todos" (valor "") fica marcada se não houver outras seleções.
+                // Outras opções ficam marcadas se estiverem na lista de selecionadas.
+                const isSelected = multiple
+                  ? (opt.value === "" ? selectedValues.length === 0 : selectedValues.includes(opt.value))
+                  : opt.value === value;
+
                 return (
                   <div
                     key={opt.value}
                     onClick={() => handleSelect(opt.value)}
                     className={cn(
-                      "px-2.5 py-2 rounded-md text-xs cursor-pointer transition-colors select-none text-neutral-700 dark:text-neutral-350 hover:bg-neutral-50 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white",
-                      isSelected && "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 font-semibold"
+                      "flex items-center gap-2 px-2.5 py-2 rounded-md text-xs cursor-pointer transition-colors select-none text-neutral-700 dark:text-neutral-355 hover:bg-neutral-50 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white",
+                      isSelected && !multiple && "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 font-semibold",
+                      isSelected && multiple && "bg-neutral-50 dark:bg-neutral-850 font-semibold"
                     )}
                   >
-                    {opt.label}
+                    {multiple && (
+                      <div className={cn(
+                        "w-3.5 h-3.5 border rounded flex items-center justify-center transition-colors shrink-0",
+                        isSelected 
+                          ? "bg-neutral-900 border-neutral-900 text-white dark:bg-white dark:border-white dark:text-neutral-900" 
+                          : "border-neutral-300 dark:border-neutral-750"
+                      )}>
+                        {isSelected && (
+                          <svg className="w-2.5 h-2.5 stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                    )}
+                    <span className="truncate">{opt.label}</span>
                   </div>
                 );
               })

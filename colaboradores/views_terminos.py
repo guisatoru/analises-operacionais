@@ -225,10 +225,14 @@ def _filtrar_terminos_queryset(
         )
 
     if coordenador_query:
-        colaboradores_qs = colaboradores_qs.filter(loja__coordenador__nome=coordenador_query)
+        coordenadores_list = [c.strip() for c in coordenador_query.split(",") if c.strip()]
+        if coordenadores_list:
+            colaboradores_qs = colaboradores_qs.filter(loja__coordenador__nome__in=coordenadores_list)
 
     if status_gestao_query:
-        colaboradores_qs = colaboradores_qs.filter(status_gestao__iexact=status_gestao_query)
+        status_list = [s.strip() for s in status_gestao_query.split(",") if s.strip()]
+        if status_list:
+            colaboradores_qs = colaboradores_qs.filter(status_gestao__in=status_list)
 
     return colaboradores_qs
 

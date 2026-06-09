@@ -34,7 +34,9 @@ def escopo_list(request):
     Lista e filtra os escopos mensais em formato JSON com paginação nativa do DRF.
     """
     loja_id_raw = (request.GET.get("loja") or "").strip()
-    loja_id_int = int(loja_id_raw) if loja_id_raw.isdigit() else None
+    lojas_list = []
+    if loja_id_raw:
+        lojas_list = [int(x) for x in loja_id_raw.split(",") if x.strip().isdigit()]
 
     busca_loja = (request.GET.get("busca_loja") or "").strip()
     ano_filtro = parse_int_param(request.GET.get("ano"), 2000, 2100)
@@ -56,8 +58,8 @@ def escopo_list(request):
                 matching_store_ids.append(loja.id)
         escopos = escopos.filter(loja_id__in=matching_store_ids)
 
-    if loja_id_int is not None:
-        escopos = escopos.filter(loja_id=loja_id_int)
+    if lojas_list:
+        escopos = escopos.filter(loja_id__in=lojas_list)
 
     if ano_filtro is not None:
         escopos = escopos.filter(ano=ano_filtro)

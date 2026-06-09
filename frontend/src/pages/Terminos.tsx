@@ -102,6 +102,7 @@ export default function Terminos() {
   const [ordenacao, setOrdenacao] = useState('data');
   const [dataFiltro, setDataFiltro] = useState('');
   const [dataFim, setDataFim] = useState('');
+  const [fetchTrigger, setFetchTrigger] = useState(0);
 
   // Estados do Modal de Decisão
   const [showAcaoModal, setShowAcaoModal] = useState(false);
@@ -155,7 +156,7 @@ export default function Terminos() {
   // Efeito reativo: recarrega os prazos se mudar filtros dropdowns, ordenação, coordenador ou datas
   useEffect(() => {
     fetchTerminos(true);
-  }, [ordenacao, statusGestao, coordenador, dataFiltro, dataFim]);
+  }, [ordenacao, statusGestao, coordenador, dataFiltro, dataFim, fetchTrigger]);
 
   useEffect(() => {
     fetchTerminos();
@@ -265,7 +266,7 @@ export default function Terminos() {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchTerminos(true);
+    setFetchTrigger(prev => prev + 1);
   };
 
   const handleClearFilters = () => {
@@ -276,9 +277,7 @@ export default function Terminos() {
     setDataFiltro('');
     setDataFim('');
 
-    setTimeout(() => {
-      fetchTerminos(true);
-    }, 50);
+    setFetchTrigger(prev => prev + 1);
   };
 
   // Efeito para sincronizar a ação selecionada com a etapa escolhida e o histórico existente
@@ -473,6 +472,7 @@ export default function Terminos() {
               value={coordenador}
               onChange={setCoordenador}
               placeholder="Todos os Coordenadores"
+              multiple={true}
             />
           </div>
 
@@ -480,18 +480,16 @@ export default function Terminos() {
             <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Status de Gestão
             </label>
-            <select
+            <SearchableSelect
+              options={[
+                { value: "", label: "Todos" },
+                ...statusGestaoOpcoes.map((op) => ({ value: op, label: op }))
+              ]}
               value={statusGestao}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatusGestao(e.target.value)}
-              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-            >
-              <option value="">Todos</option>
-              {statusGestaoOpcoes.map((op) => (
-                <option key={op} value={op}>
-                  {op}
-                </option>
-              ))}
-            </select>
+              onChange={setStatusGestao}
+              placeholder="Todos"
+              multiple={true}
+            />
           </div>
 
           <div>

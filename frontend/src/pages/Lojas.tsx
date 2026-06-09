@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import api from '../api/client';
 import { toast } from 'sonner';
+import SearchableSelect from '../components/ui/searchable-select';
 import { Skeleton } from '../components/ui/skeleton';
 import {
   Pagination,
@@ -85,6 +86,7 @@ export default function Lojas() {
   const [cliente, setCliente] = useState('');
   const [statusFiltro, setStatusFiltro] = useState('');
   const [centroCusto, setCentroCusto] = useState('');
+  const [fetchTrigger, setFetchTrigger] = useState(0);
 
   // Estados dos Modais
   const [showCadastroModal, setShowCadastroModal] = useState(false);
@@ -143,7 +145,7 @@ export default function Lojas() {
   // Carrega as lojas ao inicializar ou mudar de página/filtros
   useEffect(() => {
     fetchLojas(true);
-  }, [statusFiltro]);
+  }, [statusFiltro, fetchTrigger]);
 
   useEffect(() => {
     fetchLojas();
@@ -211,7 +213,7 @@ export default function Lojas() {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchLojas(true);
+    setFetchTrigger(prev => prev + 1);
   };
 
   const handleClearFilters = () => {
@@ -219,9 +221,7 @@ export default function Lojas() {
     setCliente('');
     setStatusFiltro('');
     setCentroCusto('');
-    setTimeout(() => {
-      fetchLojas(true);
-    }, 50);
+    setFetchTrigger(prev => prev + 1);
   };
 
   // Abre modal para cadastrar nova loja
@@ -504,15 +504,17 @@ export default function Lojas() {
             <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Status da Loja
             </label>
-            <select
+            <SearchableSelect
+              options={[
+                { value: "", label: "Todos os status" },
+                { value: "ATIVA", label: "Ativa" },
+                { value: "INATIVA", label: "Inativa" }
+              ]}
               value={statusFiltro}
-              onChange={(e) => setStatusFiltro(e.target.value)}
-              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-            >
-              <option value="">Todos os status</option>
-              <option value="ATIVA">Ativa</option>
-              <option value="INATIVA">Inativa</option>
-            </select>
+              onChange={setStatusFiltro}
+              placeholder="Todos os status"
+              multiple={true}
+            />
           </div>
         </div>
 

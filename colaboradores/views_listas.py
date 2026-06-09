@@ -124,7 +124,9 @@ def _aplicar_filtros_colaboradores(colaboradores_qs, filtros):
     Aplica os filtros da listagem de ativos de forma direta e previsível.
     """
     if filtros["loja"]:
-        colaboradores_qs = colaboradores_qs.filter(loja_id=filtros["loja"])
+        lojas_list = [l.strip() for l in filtros["loja"].split(",") if l.strip()]
+        if lojas_list:
+            colaboradores_qs = colaboradores_qs.filter(loja_id__in=lojas_list)
 
     if filtros["loja_gestao"]:
         colaboradores_qs = colaboradores_qs.filter(
@@ -142,15 +144,22 @@ def _aplicar_filtros_colaboradores(colaboradores_qs, filtros):
         colaboradores_qs = colaboradores_qs.filter(cargo__iexact=filtros["cargo"])
 
     if filtros["status"]:
-        if filtros["status"] == "ativo":
-            colaboradores_qs = colaboradores_qs.exclude(status__in=["A", "F"])
-        else:
-            colaboradores_qs = colaboradores_qs.filter(status=filtros["status"])
+        status_list = [s.strip() for s in filtros["status"].split(",") if s.strip()]
+        if status_list:
+            q_obj = Q()
+            if "ativo" in status_list:
+                other_statuses = [s for s in status_list if s != "ativo"]
+                q_obj = Q(status__in=other_statuses) | ~Q(status__in=["A", "F"])
+            else:
+                q_obj = Q(status__in=status_list)
+            colaboradores_qs = colaboradores_qs.filter(q_obj)
 
     if filtros["status_gestao"]:
-        colaboradores_qs = colaboradores_qs.filter(
-            status_gestao__iexact=filtros["status_gestao"]
-        )
+        status_list = [s.strip() for s in filtros["status_gestao"].split(",") if s.strip()]
+        if status_list:
+            colaboradores_qs = colaboradores_qs.filter(
+                status_gestao__in=status_list
+            )
 
     if filtros["funcao_divergente"] == "S":
         ids_funcao_divergente = [
@@ -192,7 +201,9 @@ def _aplicar_filtros_demitidos(colaboradores_qs, filtros):
     Aplica os filtros da listagem de demitidos mantendo a regra separada dos ativos.
     """
     if filtros["loja"]:
-        colaboradores_qs = colaboradores_qs.filter(loja_id=filtros["loja"])
+        lojas_list = [l.strip() for l in filtros["loja"].split(",") if l.strip()]
+        if lojas_list:
+            colaboradores_qs = colaboradores_qs.filter(loja_id__in=lojas_list)
 
     if filtros["re"]:
         colaboradores_qs = colaboradores_qs.filter(re__icontains=filtros["re"])
@@ -204,9 +215,11 @@ def _aplicar_filtros_demitidos(colaboradores_qs, filtros):
         colaboradores_qs = colaboradores_qs.filter(cargo__iexact=filtros["cargo"])
 
     if filtros["status_gestao"]:
-        colaboradores_qs = colaboradores_qs.filter(
-            status_gestao__iexact=filtros["status_gestao"]
-        )
+        status_list = [s.strip() for s in filtros["status_gestao"].split(",") if s.strip()]
+        if status_list:
+            colaboradores_qs = colaboradores_qs.filter(
+                status_gestao__in=status_list
+            )
 
     if filtros["status_divergente"] == "S":
         colaboradores_qs = colaboradores_qs.filter(_filtro_status_divergente_demitido())

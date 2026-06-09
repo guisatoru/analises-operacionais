@@ -104,6 +104,7 @@ export default function Escopos() {
   const [buscaLojaInput, setBuscaLojaInput] = useState('');
   const [anoFiltro, setAnoFiltro] = useState('');
   const [mesFiltro, setMesFiltro] = useState('');
+  const [fetchTrigger, setFetchTrigger] = useState(0);
 
   // Estados de controle para edição inline
   // Guarda o id do item atualmente em modo de edição (no formato 'escopoId_itemId')
@@ -168,7 +169,7 @@ export default function Escopos() {
   // Efeito reativo: recarrega a lista se mudar filtros dropdowns
   useEffect(() => {
     fetchEscopos(true);
-  }, [lojaFiltro, anoFiltro, mesFiltro]);
+  }, [lojaFiltro, anoFiltro, mesFiltro, fetchTrigger]);
 
   // Recarrega se mudar a página corrente
   useEffect(() => {
@@ -214,7 +215,7 @@ export default function Escopos() {
 
   const handleFilterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchEscopos(true);
+    setFetchTrigger(prev => prev + 1);
   };
 
   const handleClearFilters = () => {
@@ -222,9 +223,7 @@ export default function Escopos() {
     setBuscaLojaInput('');
     setAnoFiltro('');
     setMesFiltro('');
-    setTimeout(() => {
-      fetchEscopos(true);
-    }, 50);
+    setFetchTrigger(prev => prev + 1);
   };
 
   // Duplicar em lote os escopos do último mês
@@ -510,6 +509,7 @@ export default function Escopos() {
               value={lojaFiltro}
               onChange={setLojaFiltro}
               placeholder="Todas as Lojas"
+              multiple={true}
             />
           </div>
 
