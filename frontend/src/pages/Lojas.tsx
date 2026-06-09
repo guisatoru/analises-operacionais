@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { 
-  Search, 
   Plus, 
   Edit2, 
   Trash2, 
@@ -20,7 +19,6 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '../components/ui/pagination';
-import { InputGroup, InputGroupAddon, InputGroupInput } from '../components/ui/input-group';
 
 interface Loja {
   id: string;
@@ -86,6 +84,14 @@ export default function Lojas() {
   const [cliente, setCliente] = useState('');
   const [statusFiltro, setStatusFiltro] = useState('');
   const [centroCusto, setCentroCusto] = useState('');
+  
+  // Estados para as opções dinâmicas dos filtros (estilo Excel)
+  const [nomesOpcoes, setNomesOpcoes] = useState<{ value: string; label: string }[]>([]);
+  const [clientesOpcoes, setClientesOpcoes] = useState<{ value: string; label: string }[]>([]);
+  const [centrosCustoOpcoes, setCentrosCustoOpcoes] = useState<{ value: string; label: string }[]>([]);
+  const [statusOpcoes, setStatusOpcoes] = useState<{ value: string; label: string }[]>([]);
+  const [loadingOpcoes, setLoadingOpcoes] = useState(false);
+  
   const [fetchTrigger, setFetchTrigger] = useState(0);
 
   // Estados dos Modais
@@ -145,7 +151,7 @@ export default function Lojas() {
   // Carrega as lojas ao inicializar ou mudar de página/filtros
   useEffect(() => {
     fetchLojas(true);
-  }, [statusFiltro, fetchTrigger]);
+  }, [busca, cliente, statusFiltro, centroCusto, fetchTrigger]);
 
   useEffect(() => {
     fetchLojas();
@@ -156,6 +162,37 @@ export default function Lojas() {
     fetchCoordenadores();
     fetchSupervisores();
   }, []);
+
+  // Busca dinamicamente do backend as opções válidas para todos os filtros (Nome, Cliente, Centro de Custo, Status)
+  // De acordo com o comportamento do Excel, cada filtro é calculado considerando todos os outros filtros ativos.
+  useEffect(() => {
+    const fetchFiltroOpcoes = async () => {
+      setLoadingOpcoes(true);
+      try {
+        const response = await api.get('/lojas/filtro-opcoes/', {
+          params: {
+            busca: busca || undefined,
+            cliente: cliente || undefined,
+            status: statusFiltro || undefined,
+            centro_de_custo: centroCusto || undefined,
+          }
+        });
+        
+        if (response.data) {
+          setNomesOpcoes(response.data.nomes || []);
+          setClientesOpcoes(response.data.clientes || []);
+          setCentrosCustoOpcoes(response.data.centros_custo || []);
+          setStatusOpcoes(response.data.status || []);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar opções de filtros para lojas:', err);
+      } finally {
+        setLoadingOpcoes(false);
+      }
+    };
+
+    fetchFiltroOpcoes();
+  }, [busca, cliente, statusFiltro, centroCusto]);
 
   const fetchCoordenadores = async () => {
     try {
@@ -461,29 +498,35 @@ export default function Lojas() {
             <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Busca por Nome
             </label>
-            <InputGroup className="w-full">
-              <InputGroupAddon align="inline-start">
-                <Search className="h-4 w-4 text-neutral-450" />
-              </InputGroupAddon>
-              <InputGroupInput
-                type="text"
-                placeholder="Ex: Loja Centro..."
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-              />
-            </InputGroup>
+            {/* Este componente de seleção múltipla reativa substitui a busca simples por nome de loja. */}
+            <SearchableSelect
+              options={[
+                { value: "", label: "Todas as Lojas" },
+                ...nomesOpcoes
+              ]}
+              value={busca}
+              onChange={setBusca}
+              placeholder="Todas as Lojas"
+              multiple={true}
+              loading={loadingOpcoes}
+            />
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Cliente / Regional
             </label>
-            <input
-              type="text"
-              placeholder="Ex: Grupo Sul..."
+            {/* Este componente de seleção múltipla reativa substitui a busca textual por regional. */}
+            <SearchableSelect
+              options={[
+                { value: "", label: "Todos os Clientes" },
+                ...clientesOpcoes
+              ]}
               value={cliente}
-              onChange={(e) => setCliente(e.target.value)}
-              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+              onChange={setCliente}
+              placeholder="Todos os Clientes"
+              multiple={true}
+              loading={loadingOpcoes}
             />
           </div>
 
@@ -491,12 +534,17 @@ export default function Lojas() {
             <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Centro de Custo
             </label>
-            <input
-              type="text"
-              placeholder="Ex: 10200..."
+            {/* Este componente de seleção múltipla reativa substitui o campo de digitação de centro de custo. */}
+            <SearchableSelect
+              options={[
+                { value: "", label: "Todos os Centros" },
+                ...centrosCustoOpcoes
+              ]}
               value={centroCusto}
-              onChange={(e) => setCentroCusto(e.target.value)}
-              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+              onChange={setCentroCusto}
+              placeholder="Todos os Centros"
+              multiple={true}
+              loading={loadingOpcoes}
             />
           </div>
 
@@ -504,16 +552,17 @@ export default function Lojas() {
             <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Status da Loja
             </label>
+            {/* Este componente de seleção múltipla reativa substitui o filtro estático de status. */}
             <SearchableSelect
               options={[
-                { value: "", label: "Todos os status" },
-                { value: "ATIVA", label: "Ativa" },
-                { value: "INATIVA", label: "Inativa" }
+                { value: "", label: "Todos os Status" },
+                ...statusOpcoes
               ]}
               value={statusFiltro}
               onChange={setStatusFiltro}
-              placeholder="Todos os status"
+              placeholder="Todos os Status"
               multiple={true}
+              loading={loadingOpcoes}
             />
           </div>
         </div>

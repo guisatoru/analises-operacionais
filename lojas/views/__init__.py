@@ -24,6 +24,7 @@ from .stores import (
     store_update,
     coordenador_list_create,
     supervisor_list_create,
+    store_filtro_opcoes,
 )
 
 from .comparativo import comparativo_loja
@@ -50,4 +51,5 @@ __all__ = [
     "loja_config_insalubridade",
     "coordenador_list_create",
     "supervisor_list_create",
+    "store_filtro_opcoes",
 ]

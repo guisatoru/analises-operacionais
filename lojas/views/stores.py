@@ -26,22 +26,27 @@ def store_list(request):
     store_code = request.GET.get("codigo_loja", "").strip()
 
     if search_text:
-        normalized_search = unidecode(search_text).upper()
-        filtered_store_ids = []
-        for store in stores:
-            normalized_store_name = unidecode(store.nome_referencia).upper()
-            if normalized_search in normalized_store_name:
-                filtered_store_ids.append(store.id)
-        stores = stores.filter(id__in=filtered_store_ids)
+        busca_list = [b.strip() for b in search_text.split(",") if b.strip()]
+        if busca_list:
+            stores = stores.filter(nome_referencia__in=busca_list)
 
     if client_name:
-        stores = stores.filter(cliente__icontains=client_name)
+        cliente_list = [c.strip() for c in client_name.split(",") if c.strip()]
+        if cliente_list:
+            stores = stores.filter(cliente__in=cliente_list)
+
     if panel_name:
         stores = stores.filter(quadro=panel_name)
+
     if status_value:
-        stores = stores.filter(status=status_value)
+        status_list = [s.strip() for s in status_value.split(",") if s.strip()]
+        if status_list:
+            stores = stores.filter(status__in=status_list)
+
     if cost_center:
-        stores = stores.filter(centro_de_custo__icontains=cost_center)
+        cc_list = [cc.strip() for cc in cost_center.split(",") if cc.strip()]
+        if cc_list:
+            stores = stores.filter(centro_de_custo__in=cc_list)
     if store_code and store_code.isdigit():
         stores = stores.filter(codigo_loja=int(store_code))
 
@@ -171,3 +176,64 @@ def supervisor_list_create(request):
     supervisores = Supervisor.objects.all().order_by("nome")
     serializer = SupervisorSerializer(supervisores, many=True)
     return Response(serializer.data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def store_filtro_opcoes(request):
+    """
+    Retorna as opções de filtro para lojas (nome de referência, cliente, centro de custo e status).
+    Este endpoint resolve as opções de forma reativa e independente (estilo Excel),
+    onde o cálculo para cada campo ignora a seleção do próprio campo.
+    """
+    busca_val = request.GET.get("busca", "").strip()
+    cliente_val = request.GET.get("cliente", "").strip()
+    status_val = request.GET.get("status", "").strip()
+    cc_val = request.GET.get("centro_de_custo", "").strip()
+
+    # Função auxiliar para aplicar filtros nas consultas de opções
+    def filtrar(qs, ignore_busca=False, ignore_cliente=False, ignore_status=False, ignore_cc=False):
+        if busca_val and not ignore_busca:
+            bl = [b.strip() for b in busca_val.split(",") if b.strip()]
+            if bl:
+                qs = qs.filter(nome_referencia__in=bl)
+        if cliente_val and not ignore_cliente:
+            cl = [c.strip() for c in cliente_val.split(",") if c.strip()]
+            if cl:
+                qs = qs.filter(cliente__in=cl)
+        if status_val and not ignore_status:
+            sl = [s.strip() for s in status_val.split(",") if s.strip()]
+            if sl:
+                qs = qs.filter(status__in=sl)
+        if cc_val and not ignore_cc:
+            ccl = [c.strip() for c in cc_val.split(",") if c.strip()]
+            if ccl:
+                qs = qs.filter(centro_de_custo__in=ccl)
+        return qs
+
+    # 1. Opções de Busca (Nome de Referência)
+    qs_nomes = filtrar(Loja.objects.all(), ignore_busca=True)
+    nomes_set = set(qs_nomes.values_list("nome_referencia", flat=True))
+    nomes_list = sorted(list(n.strip() for n in nomes_set if n and n.strip()))
+
+    # 2. Opções de Cliente / Regional
+    qs_clientes = filtrar(Loja.objects.all(), ignore_cliente=True)
+    clientes_set = set(qs_clientes.values_list("cliente", flat=True))
+    clientes_list = sorted(list(c.strip() for c in clientes_set if c and c.strip()))
+
+    # 3. Opções de Centro de Custo
+    qs_cc = filtrar(Loja.objects.all(), ignore_cc=True)
+    cc_set = set(qs_cc.values_list("centro_de_custo", flat=True))
+    cc_list = sorted(list(cc.strip() for cc in cc_set if cc and cc.strip()))
+
+    # 4. Opções de Status
+    qs_status = filtrar(Loja.objects.all(), ignore_status=True)
+    status_set = set(qs_status.values_list("status", flat=True))
+    status_list = sorted(list(s.strip() for s in status_set if s and s.strip()))
+
+    return Response({
+        "nomes": [{"value": n, "label": n} for n in nomes_list],
+        "clientes": [{"value": c, "label": c} for c in clientes_list],
+        "centros_custo": [{"value": cc, "label": cc} for cc in cc_list],
+        "status": [{"value": s, "label": "Ativa" if s == "ATIVA" else "Inativa"} for s in status_list]
+    })
