@@ -135,10 +135,14 @@ def _aplicar_filtros_colaboradores(colaboradores_qs, filtros):
         )
 
     if filtros["re"]:
-        colaboradores_qs = colaboradores_qs.filter(re__icontains=filtros["re"])
+        re_list = [r.strip() for r in filtros["re"].split(",") if r.strip()]
+        if re_list:
+            colaboradores_qs = colaboradores_qs.filter(re__in=re_list)
 
     if filtros["nome"]:
-        colaboradores_qs = colaboradores_qs.filter(nome__icontains=filtros["nome"])
+        nome_list = [n.strip() for n in filtros["nome"].split(",") if n.strip()]
+        if nome_list:
+            colaboradores_qs = colaboradores_qs.filter(nome__in=nome_list)
 
     if filtros["cargo"]:
         colaboradores_qs = colaboradores_qs.filter(cargo__iexact=filtros["cargo"])
@@ -206,10 +210,14 @@ def _aplicar_filtros_demitidos(colaboradores_qs, filtros):
             colaboradores_qs = colaboradores_qs.filter(loja_id__in=lojas_list)
 
     if filtros["re"]:
-        colaboradores_qs = colaboradores_qs.filter(re__icontains=filtros["re"])
+        re_list = [r.strip() for r in filtros["re"].split(",") if r.strip()]
+        if re_list:
+            colaboradores_qs = colaboradores_qs.filter(re__in=re_list)
 
     if filtros["nome"]:
-        colaboradores_qs = colaboradores_qs.filter(nome__icontains=filtros["nome"])
+        nome_list = [n.strip() for n in filtros["nome"].split(",") if n.strip()]
+        if nome_list:
+            colaboradores_qs = colaboradores_qs.filter(nome__in=nome_list)
 
     if filtros["cargo"]:
         colaboradores_qs = colaboradores_qs.filter(cargo__iexact=filtros["cargo"])
@@ -314,3 +322,62 @@ def _filtro_status_divergente_demitido():
         | Q(status_gestao="")
         | (~Q(status_gestao__icontains="DEMIT"))
     )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def colaborador_filtro_opcoes(request):
+    """
+    Retorna as opções de Nome e RE disponíveis com base nos outros filtros aplicados.
+    Isso permite que os filtros de RE e Nome se comuniquem e mostrem apenas opções
+    válidas (ex: se o usuário filtra por uma loja, os dropdowns de nome/RE mostram
+    apenas colaboradores daquela loja).
+    """
+    is_demitido = request.GET.get("is_demitido") == "true"
+    is_termino = request.GET.get("is_termino") == "true"
+    
+    if is_termino:
+        from .views_terminos import _buscar_colaboradores_com_termino, _filtrar_terminos_queryset
+        colaboradores_qs = _buscar_colaboradores_com_termino()
+        coordenador_query = request.GET.get("coordenador", "")
+        status_gestao_query = request.GET.get("status_gestao", "")
+        colaboradores_qs = _filtrar_terminos_queryset(
+            colaboradores_qs,
+            search_query="",
+            coordenador_query=coordenador_query,
+            status_gestao_query=status_gestao_query,
+        )
+        # Para termos de experiência, também aplicamos o filtro da aba ativa (etapaAtual) se necessário.
+        # Mas as opções de filtro mostram todas as pessoas elegíveis para o termo.
+    elif is_demitido:
+        filtros = _ler_filtros_demitidos(request.GET)
+        filtros["re"] = ""
+        filtros["nome"] = ""
+        colaboradores_qs = Colaborador.objects.filter(status="D").exclude(
+            cargo="AUXILIAR ADMINISTRAT"
+        ).select_related("loja")
+        colaboradores_qs = _aplicar_filtros_demitidos(colaboradores_qs, filtros)
+    else:
+        filtros = _ler_filtros_colaboradores(request.GET)
+        filtros["re"] = ""
+        filtros["nome"] = ""
+        colaboradores_qs = _buscar_colaboradores_ativos()
+        colaboradores_qs = _aplicar_filtros_colaboradores(colaboradores_qs, filtros)
+
+    valores = colaboradores_qs.values_list("re", "nome")
+    
+    res_set = set()
+    nomes_set = set()
+    for re_val, nome_val in valores:
+        if re_val and re_val.strip():
+            res_set.add(re_val.strip())
+        if nome_val and nome_val.strip():
+            nomes_set.add(nome_val.strip().upper())
+            
+    res_list = sorted(list(res_set))
+    nomes_list = sorted(list(nomes_set))
+
+    return Response({
+        "res": [{"value": r, "label": r} for r in res_list],
+        "nomes": [{"value": n, "label": n} for n in nomes_list]
+    })

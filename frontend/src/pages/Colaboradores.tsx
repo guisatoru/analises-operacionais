@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { 
-  Search, 
   Loader2,
   AlertCircle,
   AlertTriangle,
@@ -23,7 +22,6 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '../components/ui/pagination';
-import { InputGroup, InputGroupAddon, InputGroupInput } from '../components/ui/input-group';
 
 interface LojaRef {
   id: string;
@@ -97,6 +95,11 @@ export default function Colaboradores() {
   // Cache de opções para o filtro
   const [lojasOpcoes, setLojasOpcoes] = useState<LojaRef[]>([]);
   const [statusGestaoOpcoes, setStatusGestaoOpcoes] = useState<string[]>([]);
+  
+  // Armazena as opções de RE e Nome calculadas dinamicamente com base em outros filtros
+  const [colabReOpcoes, setColabReOpcoes] = useState<{ value: string; label: string }[]>([]);
+  const [colabNomeOpcoes, setColabNomeOpcoes] = useState<{ value: string; label: string }[]>([]);
+  
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Estados para sincronização de lojas da GeoVictoria
@@ -133,11 +136,63 @@ export default function Colaboradores() {
     fetchStatusGestaoOpcoes();
   }, []);
 
+  // Busca dinamicamente do backend as opções válidas de RE e Nome baseadas nos filtros ativos
+  useEffect(() => {
+    const fetchFiltroOpcoes = async () => {
+      try {
+        const response = await api.get('/colaboradores/filtro-opcoes/', {
+          params: {
+            is_demitido: activeTab === 'demitidos' ? 'true' : undefined,
+            loja: lojaFiltro || undefined,
+            status: activeTab === 'ativos' ? (statusFiltro || undefined) : undefined,
+            status_gestao: statusGestaoFiltro || undefined,
+            cargo: cargoFiltro || undefined,
+            status_divergente: statusDivergenteQuery || undefined,
+            funcao_divergente: activeTab === 'ativos' ? (funcaoDivergenteQuery || undefined) : undefined,
+            divergente: activeTab === 'ativos' ? (divergenteQuery || undefined) : undefined,
+            so_totvs: activeTab === 'ativos' ? (soTotvsQuery || undefined) : undefined,
+          }
+        });
+        
+        if (response.data) {
+          setColabReOpcoes(response.data.res || []);
+          setColabNomeOpcoes(response.data.nomes || []);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar opções de RE/Nome:', err);
+      }
+    };
+
+    fetchFiltroOpcoes();
+  }, [
+    activeTab,
+    lojaFiltro,
+    statusFiltro,
+    statusGestaoFiltro,
+    cargoFiltro,
+    statusDivergenteQuery,
+    funcaoDivergenteQuery,
+    divergenteQuery,
+    soTotvsQuery
+  ]);
+
   // Recarrega os dados ao trocar de página, aba ou filtros rápidos
   // Efeito reativo: recarrega a busca com página 1 se mudar filtros de abas ou dropdowns
   useEffect(() => {
     fetchColaboradores(true);
-  }, [activeTab, statusDivergenteQuery, funcaoDivergenteQuery, divergenteQuery, soTotvsQuery, lojaFiltro, statusFiltro, statusGestaoFiltro, fetchTrigger]);
+  }, [
+    activeTab,
+    statusDivergenteQuery,
+    funcaoDivergenteQuery,
+    divergenteQuery,
+    soTotvsQuery,
+    lojaFiltro,
+    statusFiltro,
+    statusGestaoFiltro,
+    reBusca,
+    nomeBusca,
+    fetchTrigger
+  ]);
 
   // Recarrega se mudar a página corrente
   useEffect(() => {
@@ -473,12 +528,16 @@ export default function Colaboradores() {
             <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Matrícula (RE)
             </label>
-            <input
-              type="text"
-              placeholder="Ex: 001402..."
+            {/* Este componente de seleção múltipla reativa substitui o campo de texto de RE/Matrícula. */}
+            <SearchableSelect
+              options={[
+                { value: "", label: "Todas as Matrículas" },
+                ...colabReOpcoes
+              ]}
               value={reBusca}
-              onChange={(e) => setReBusca(e.target.value)}
-              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+              onChange={setReBusca}
+              placeholder="Todas as Matrículas"
+              multiple={true}
             />
           </div>
 
@@ -486,17 +545,17 @@ export default function Colaboradores() {
             <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Nome do Colaborador
             </label>
-            <InputGroup className="w-full">
-              <InputGroupAddon align="inline-start">
-                <Search className="h-4 w-4 text-neutral-450" />
-              </InputGroupAddon>
-              <InputGroupInput
-                type="text"
-                placeholder="Pesquise por nome..."
-                value={nomeBusca}
-                onChange={(e) => setNomeBusca(e.target.value)}
-              />
-            </InputGroup>
+            {/* Este componente de seleção múltipla reativa substitui o campo de texto de busca por nome. */}
+            <SearchableSelect
+              options={[
+                { value: "", label: "Todos os Colaboradores" },
+                ...colabNomeOpcoes
+              ]}
+              value={nomeBusca}
+              onChange={setNomeBusca}
+              placeholder="Todos os Colaboradores"
+              multiple={true}
+            />
           </div>
 
           <div>

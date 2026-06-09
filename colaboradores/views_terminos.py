@@ -57,12 +57,17 @@ def terminos_list(request):
     data_fim = request.GET.get("data_fim", "")
     coordenador_query = request.GET.get("coordenador", "")
     status_gestao_query = request.GET.get("status_gestao", "")
+    re_query = request.GET.get("re", "")
+    nome_query = request.GET.get("nome", "")
 
+    # Esta chamada aplica filtros de busca, coordenador, status de gestão, matrícula (RE) e nome do colaborador.
     colaboradores_qs = _filtrar_terminos_queryset(
         colaboradores_qs,
         search_query,
         coordenador_query,
         status_gestao_query,
+        re_query=re_query,
+        nome_query=nome_query,
     )
 
     today = date.today()
@@ -104,12 +109,17 @@ def exportar_terminos_excel(request):
     data_fim = request.GET.get("data_fim", "")
     coordenador_query = request.GET.get("coordenador", "")
     status_gestao_query = request.GET.get("status_gestao", "")
+    re_query = request.GET.get("re", "")
+    nome_query = request.GET.get("nome", "")
 
+    # Filtra os colaboradores antes de gerar a planilha Excel com base nos filtros da tela.
     colaboradores_qs = _filtrar_terminos_queryset(
         colaboradores_qs,
         search_query,
         coordenador_query,
         status_gestao_query,
+        re_query=re_query,
+        nome_query=nome_query,
     )
 
     today = date.today()
@@ -215,14 +225,27 @@ def _filtrar_terminos_queryset(
     search_query,
     coordenador_query,
     status_gestao_query,
+    re_query="",
+    nome_query="",
 ):
     """
-    Aplica filtros que o banco consegue resolver para reduzir trabalho em memória.
+    Aplica filtros de banco de dados nos colaboradores de término para limitar a lista.
+    Este filtro resolve buscas por termo geral, listas de matrícula (RE), nome, coordenador e status.
     """
     if search_query:
         colaboradores_qs = colaboradores_qs.filter(
             Q(nome__icontains=search_query) | Q(re__icontains=search_query)
         )
+
+    if re_query:
+        re_list = [r.strip() for r in re_query.split(",") if r.strip()]
+        if re_list:
+            colaboradores_qs = colaboradores_qs.filter(re__in=re_list)
+
+    if nome_query:
+        nome_list = [n.strip() for n in nome_query.split(",") if n.strip()]
+        if nome_list:
+            colaboradores_qs = colaboradores_qs.filter(nome__in=nome_list)
 
     if coordenador_query:
         coordenadores_list = [c.strip() for c in coordenador_query.split(",") if c.strip()]

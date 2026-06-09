@@ -7,6 +7,7 @@ app_name = 'colaboradores'
 urlpatterns = [
     path('', views.colaborador_list, name='list'),
     path('demitidos/', views.demitido_list, name='demitidos_list'),
+    path('filtro-opcoes/', views.colaborador_filtro_opcoes, name='filtro_opcoes'),
     path('status-gestao-opcoes/', views.status_gestao_opcoes, name='status_gestao_opcoes'),
     path('terminos/', views.terminos_list, name='terminos_list'),
     path('terminos/exportar/', views.exportar_terminos_excel, name='terminos_export'),

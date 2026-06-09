@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { 
-  Search, 
   Loader2,
   AlertCircle,
   FileSpreadsheet,
@@ -27,7 +26,6 @@ import {
 } from '../components/ui/pagination';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
 import { Calendar } from '../components/ui/calendar';
-import { InputGroup, InputGroupAddon, InputGroupInput } from '../components/ui/input-group';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -97,6 +95,13 @@ export default function Terminos() {
 
   // Estados dos Filtros
   const [busca, setBusca] = useState('');
+  const [reFiltro, setReFiltro] = useState('');
+  const [nomeFiltro, setNomeFiltro] = useState('');
+  
+  // Armazena as opções reativas de RE e Nome para a tela de términos
+  const [colabReOpcoes, setColabReOpcoes] = useState<{ value: string; label: string }[]>([]);
+  const [colabNomeOpcoes, setColabNomeOpcoes] = useState<{ value: string; label: string }[]>([]);
+  
   const [coordenador, setCoordenador] = useState('');
   const [statusGestao, setStatusGestao] = useState('');
   const [ordenacao, setOrdenacao] = useState('data');
@@ -153,10 +158,36 @@ export default function Terminos() {
     fetchStatusGestaoOpcoes();
   }, []);
 
-  // Efeito reativo: recarrega os prazos se mudar filtros dropdowns, ordenação, coordenador ou datas
+  // Carrega do backend as opções de RE e Nome dinamicamente baseando-se em outros filtros ativos na tela de términos
+  useEffect(() => {
+    const fetchFiltroOpcoes = async () => {
+      try {
+        const response = await api.get('/colaboradores/filtro-opcoes/', {
+          params: {
+            is_termino: 'true',
+            coordenador: coordenador || undefined,
+            status_gestao: statusGestao || undefined,
+            data_filtro: dataFiltro || undefined,
+            data_fim: dataFim || undefined,
+          }
+        });
+        
+        if (response.data) {
+          setColabReOpcoes(response.data.res || []);
+          setColabNomeOpcoes(response.data.nomes || []);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar opções de RE/Nome para termos:', err);
+      }
+    };
+
+    fetchFiltroOpcoes();
+  }, [coordenador, statusGestao, dataFiltro, dataFim]);
+
+  // Efeito reativo: recarrega os prazos se mudar filtros dropdowns, ordenação, coordenador, datas, reFiltro ou nomeFiltro
   useEffect(() => {
     fetchTerminos(true);
-  }, [ordenacao, statusGestao, coordenador, dataFiltro, dataFim, fetchTrigger]);
+  }, [ordenacao, statusGestao, coordenador, dataFiltro, dataFim, reFiltro, nomeFiltro, fetchTrigger]);
 
   useEffect(() => {
     fetchTerminos();
@@ -175,6 +206,8 @@ export default function Terminos() {
         params: {
           page: targetPage,
           search: busca || undefined,
+          re: reFiltro || undefined,
+          nome: nomeFiltro || undefined,
           coordenador: coordenador || undefined,
           status_gestao: statusGestao || undefined,
           ordenar: ordenacao || undefined,
@@ -212,6 +245,8 @@ export default function Terminos() {
       // Monta os parâmetros com base nos filtros atuais de tela
       const params: any = {};
       if (busca) params.search = busca;
+      if (reFiltro) params.re = reFiltro;
+      if (nomeFiltro) params.nome = nomeFiltro;
       if (coordenador) params.coordenador = coordenador;
       if (statusGestao) params.status_gestao = statusGestao;
       if (dataFiltro) params.data_filtro = dataFiltro;
@@ -271,6 +306,8 @@ export default function Terminos() {
 
   const handleClearFilters = () => {
     setBusca('');
+    setReFiltro('');
+    setNomeFiltro('');
     setCoordenador('');
     setStatusGestao('');
     setOrdenacao('data');
@@ -333,6 +370,8 @@ export default function Terminos() {
   const handleExportExcel = () => {
     const params = new URLSearchParams();
     if (busca) params.append('search', busca);
+    if (reFiltro) params.append('re', reFiltro);
+    if (nomeFiltro) params.append('nome', nomeFiltro);
     if (coordenador) params.append('coordenador', coordenador);
     if (statusGestao) params.append('status_gestao', statusGestao);
     if (dataFiltro) params.append('data_filtro', dataFiltro);
@@ -442,22 +481,39 @@ export default function Terminos() {
 
       {/* Filtros */}
       <form onSubmit={handleSearchSubmit} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs p-5 shadow-sm space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
-              Busca (Nome ou RE)
+              Matrícula (RE)
             </label>
-            <InputGroup className="w-full">
-              <InputGroupAddon align="inline-start">
-                <Search className="h-4 w-4 text-neutral-450" />
-              </InputGroupAddon>
-              <InputGroupInput
-                type="text"
-                placeholder="Ex: Pedro / 001290..."
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-              />
-            </InputGroup>
+            {/* Este componente de seleção múltipla reativa permite filtrar termos por múltiplos códigos RE. */}
+            <SearchableSelect
+              options={[
+                { value: "", label: "Todas as Matrículas" },
+                ...colabReOpcoes
+              ]}
+              value={reFiltro}
+              onChange={setReFiltro}
+              placeholder="Todas as Matrículas"
+              multiple={true}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
+              Nome do Colaborador
+            </label>
+            {/* Este componente de seleção múltipla reativa permite filtrar termos por múltiplos nomes. */}
+            <SearchableSelect
+              options={[
+                { value: "", label: "Todos os Colaboradores" },
+                ...colabNomeOpcoes
+              ]}
+              value={nomeFiltro}
+              onChange={setNomeFiltro}
+              placeholder="Todos os Colaboradores"
+              multiple={true}
+            />
           </div>
 
           <div>

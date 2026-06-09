@@ -146,13 +146,18 @@ def sync_geovictoria(request):
     data_fim = request.GET.get("data_fim", "")
     coordenador_query = request.GET.get("coordenador", "")
     status_gestao_query = request.GET.get("status_gestao", "")
+    re_query = request.GET.get("re", "")
+    nome_query = request.GET.get("nome", "")
 
     colaboradores_qs = _buscar_colaboradores_com_termino()
+    # Esta filtragem garante que o processo de sincronização considere apenas os colaboradores filtrados por RE e nome.
     colaboradores_qs = _filtrar_terminos_queryset(
         colaboradores_qs,
         search_query,
         coordenador_query,
         status_gestao_query,
+        re_query=re_query,
+        nome_query=nome_query,
     )
     processed_colaboradores = _processar_colaboradores_termino(
         colaboradores_qs,
