@@ -12,6 +12,44 @@ import api from '../../api/client';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '../ui/input-group';
 import type { Usuario } from './UsuariosTable';
 
+interface FormFieldProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  required?: boolean;
+}
+
+/**
+ * Componente auxiliar para renderizar campos simples de formulário.
+ * 
+ * Por que existe: Diminui a quantidade de markup repetido para os inputs textuais
+ * básicos da interface.
+ */
+function FormField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  required = false,
+}: FormFieldProps) {
+  return (
+    <div>
+      <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1.5">
+        {label}
+      </label>
+      <input
+        type="text"
+        required={required}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+        placeholder={placeholder}
+      />
+    </div>
+  );
+}
+
 interface UsuarioFormModalProps {
   usuario: Usuario | null;
   currentUsername: string;
@@ -22,10 +60,8 @@ interface UsuarioFormModalProps {
 /**
  * Modal de formulário para criação e edição de usuários.
  * 
- * Por que existe: Isola todo o estado do formulário de usuário, incluindo 
- * inputs (username, nome, sobrenome, email, senha, status ativo) e lógica de
- * submissão à API (POST para novos, PATCH para existentes). Evita poluição de
- * estado no componente de página principal.
+ * Por que existe: Centraliza os estados e envios de cadastro/edição de usuários,
+ * utilizando um único objeto de estado (formData) para otimizar a legibilidade.
  */
 export default function UsuarioFormModal({
   usuario,
@@ -33,13 +69,15 @@ export default function UsuarioFormModal({
   onClose,
   onSaveSuccess,
 }: UsuarioFormModalProps) {
-  // Estados locais dos campos do formulário
-  const [formUsername, setFormUsername] = useState('');
-  const [formFirstName, setFormFirstName] = useState('');
-  const [formLastName, setFormLastName] = useState('');
-  const [formEmail, setFormEmail] = useState('');
-  const [formPassword, setFormPassword] = useState('');
-  const [formIsActive, setFormIsActive] = useState(true);
+  // Estado agrupado para os campos do formulário
+  const [formData, setFormData] = useState({
+    username: '',
+    first_name: '',
+    last_name: '',
+    email: '',
+    password: '',
+    is_active: true,
+  });
 
   // Estados locais de controle de envio e erro
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -48,22 +86,31 @@ export default function UsuarioFormModal({
   // Inicializa os campos quando o modal abre (para criação ou edição)
   useEffect(() => {
     if (usuario) {
-      setFormUsername(usuario.username);
-      setFormFirstName(usuario.first_name || '');
-      setFormLastName(usuario.last_name || '');
-      setFormEmail(usuario.email || '');
-      setFormPassword(''); // Senha inicia vazia para edição
-      setFormIsActive(usuario.is_active);
+      setFormData({
+        username: usuario.username,
+        first_name: usuario.first_name || '',
+        last_name: usuario.last_name || '',
+        email: usuario.email || '',
+        password: '', // Senha inicia vazia para edição
+        is_active: usuario.is_active,
+      });
     } else {
-      setFormUsername('');
-      setFormFirstName('');
-      setFormLastName('');
-      setFormEmail('');
-      setFormPassword('');
-      setFormIsActive(true);
+      setFormData({
+        username: '',
+        first_name: '',
+        last_name: '',
+        email: '',
+        password: '',
+        is_active: true,
+      });
     }
     setErrorMsg(null);
   }, [usuario]);
+
+  // Atualizador genérico para os campos do formulário
+  const handleChange = (field: string, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
 
   // Função responsável por enviar o payload de cadastro/edição ao backend
   const handleSaveUsuario = async (e: React.FormEvent) => {
@@ -71,28 +118,28 @@ export default function UsuarioFormModal({
     setErrorMsg(null);
     setActionLoading(true);
 
-    if (!formUsername.trim()) {
+    if (!formData.username.trim()) {
       setErrorMsg('O nome de usuário é obrigatório.');
       setActionLoading(false);
       return;
     }
 
-    if (!usuario && !formPassword.trim()) {
+    if (!usuario && !formData.password.trim()) {
       setErrorMsg('A senha é obrigatória para novos usuários.');
       setActionLoading(false);
       return;
     }
 
     const payload: any = {
-      username: formUsername.trim(),
-      first_name: formFirstName.trim(),
-      last_name: formLastName.trim(),
-      email: formEmail.trim(),
-      is_active: formIsActive,
+      username: formData.username.trim(),
+      first_name: formData.first_name.trim(),
+      last_name: formData.last_name.trim(),
+      email: formData.email.trim(),
+      is_active: formData.is_active,
     };
 
-    if (formPassword.trim()) {
-      payload.password = formPassword;
+    if (formData.password.trim()) {
+      payload.password = formData.password;
     }
 
     try {
@@ -169,9 +216,9 @@ export default function UsuarioFormModal({
               <InputGroupInput
                 type="text"
                 required
-                value={formUsername}
+                value={formData.username}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setFormUsername(e.target.value)
+                  handleChange('username', e.target.value)
                 }
                 placeholder="Ex: joao.silva"
                 disabled={usuario !== null} // Usuário não pode mudar o username após criação
@@ -180,30 +227,18 @@ export default function UsuarioFormModal({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1.5">
-                Nome
-              </label>
-              <input
-                type="text"
-                value={formFirstName}
-                onChange={(e) => setFormFirstName(e.target.value)}
-                className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-                placeholder="Ex: João"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1.5">
-                Sobrenome
-              </label>
-              <input
-                type="text"
-                value={formLastName}
-                onChange={(e) => setFormLastName(e.target.value)}
-                className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-                placeholder="Ex: Silva"
-              />
-            </div>
+            <FormField
+              label="Nome"
+              value={formData.first_name}
+              onChange={(val) => handleChange('first_name', val)}
+              placeholder="Ex: João"
+            />
+            <FormField
+              label="Sobrenome"
+              value={formData.last_name}
+              onChange={(val) => handleChange('last_name', val)}
+              placeholder="Ex: Silva"
+            />
           </div>
 
           <div>
@@ -216,9 +251,9 @@ export default function UsuarioFormModal({
               </InputGroupAddon>
               <InputGroupInput
                 type="email"
-                value={formEmail}
+                value={formData.email}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setFormEmail(e.target.value)
+                  handleChange('email', e.target.value)
                 }
                 placeholder="Ex: joao@empresa.com"
               />
@@ -236,9 +271,9 @@ export default function UsuarioFormModal({
               <InputGroupInput
                 type="password"
                 required={!usuario}
-                value={formPassword}
+                value={formData.password}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setFormPassword(e.target.value)
+                  handleChange('password', e.target.value)
                 }
                 placeholder={usuario ? 'Nova senha' : 'Senha de acesso'}
               />
@@ -250,8 +285,8 @@ export default function UsuarioFormModal({
               <input
                 type="checkbox"
                 id="user_active"
-                checked={formIsActive}
-                onChange={(e) => setFormIsActive(e.target.checked)}
+                checked={formData.is_active}
+                onChange={(e) => handleChange('is_active', e.target.checked)}
                 disabled={usuario.username === currentUsername} // Não deixa o usuário desativar a si próprio
                 className="rounded border-neutral-200 dark:border-neutral-800 text-primary focus:ring-primary h-4 w-4 disabled:opacity-50"
               />
