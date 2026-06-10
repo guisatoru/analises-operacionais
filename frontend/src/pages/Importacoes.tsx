@@ -1,15 +1,14 @@
 import { useState } from 'react';
 import { 
-  UploadCloud, 
-  FileSpreadsheet, 
   Users, 
+  FileSpreadsheet, 
   FileText, 
   CheckCircle2, 
   AlertCircle, 
-  Loader2, 
   X 
 } from 'lucide-react';
 import api from '../api/client';
+import UploadCard from '../components/Importacoes/UploadCard';
 
 interface ImportStatus {
   status: 'processing' | 'completed' | 'error' | 'not_found';
@@ -23,26 +22,24 @@ interface ImportStatus {
 /**
  * Página de Central de Importações.
  * 
- * Por que existe: Centraliza as três principais cargas de arquivos necessárias para o 
- * funcionamento da plataforma (Cadastro SRA da TOTVS, Planilha de Gestão de Pessoas e 
- * Folha de Pagamento SRD). Cada card realiza o upload multipart e faz o acompanhamento 
- * do progresso em tempo real através do polling no endpoint de cache do Django.
+ * Por que existe: Gerencia a seleção de arquivos e os envios multipart para a API do Django
+ * (SRA Colaboradores, Planilha de Gestão, Folha SRD e Diárias), realizando o polling de progresso 
+ * e delegando o layout dos cards para o componente UploadCard.
  */
 export default function Importacoes() {
-  // Estados para cada tipo de importação
+  // Estados para armazenar cada tipo de arquivo selecionado
   const [sraFile, setSraFile] = useState<File | null>(null);
   const [gestaoFile, setGestaoFile] = useState<File | null>(null);
   const [folhaFile, setFolhaFile] = useState<File | null>(null);
   const [diariaFile, setDiariaFile] = useState<File | null>(null);
 
   // Estados de controle do processo de importação
-  const [activeImportId, setActiveImportId] = useState<string | null>(null);
   const [importStatus, setImportStatus] = useState<ImportStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Monitora o progresso do processamento de importação via polling
   const startPolling = (importId: string) => {
-    setActiveImportId(importId);
     setErrorMsg(null);
 
     const intervalId = setInterval(async () => {
@@ -54,8 +51,7 @@ export default function Importacoes() {
         if (data.status === 'completed') {
           clearInterval(intervalId);
           setLoading(false);
-          setActiveImportId(null);
-          // Limpa arquivos selecionados após sucesso
+          // Limpa todos os arquivos da tela após conclusão com sucesso
           setSraFile(null);
           setGestaoFile(null);
           setFolhaFile(null);
@@ -63,19 +59,18 @@ export default function Importacoes() {
         } else if (data.status === 'error') {
           clearInterval(intervalId);
           setLoading(false);
-          setActiveImportId(null);
           setErrorMsg(data.message || 'Erro durante o processamento do arquivo.');
         }
       } catch (err) {
         console.error('Erro ao verificar status da importação:', err);
         clearInterval(intervalId);
         setLoading(false);
-        setActiveImportId(null);
         setErrorMsg('Erro de comunicação ao checar o status.');
       }
     }, 1000);
   };
 
+  // Faz o envio (upload) do arquivo para a API correspondente
   const handleUpload = async (tipo: 'sra' | 'gestao' | 'folha' | 'diaria', file: File | null) => {
     if (!file) {
       alert('Selecione um arquivo primeiro.');
@@ -140,157 +135,75 @@ export default function Importacoes() {
 
       {/* Grid de Cards de Upload */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        
         {/* Card Colaboradores SRA */}
-        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs p-6 shadow-sm flex flex-col justify-between space-y-4">
-          <div className="space-y-2">
+        <UploadCard
+          title="Colaboradores (TOTVS - SRA)"
+          description="Carga do cadastro de equipe ativa. Formato aceito: CSV exportado do sistema SRA."
+          icon={
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
               <Users className="h-6 w-6" />
             </div>
-            <h3 className="font-bold text-lg text-neutral-900 dark:text-neutral-100">Colaboradores (TOTVS - SRA)</h3>
-            <p className="text-xs text-neutral-400">
-              Carga do cadastro de equipe ativa. Formato aceito: CSV exportado do sistema SRA.
-            </p>
-          </div>
-
-          <div className="space-y-3 pt-2">
-            <label className="border border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-50 dark:bg-neutral-850 transition-colors">
-              <UploadCloud className="h-6 w-6 text-neutral-400 mb-2" />
-              <span className="text-xs font-semibold text-neutral-500">
-                {sraFile ? sraFile.name : 'Selecionar arquivo CSV'}
-              </span>
-              <input
-                type="file"
-                accept=".csv"
-                className="hidden"
-                disabled={loading}
-                onChange={(e) => setSraFile(e.target.files?.[0] || null)}
-              />
-            </label>
-
-            <button
-              onClick={() => handleUpload('sra', sraFile)}
-              disabled={loading || !sraFile}
-              className="w-full py-2.5 bg-neutral-900 hover:bg-neutral-850 dark:bg-white dark:text-neutral-900 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-full text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs"
-            >
-              {loading && !activeImportId && <Loader2 className="h-4 w-4 animate-spin" />}
-              Importar Colaboradores
-            </button>
-          </div>
-        </div>
+          }
+          accept=".csv"
+          file={sraFile}
+          setFile={setSraFile}
+          loading={loading}
+          buttonText="Importar Colaboradores"
+          onUpload={() => handleUpload('sra', sraFile)}
+        />
 
         {/* Card Gestão de Pessoas */}
-        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs p-6 shadow-sm flex flex-col justify-between space-y-4">
-          <div className="space-y-2">
+        <UploadCard
+          title="Gestão de Pessoas"
+          description="Atualiza funções e lotações das planilhas de RH. Formato aceito: planilha Excel (.xlsm / .xlsx)."
+          icon={
             <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
               <FileSpreadsheet className="h-6 w-6" />
             </div>
-            <h3 className="font-bold text-lg text-neutral-900 dark:text-neutral-100">Gestão de Pessoas</h3>
-            <p className="text-xs text-neutral-400">
-              Atualiza funções e lotações das planilhas de RH. Formato aceito: planilha Excel (.xlsm / .xlsx).
-            </p>
-          </div>
-
-          <div className="space-y-3 pt-2">
-            <label className="border border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-50 dark:bg-neutral-850 transition-colors">
-              <UploadCloud className="h-6 w-6 text-emerald-500 mb-2" />
-              <span className="text-xs font-semibold text-neutral-500">
-                {gestaoFile ? gestaoFile.name : 'Selecionar planilha Excel'}
-              </span>
-              <input
-                type="file"
-                accept=".xlsx,.xlsm,.xls"
-                className="hidden"
-                disabled={loading}
-                onChange={(e) => setGestaoFile(e.target.files?.[0] || null)}
-              />
-            </label>
-
-            <button
-              onClick={() => handleUpload('gestao', gestaoFile)}
-              disabled={loading || !gestaoFile}
-              className="w-full py-2.5 bg-neutral-900 hover:bg-neutral-850 dark:bg-white dark:text-neutral-900 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-full text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs"
-            >
-              {loading && !activeImportId && <Loader2 className="h-4 w-4 animate-spin" />}
-              Importar Planilha Gestão
-            </button>
-          </div>
-        </div>
+          }
+          accept=".xlsx,.xlsm,.xls"
+          file={gestaoFile}
+          setFile={setGestaoFile}
+          loading={loading}
+          buttonText="Importar Planilha Gestão"
+          onUpload={() => handleUpload('gestao', gestaoFile)}
+        />
 
         {/* Card Folha de Pagamento SRD */}
-        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs p-6 shadow-sm flex flex-col justify-between space-y-4">
-          <div className="space-y-2">
+        <UploadCard
+          title="Folha de Pagamento (SRD)"
+          description="Carga das verbas e pagamentos de proventos. Formato aceito: CSV de export da folha."
+          icon={
             <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
               <FileText className="h-6 w-6" />
             </div>
-            <h3 className="font-bold text-lg text-neutral-950 dark:text-neutral-50">Folha de Pagamento (SRD)</h3>
-            <p className="text-xs text-neutral-400">
-              Carga das verbas e pagamentos de proventos. Formato aceito: CSV de export da folha.
-            </p>
-          </div>
-
-          <div className="space-y-3 pt-2">
-            <label className="border border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-50 dark:bg-neutral-850 transition-colors">
-              <UploadCloud className="h-6 w-6 text-blue-500 mb-2" />
-              <span className="text-xs font-semibold text-neutral-500">
-                {folhaFile ? folhaFile.name : 'Selecionar arquivo CSV'}
-              </span>
-              <input
-                type="file"
-                accept=".csv"
-                className="hidden"
-                disabled={loading}
-                onChange={(e) => setFolhaFile(e.target.files?.[0] || null)}
-              />
-            </label>
-
-            <button
-              onClick={() => handleUpload('folha', folhaFile)}
-              disabled={loading || !folhaFile}
-              className="w-full py-2.5 bg-neutral-900 hover:bg-neutral-850 dark:bg-white dark:text-neutral-900 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-full text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs"
-            >
-              {loading && !activeImportId && <Loader2 className="h-4 w-4 animate-spin" />}
-              Importar Folha SRD
-            </button>
-          </div>
-        </div>
+          }
+          accept=".csv"
+          file={folhaFile}
+          setFile={setFolhaFile}
+          loading={loading}
+          buttonText="Importar Folha SRD"
+          onUpload={() => handleUpload('folha', folhaFile)}
+        />
 
         {/* Card Diárias Operacionais */}
-        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs p-6 shadow-sm flex flex-col justify-between space-y-4">
-          <div className="space-y-2">
+        <UploadCard
+          title="Diárias Operacionais"
+          description="Carga das diárias e custos das filiais. Formato aceito: CSV delimitado por ponto e vírgula."
+          icon={
             <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500">
               <FileSpreadsheet className="h-6 w-6" />
             </div>
-            <h3 className="font-bold text-lg text-neutral-950 dark:text-neutral-50">Diárias Operacionais</h3>
-            <p className="text-xs text-neutral-400">
-              Carga das diárias e custos das filiais. Formato aceito: CSV delimitado por ponto e vírgula.
-            </p>
-          </div>
+          }
+          accept=".csv"
+          file={diariaFile}
+          setFile={setDiariaFile}
+          loading={loading}
+          buttonText="Importar Diárias"
+          onUpload={() => handleUpload('diaria', diariaFile)}
+        />
 
-          <div className="space-y-3 pt-2">
-            <label className="border border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-50 dark:bg-neutral-850 transition-colors">
-              <UploadCloud className="h-6 w-6 text-purple-500 mb-2" />
-              <span className="text-xs font-semibold text-neutral-500">
-                {diariaFile ? diariaFile.name : 'Selecionar arquivo CSV'}
-              </span>
-              <input
-                type="file"
-                accept=".csv"
-                className="hidden"
-                disabled={loading}
-                onChange={(e) => setDiariaFile(e.target.files?.[0] || null)}
-              />
-            </label>
-
-            <button
-              onClick={() => handleUpload('diaria', diariaFile)}
-              disabled={loading || !diariaFile}
-              className="w-full py-2.5 bg-neutral-900 hover:bg-neutral-850 dark:bg-white dark:text-neutral-900 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-full text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs"
-            >
-              {loading && !activeImportId && <Loader2 className="h-4 w-4 animate-spin" />}
-              Importar Diárias
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* Modal de Progresso e Resultado */}
@@ -306,6 +219,7 @@ export default function Importacoes() {
               </div>
               {importStatus.status === 'completed' && (
                 <button
+                  type="button"
                   onClick={() => setImportStatus(null)}
                   className="p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
                 >
