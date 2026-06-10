@@ -1,4 +1,5 @@
 import { Loader2, FileText, CalendarCheck, TrendingUp, Calculator, Scale, Info } from 'lucide-react';
+import { formatCurrency } from '../../utils/formatters';
 
 export interface ResultadoComparativo {
   loja: {
@@ -34,13 +35,6 @@ interface ComparativoTableProps {
   selectedLoja: string;
   selectedCompetencias: string[];
 }
-
-const formatCurrency = (val: any) => {
-  if (val === undefined || val === null || val === '-') return '-';
-  const num = parseFloat(val);
-  if (isNaN(num)) return '-';
-  return `R$ ${num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-};
 
 const getDesvioBadge = (desvioStr: string) => {
   const desvio = parseFloat(desvioStr || '0');

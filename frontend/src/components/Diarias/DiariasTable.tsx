@@ -1,4 +1,5 @@
 import { FileSpreadsheet, Loader2, CheckCircle2, Clock, XCircle, HelpCircle } from 'lucide-react';
+import { formatCurrency as formatarReal } from '../../utils/formatters';
 
 export interface DiariaData {
   id_diaria: string;
@@ -23,10 +24,6 @@ interface DiariasTableProps {
   setCurrentPage: (page: number) => void;
 }
 
-// Formata valores monetários para Real brasileiro
-const formatarReal = (valor: number) => {
-  return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-};
 
 // Retorna o badge estilizado de acordo com o status
 const getStatusBadge = (statusStr: string) => {

@@ -18,6 +18,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '../ui/pagination';
+import { formatCurrency } from '../../utils/formatters';
 
 export interface Cargo {
   id: string;
@@ -228,12 +229,6 @@ export default function EscoposTable({
     setEditQuantidade(1);
   };
 
-  const formatCurrency = (val: any) => {
-    if (val === undefined || val === null || val === '-') return '-';
-    const num = parseFloat(val);
-    if (isNaN(num)) return '-';
-    return `R$ ${num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
 
   if (loading) {
     return (

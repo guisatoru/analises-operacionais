@@ -7,6 +7,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '../ui/pagination';
+import { getStatusBadge } from '../../utils/badges';
 
 export interface Colaborador {
   id: string;
@@ -59,52 +60,6 @@ export default function ColaboradoresTable({
   setCurrentPage,
   onOpenDetail,
 }: ColaboradoresTableProps) {
-  // Formata o status retornado pela folha de pagamento do TOTVS
-  const formatStatusTotvs = (statusVal: string) => {
-    const text = (statusVal || '').trim().toUpperCase();
-    if (text === '' || text === 'ATIVO') return 'ATIVO';
-    if (text === 'A') return 'AFASTADO';
-    if (text === 'F') return 'FÉRIAS';
-    if (text === 'D') return 'DEMITIDO';
-    return text;
-  };
-
-  // Desenha o badge colorido correspondente ao status do contrato
-  const getStatusBadge = (statusValue: string) => {
-    const formatted = formatStatusTotvs(statusValue);
-    switch (formatted) {
-      case 'ATIVO':
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-950/30 dark:text-green-400">
-            Ativo
-          </span>
-        );
-      case 'FÉRIAS':
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950/30 dark:text-blue-400">
-            Férias
-          </span>
-        );
-      case 'AFASTADO':
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-400">
-            Afastado
-          </span>
-        );
-      case 'DEMITIDO':
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-400">
-            Demitido
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">
-            {formatted}
-          </span>
-        );
-    }
-  };
 
   return (
     <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs shadow-sm overflow-hidden">

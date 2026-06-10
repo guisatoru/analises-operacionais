@@ -11,44 +11,7 @@ import { toast } from 'sonner';
 import api from '../../api/client';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '../ui/input-group';
 import type { Usuario } from './UsuariosTable';
-
-interface FormFieldProps {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  required?: boolean;
-}
-
-/**
- * Componente auxiliar para renderizar campos simples de formulário.
- * 
- * Por que existe: Diminui a quantidade de markup repetido para os inputs textuais
- * básicos da interface.
- */
-function FormField({
-  label,
-  value,
-  onChange,
-  placeholder,
-  required = false,
-}: FormFieldProps) {
-  return (
-    <div>
-      <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1.5">
-        {label}
-      </label>
-      <input
-        type="text"
-        required={required}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-        placeholder={placeholder}
-      />
-    </div>
-  );
-}
+import FormField from '../ui/form-field';
 
 interface UsuarioFormModalProps {
   usuario: Usuario | null;

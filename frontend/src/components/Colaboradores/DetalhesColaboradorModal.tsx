@@ -1,5 +1,7 @@
 import { User, X, Layers, Calendar } from 'lucide-react';
 import type { Colaborador } from './ColaboradoresTable';
+import { formatDate } from '../../utils/formatters';
+import { getStatusBadge } from '../../utils/badges';
 
 interface DetalhesColaboradorModalProps {
   colab: Colaborador;
@@ -17,59 +19,6 @@ export default function DetalhesColaboradorModal({
   colab,
   onClose,
 }: DetalhesColaboradorModalProps) {
-  // Formata o status retornado pelo TOTVS
-  const formatStatusTotvs = (statusVal: string) => {
-    const text = (statusVal || '').trim().toUpperCase();
-    if (text === '' || text === 'ATIVO') return 'ATIVO';
-    if (text === 'A') return 'AFASTADO';
-    if (text === 'F') return 'FÉRIAS';
-    if (text === 'D') return 'DEMITIDO';
-    return text;
-  };
-
-  // Desenha o badge correspondente ao status do contrato
-  const getStatusBadge = (statusValue: string) => {
-    const formatted = formatStatusTotvs(statusValue);
-    switch (formatted) {
-      case 'ATIVO':
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-950/30 dark:text-green-400">
-            Ativo
-          </span>
-        );
-      case 'FÉRIAS':
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950/30 dark:text-blue-400">
-            Férias
-          </span>
-        );
-      case 'AFASTADO':
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-400">
-            Afastado
-          </span>
-        );
-      case 'DEMITIDO':
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-400">
-            Demitido
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">
-            {formatted}
-          </span>
-        );
-    }
-  };
-
-  // Formata datas de yyyy-MM-dd para dd/MM/yyyy
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return '-';
-    const [year, month, day] = dateStr.split('-');
-    return `${day}/${month}/${year}`;
-  };
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">

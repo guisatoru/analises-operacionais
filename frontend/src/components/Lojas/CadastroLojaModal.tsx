@@ -3,46 +3,7 @@ import { X, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../api/client';
 import type { Loja, Responsavel } from './LojasTable';
-
-interface FormFieldProps {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  type?: string;
-  required?: boolean;
-}
-
-/**
- * Componente auxiliar para renderizar campos de entrada de formulário padronizados.
- * 
- * Por que existe: Evita repetir a marcação HTML de rótulos e classes CSS de input,
- * reduzindo centenas de linhas de código repetitivo.
- */
-function FormField({
-  label,
-  value,
-  onChange,
-  placeholder,
-  type = 'text',
-  required = false,
-}: FormFieldProps) {
-  return (
-    <div>
-      <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
-        {label}
-      </label>
-      <input
-        type={type}
-        required={required}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-        placeholder={placeholder}
-      />
-    </div>
-  );
-}
+import FormField from '../ui/form-field';
 
 interface CadastroLojaModalProps {
   loja: Loja | null;

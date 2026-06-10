@@ -7,6 +7,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '../ui/pagination';
+import { formatDate } from '../../utils/formatters';
+import { getStatusBadge } from '../../utils/badges';
 
 export interface ColaboradorTermino {
   id: string;
@@ -75,58 +77,6 @@ export default function TerminosTable({
   setCurrentPage,
   onOpenAcao,
 }: TerminosTableProps) {
-  // Formata strings de datas yyyy-MM-dd para dd/MM/yyyy
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '-';
-    const [year, month, day] = dateStr.split('-');
-    return `${day}/${month}/${year}`;
-  };
-
-  // Retorna o elemento HTML com badge estilizado conforme o status de gestão do término
-  const getStatusBadge = (status: string) => {
-    const s = (status || '').toUpperCase();
-    if (s.includes('PENDENTE')) {
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-400">
-          Pendente
-        </span>
-      );
-    }
-    if (
-      s.includes('EFETIVADO') ||
-      s.includes('MANTER') ||
-      s.includes('MANTIDO')
-    ) {
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-950/30 dark:text-green-400">
-          Efetivado
-        </span>
-      );
-    }
-    if (
-      s.includes('DISPENSADO') ||
-      s.includes('TÉRMINO') ||
-      s.includes('TERMINO')
-    ) {
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-400">
-          Dispensado
-        </span>
-      );
-    }
-    if (s.includes('PRORROGADO')) {
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950/30 dark:text-blue-400">
-          Prorrogado
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">
-        {status}
-      </span>
-    );
-  };
 
   return (
     <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs shadow-sm overflow-hidden">
