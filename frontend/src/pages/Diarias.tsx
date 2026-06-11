@@ -283,7 +283,23 @@ export default function Diarias() {
                       contentStyle={{ background: '#171717', border: 'none', borderRadius: '8px', fontSize: '11px', color: '#fff' }} 
                       formatter={(value: any) => [formatarReal(Number(value)), 'Custo']}
                     />
-                    <Line type="monotone" dataKey="faturamento" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    <Line 
+                      type="monotone" 
+                      dataKey="faturamento" 
+                      stroke="#8b5cf6" 
+                      strokeWidth={3} 
+                      dot={{ r: 4, style: { cursor: 'pointer' } }} 
+                      activeDot={{ r: 6, style: { cursor: 'pointer' } }}
+                      style={{ cursor: 'pointer' }}
+                      onClick={(data: any) => {
+                        if (data && data.payload && data.payload.mes) {
+                          const [mes, ano] = data.payload.mes.split('/');
+                          const val = `${ano}-${mes}`;
+                          setFiltroMesAno(prev => prev === val ? '' : val);
+                          setCurrentPage(1);
+                        }
+                      }}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               )}
@@ -317,6 +333,13 @@ export default function Diarias() {
                         paddingAngle={3}
                         dataKey="quantidade"
                         nameKey="status"
+                        style={{ cursor: 'pointer' }}
+                        onClick={(data: any) => {
+                          if (data && data.status) {
+                            setFiltroStatus(prev => prev === data.status ? '' : data.status);
+                            setCurrentPage(1);
+                          }
+                        }}
                       >
                         {graficos.status.map((_, index) => (
                           <Cell key={`cell-${index}`} fill={CORES_PIE[index % CORES_PIE.length]} />
@@ -370,7 +393,18 @@ export default function Diarias() {
                       contentStyle={{ background: '#171717', border: 'none', borderRadius: '8px', fontSize: '11px', color: '#fff' }}
                       formatter={(value: any) => [formatarReal(Number(value)), 'Valor']}
                     />
-                    <Bar dataKey="total" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                    <Bar 
+                      dataKey="total" 
+                      fill="#3b82f6" 
+                      radius={[0, 4, 4, 0]} 
+                      style={{ cursor: 'pointer' }}
+                      onClick={(data: any) => {
+                        if (data && data.motivo) {
+                          setFiltroMotivo(prev => prev === data.motivo ? '' : data.motivo);
+                          setCurrentPage(1);
+                        }
+                      }}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -400,7 +434,18 @@ export default function Diarias() {
                       contentStyle={{ background: '#171717', border: 'none', borderRadius: '8px', fontSize: '11px', color: '#fff' }}
                       formatter={(value: any) => [formatarReal(Number(value)), 'Total']}
                     />
-                    <Bar dataKey="total" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    <Bar 
+                      dataKey="total" 
+                      fill="#10b981" 
+                      radius={[4, 4, 0, 0]} 
+                      style={{ cursor: 'pointer' }}
+                      onClick={(data: any) => {
+                        if (data && data.turno) {
+                          setFiltroTurno(prev => prev === data.turno ? '' : data.turno);
+                          setCurrentPage(1);
+                        }
+                      }}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -433,9 +478,21 @@ export default function Diarias() {
                       contentStyle={{ background: '#171717', border: 'none', borderRadius: '8px', fontSize: '11px', color: '#fff' }}
                       formatter={(value: any) => [formatarReal(Number(value)), 'Total']}
                     />
-                    <Bar dataKey="total" fill="#f59e0b" radius={[4, 4, 0, 0]}>
+                    <Bar 
+                      dataKey="total" 
+                      fill="#f59e0b" 
+                      radius={[4, 4, 0, 0]}
+                      style={{ cursor: 'pointer' }}
+                      onClick={(data: any) => {
+                        if (data && data.uf) {
+                          const val = data.uf === 'N/A' ? 'null' : data.uf;
+                          setFiltroUf(prev => prev === val ? '' : val);
+                          setCurrentPage(1);
+                        }
+                      }}
+                    >
                       {graficos.uf.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={CORES_PIE[index % CORES_PIE.length]} />
+                        <Cell key={`cell-${index}`} fill={CORES_PIE[index % CORES_PIE.length]} style={{ cursor: 'pointer' }} />
                       ))}
                     </Bar>
                   </BarChart>
@@ -467,7 +524,19 @@ export default function Diarias() {
                       contentStyle={{ background: '#171717', border: 'none', borderRadius: '8px', fontSize: '11px', color: '#fff' }}
                       formatter={(value: any) => [formatarReal(Number(value)), 'Total']}
                     />
-                    <Bar dataKey="total" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+                    <Bar 
+                      dataKey="total" 
+                      fill="#8b5cf6" 
+                      radius={[0, 4, 4, 0]} 
+                      style={{ cursor: 'pointer' }}
+                      onClick={(data: any) => {
+                        if (data && data.coordenador) {
+                          const val = data.coordenador === 'N/A' ? 'null' : data.coordenador;
+                          setFiltroCoordenador(prev => prev === val ? '' : val);
+                          setCurrentPage(1);
+                        }
+                      }}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               )}
