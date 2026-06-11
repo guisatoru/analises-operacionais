@@ -9,7 +9,9 @@ interface FiltroOpcoes {
   turnos: string[];
   motivos: string[];
   status: string[];
-  solicitantes: string[];
+  supervisores: string[];
+  coordenadores: string[];
+  ufs: string[];
   meses_anos: { value: string; label: string }[];
 }
 
@@ -26,8 +28,12 @@ interface DiariasFilterProps {
   setFiltroMotivo: (val: string) => void;
   filtroStatus: string;
   setFiltroStatus: (val: string) => void;
-  filtroSolicitante: string;
-  setFiltroSolicitante: (val: string) => void;
+  filtroSupervisor: string;
+  setFiltroSupervisor: (val: string) => void;
+  filtroCoordenador: string;
+  setFiltroCoordenador: (val: string) => void;
+  filtroUf: string;
+  setFiltroUf: (val: string) => void;
   onClear: () => void;
   onError: (msg: string | null) => void;
 }
@@ -52,8 +58,12 @@ export default function DiariasFilter({
   setFiltroMotivo,
   filtroStatus,
   setFiltroStatus,
-  filtroSolicitante,
-  setFiltroSolicitante,
+  filtroSupervisor,
+  setFiltroSupervisor,
+  filtroCoordenador,
+  setFiltroCoordenador,
+  filtroUf,
+  setFiltroUf,
   onClear,
   onError,
 }: DiariasFilterProps) {
@@ -63,7 +73,9 @@ export default function DiariasFilter({
     turnos: [],
     motivos: [],
     status: [],
-    solicitantes: [],
+    supervisores: [],
+    coordenadores: [],
+    ufs: [],
     meses_anos: []
   });
   const [loading, setLoading] = useState(true);
@@ -215,20 +227,58 @@ export default function DiariasFilter({
           )}
         </div>
 
-        {/* Solicitante */}
+        {/* Supervisor */}
         <div className="space-y-1.5">
-          <label className="block text-[10px] font-bold text-neutral-500 uppercase">Solicitante</label>
+          <label className="block text-[10px] font-bold text-neutral-500 uppercase">Supervisor</label>
           {loading ? (
             <div className="text-xs text-neutral-400">Carregando...</div>
           ) : (
             <SearchableSelect
               options={[
-                { value: "", label: "Todos os Solicitantes" },
-                ...opcoes.solicitantes.map((s) => ({ value: s, label: s.toUpperCase() }))
+                { value: "", label: "Todos os Supervisores" },
+                ...opcoes.supervisores.map((s) => ({ value: s, label: s }))
               ]}
-              value={filtroSolicitante}
-              onChange={setFiltroSolicitante}
-              placeholder="Todos os solicitantes..."
+              value={filtroSupervisor}
+              onChange={setFiltroSupervisor}
+              placeholder="Todos os supervisores..."
+              multiple={true}
+            />
+          )}
+        </div>
+
+        {/* Coordenador */}
+        <div className="space-y-1.5">
+          <label className="block text-[10px] font-bold text-neutral-500 uppercase">Coordenador</label>
+          {loading ? (
+            <div className="text-xs text-neutral-400">Carregando...</div>
+          ) : (
+            <SearchableSelect
+              options={[
+                { value: "", label: "Todos os Coordenadores" },
+                ...opcoes.coordenadores.map((c) => ({ value: c, label: c }))
+              ]}
+              value={filtroCoordenador}
+              onChange={setFiltroCoordenador}
+              placeholder="Todos os coordenadores..."
+              multiple={true}
+            />
+          )}
+        </div>
+
+        {/* UF */}
+        <div className="space-y-1.5">
+          <label className="block text-[10px] font-bold text-neutral-500 uppercase">UF</label>
+          {loading ? (
+            <div className="text-xs text-neutral-400">Carregando...</div>
+          ) : (
+            <SearchableSelect
+              options={[
+                { value: "", label: "Todas as UFs" },
+                ...opcoes.ufs.map((u) => ({ value: u, label: u }))
+              ]}
+              value={filtroUf}
+              onChange={setFiltroUf}
+              placeholder="Todas as UFs..."
               multiple={true}
             />
           )}

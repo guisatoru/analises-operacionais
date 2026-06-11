@@ -1,5 +1,7 @@
 from django.db.models import Sum, Count, Q
 from django.db.models.functions import TruncMonth
+from operator import or_
+from functools import reduce
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -22,8 +24,8 @@ def diarias_list_api(request):
     e agregações estatísticas (BI) para renderizar os gráficos de desempenho.
     
     Docstring explicativa: Esta view retorna os dados paginados de diárias e expõe
-    cálculos agregados (Valor Total, Preço Médio e distribuições por Status, Turno
-    e Motivo) para alimentar os gráficos no estilo PowerBI.
+    cálculos agregados (Valor Total, Preço Médio e distribuições por Status, Turno,
+    Motivo, UF e Coordenador) para alimentar os gráficos no estilo PowerBI.
     """
     queryset = Diaria.objects.all().select_related("loja")
 
@@ -93,17 +95,44 @@ def diarias_list_api(request):
                 q_obj = q_obj | Q(status__isnull=True) | Q(status="")
             queryset = queryset.filter(q_obj)
 
-    solicitante = request.query_params.get("solicitante")
-    if solicitante:
-        solicitantes = [s.strip() for s in solicitante.split(",") if s.strip()]
-        if solicitantes:
-            has_null = "null" in solicitantes
-            vals = [s for s in solicitantes if s != "null"]
+    # Filtros de Supervisor, Coordenador e UF
+    supervisor_val = request.query_params.get("supervisor")
+    if supervisor_val:
+        supervisores = [s.strip() for s in supervisor_val.split(",") if s.strip()]
+        if supervisores:
+            has_null = "null" in supervisores
+            vals = [s for s in supervisores if s != "null"]
             q_obj = Q()
             if vals:
-                q_obj = Q(solicitante__in=vals)
+                q_obj = Q(loja__supervisor__nome__in=vals)
             if has_null:
-                q_obj = q_obj | Q(solicitante__isnull=True) | Q(solicitante="")
+                q_obj = q_obj | Q(loja__isnull=True) | Q(loja__supervisor__isnull=True)
+            queryset = queryset.filter(q_obj)
+
+    coordenador_val = request.query_params.get("coordenador")
+    if coordenador_val:
+        coordenadores = [c.strip() for c in coordenador_val.split(",") if c.strip()]
+        if coordenadores:
+            has_null = "null" in coordenadores
+            vals = [c for c in coordenadores if c != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(loja__coordenador__nome__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(loja__isnull=True) | Q(loja__coordenador__isnull=True)
+            queryset = queryset.filter(q_obj)
+
+    uf_val = request.query_params.get("uf")
+    if uf_val:
+        ufs = [u.strip() for u in uf_val.split(",") if u.strip()]
+        if ufs:
+            has_null = "null" in ufs
+            vals = [u for u in ufs if u != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(loja__uf__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(loja__isnull=True) | Q(loja__uf="") | Q(loja__uf__isnull=True)
             queryset = queryset.filter(q_obj)
 
     # Filtro por Mês/Ano (competência) no formato YYYY-MM
@@ -111,9 +140,6 @@ def diarias_list_api(request):
     if mes_ano:
         meses_anos = [ma.strip() for ma in mes_ano.split(",") if ma.strip()]
         if meses_anos:
-            from django.db.models import Q
-            from operator import or_
-            from functools import reduce
             q_list = []
             for ma in meses_anos:
                 try:
@@ -200,6 +226,34 @@ def diarias_list_api(request):
         } for item in dist_motivo
     ]
 
+    # 6. Distribuição por UF (Novo Gráfico)
+    dist_uf = (
+        queryset.values("loja__uf")
+        .annotate(quantidade=Count("id_diaria"), total=Sum("valor"))
+        .order_by("-total")
+    )
+    dados_grafico_uf = [
+        {
+            "uf": item["loja__uf"] if item["loja__uf"] else "N/A",
+            "quantidade": item["quantidade"],
+            "total": float(item["total"] or 0)
+        } for item in dist_uf
+    ]
+
+    # 7. Distribuição por Coordenador (Novo Gráfico)
+    dist_coord = (
+        queryset.values("loja__coordenador__nome")
+        .annotate(quantidade=Count("id_diaria"), total=Sum("valor"))
+        .order_by("-total")
+    )
+    dados_grafico_coordenador = [
+        {
+            "coordenador": item["loja__coordenador__nome"] if item["loja__coordenador__nome"] else "N/A",
+            "quantidade": item["quantidade"],
+            "total": float(item["total"] or 0)
+        } for item in dist_coord
+    ]
+
     # Paginação dos resultados da tabela detalhada
     paginator = DiariaPaginacao()
     page = paginator.paginate_queryset(queryset, request)
@@ -217,7 +271,9 @@ def diarias_list_api(request):
             "mensal": dados_grafico_linha,
             "status": dados_grafico_status,
             "turno": dados_grafico_turno,
-            "motivo": dados_grafico_motivo
+            "motivo": dados_grafico_motivo,
+            "uf": dados_grafico_uf,
+            "coordenador": dados_grafico_coordenador
         },
         "resultados": serializer.data
     })
@@ -230,7 +286,7 @@ def diarias_filtro_opcoes_api(request):
     dos seletores de filtros no menu lateral do dashboard.
     
     Docstring explicativa: Este endpoint serve para carregar as opções de filtros
-    (locais únicos, diaristas únicos, motivos, status e solicitantes)
+    (locais únicos, diaristas únicos, motivos, status, supervisores, coordenadores e ufs)
     garantindo que o usuário só filtre por dados válidos presentes no banco.
     """
     diaristas = Diaria.objects.values_list("diarista", flat=True).distinct().order_by("diarista")
@@ -257,11 +313,24 @@ def diarias_filtro_opcoes_api(request):
     if has_null_status:
         status_opcoes_list.append("null")
 
-    solicitantes_raw = Diaria.objects.values_list("solicitante", flat=True).distinct()
-    solicitantes = sorted(list(set(s.strip().upper() for s in solicitantes_raw if s and s.strip())))
-    has_null_solicitante = Diaria.objects.filter(Q(solicitante__isnull=True) | Q(solicitante="")).exists()
-    if has_null_solicitante:
-        solicitantes.append("null")
+    # Filtros de supervisores, coordenadores e UFs a partir do cadastro das Lojas
+    supervisores = Diaria.objects.filter(loja__supervisor__isnull=False).values_list("loja__supervisor__nome", flat=True).distinct()
+    supervisores_list = sorted(list(set(s.strip().upper() for s in supervisores if s and s.strip())))
+    has_null_supervisor = Diaria.objects.filter(Q(loja__isnull=True) | Q(loja__supervisor__isnull=True)).exists()
+    if has_null_supervisor:
+        supervisores_list.append("null")
+
+    coordenadores = Diaria.objects.filter(loja__coordenador__isnull=False).values_list("loja__coordenador__nome", flat=True).distinct()
+    coordenadores_list = sorted(list(set(c.strip().upper() for c in coordenadores if c and c.strip())))
+    has_null_coordenador = Diaria.objects.filter(Q(loja__isnull=True) | Q(loja__coordenador__isnull=True)).exists()
+    if has_null_coordenador:
+        coordenadores_list.append("null")
+
+    ufs = Diaria.objects.filter(loja__isnull=False).values_list("loja__uf", flat=True).distinct()
+    ufs_list = sorted(list(set(u.strip().upper() for u in ufs if u and u.strip())))
+    has_null_uf = Diaria.objects.filter(Q(loja__isnull=True) | Q(loja__uf="")).exists()
+    if has_null_uf:
+        ufs_list.append("null")
  
     # Mapeia as lojas associadas que possuem diárias cadastradas
     lojas_ids = Diaria.objects.filter(loja__isnull=False).values_list("loja_id", flat=True).distinct()
@@ -294,6 +363,8 @@ def diarias_filtro_opcoes_api(request):
         "turnos": turnos_list,
         "motivos": motivos_list,
         "status": status_opcoes_list,
-        "solicitantes": solicitantes,
+        "supervisores": supervisores_list,
+        "coordenadores": coordenadores_list,
+        "ufs": ufs_list,
         "meses_anos": meses_formatados
     })

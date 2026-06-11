@@ -47,7 +47,9 @@ export default function Diarias() {
     mensal: [] as { mes: string; faturamento: number }[],
     status: [] as { status: string; quantidade: number; total: number }[],
     turno: [] as { turno: string; quantidade: number; total: number }[],
-    motivo: [] as { motivo: string; quantidade: number; total: number }[]
+    motivo: [] as { motivo: string; quantidade: number; total: number }[],
+    uf: [] as { uf: string; quantidade: number; total: number }[],
+    coordenador: [] as { coordenador: string; quantidade: number; total: number }[]
   });
 
   // Estados dos filtros
@@ -57,7 +59,9 @@ export default function Diarias() {
   const [filtroTurno, setFiltroTurno] = useState('');
   const [filtroMotivo, setFiltroMotivo] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('');
-  const [filtroSolicitante, setFiltroSolicitante] = useState('');
+  const [filtroSupervisor, setFiltroSupervisor] = useState('');
+  const [filtroCoordenador, setFiltroCoordenador] = useState('');
+  const [filtroUf, setFiltroUf] = useState('');
 
   // Estados de paginação e UI
   const [currentPage, setCurrentPage] = useState(1);
@@ -85,7 +89,9 @@ export default function Diarias() {
         if (filtroTurno) params.append('turno', filtroTurno);
         if (filtroMotivo) params.append('motivo', filtroMotivo);
         if (filtroStatus) params.append('status', filtroStatus);
-        if (filtroSolicitante) params.append('solicitante', filtroSolicitante);
+        if (filtroSupervisor) params.append('supervisor', filtroSupervisor);
+        if (filtroCoordenador) params.append('coordenador', filtroCoordenador);
+        if (filtroUf) params.append('uf', filtroUf);
 
         const response = await api.get(`/diarias/?${params.toString()}`);
         
@@ -93,7 +99,7 @@ export default function Diarias() {
           const results = response.data.results || {};
           setDiarias(results.resultados || []);
           setKpis(results.kpis || { valor_total: 0, quantidade_total: 0, preco_medio: 0, pendentes: 0 });
-          setGraficos(results.graficos || { mensal: [], status: [], turno: [], motivo: [] });
+          setGraficos(results.graficos || { mensal: [], status: [], turno: [], motivo: [], uf: [], coordenador: [] });
           
           const count = response.data.count || 0;
           setTotalPages(Math.ceil(count / 20) || 1);
@@ -115,7 +121,9 @@ export default function Diarias() {
     filtroTurno,
     filtroMotivo,
     filtroStatus,
-    filtroSolicitante
+    filtroSupervisor,
+    filtroCoordenador,
+    filtroUf
   ]);
 
   const handleLimparFiltros = () => {
@@ -125,7 +133,9 @@ export default function Diarias() {
     setFiltroTurno('');
     setFiltroMotivo('');
     setFiltroStatus('');
-    setFiltroSolicitante('');
+    setFiltroSupervisor('');
+    setFiltroCoordenador('');
+    setFiltroUf('');
     setCurrentPage(1);
   };
 
@@ -164,8 +174,12 @@ export default function Diarias() {
         setFiltroMotivo={(val) => { setFiltroMotivo(val); setCurrentPage(1); }}
         filtroStatus={filtroStatus}
         setFiltroStatus={(val) => { setFiltroStatus(val); setCurrentPage(1); }}
-        filtroSolicitante={filtroSolicitante}
-        setFiltroSolicitante={(val) => { setFiltroSolicitante(val); setCurrentPage(1); }}
+        filtroSupervisor={filtroSupervisor}
+        setFiltroSupervisor={(val) => { setFiltroSupervisor(val); setCurrentPage(1); }}
+        filtroCoordenador={filtroCoordenador}
+        setFiltroCoordenador={(val) => { setFiltroCoordenador(val); setCurrentPage(1); }}
+        filtroUf={filtroUf}
+        setFiltroUf={(val) => { setFiltroUf(val); setCurrentPage(1); }}
         onClear={handleLimparFiltros}
         onError={handleFilterError}
       />
@@ -387,6 +401,73 @@ export default function Diarias() {
                       formatter={(value: any) => [formatarReal(Number(value)), 'Total']}
                     />
                     <Bar dataKey="total" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Gráficos de Comparação: UF & Coordenador */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          {/* UFs */}
+          <div className="md:col-span-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-xs shadow-sm">
+            <h3 className="font-bold text-xs uppercase tracking-wider text-neutral-800 dark:text-neutral-200 mb-4">
+              Comparação de Custo por UF (R$)
+            </h3>
+            <div className="h-60">
+              {loadingData ? (
+                <div className="h-full flex items-center justify-center text-xs text-neutral-400">
+                  Carregando UFs...
+                </div>
+              ) : !graficos.uf || graficos.uf.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-xs text-neutral-400 italic">
+                  Sem registros
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={graficos.uf} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+                    <XAxis dataKey="uf" stroke="#888888" fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#888888" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `R$ ${v}`} />
+                    <Tooltip
+                      contentStyle={{ background: '#171717', border: 'none', borderRadius: '8px', fontSize: '11px', color: '#fff' }}
+                      formatter={(value: any) => [formatarReal(Number(value)), 'Total']}
+                    />
+                    <Bar dataKey="total" fill="#f59e0b" radius={[4, 4, 0, 0]}>
+                      {graficos.uf.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={CORES_PIE[index % CORES_PIE.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+
+          {/* Coordenadores */}
+          <div className="md:col-span-8 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-xs shadow-sm">
+            <h3 className="font-bold text-xs uppercase tracking-wider text-neutral-800 dark:text-neutral-200 mb-4">
+              Comparação de Custo por Coordenador (R$)
+            </h3>
+            <div className="h-60">
+              {loadingData ? (
+                <div className="h-full flex items-center justify-center text-xs text-neutral-400">
+                  Carregando coordenadores...
+                </div>
+              ) : !graficos.coordenador || graficos.coordenador.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-xs text-neutral-400 italic">
+                  Sem registros
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={graficos.coordenador} layout="vertical" margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
+                    <XAxis type="number" stroke="#888888" fontSize={9} tickLine={false} axisLine={false} />
+                    <YAxis dataKey="coordenador" type="category" stroke="#888888" fontSize={9} width={110} tickLine={false} axisLine={false} />
+                    <Tooltip
+                      contentStyle={{ background: '#171717', border: 'none', borderRadius: '8px', fontSize: '11px', color: '#fff' }}
+                      formatter={(value: any) => [formatarReal(Number(value)), 'Total']}
+                    />
+                    <Bar dataKey="total" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
