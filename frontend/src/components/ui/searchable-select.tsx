@@ -78,15 +78,39 @@ export default function SearchableSelect({
     return value.split(',').filter(Boolean);
   }, [value, multiple]);
 
+  /**
+   * Obtém todas as opções de valor que não são vazias (excluindo a opção "Todos").
+   * Existe para sabermos exatamente quais opções podem ser selecionadas individualmente.
+   */
+  const allSelectableValues = React.useMemo(() => {
+    return options.filter(opt => opt.value !== "").map(opt => opt.value);
+  }, [options]);
+
+  /**
+   * Verifica se todas as opções válidas estão selecionadas.
+   * Existe para controlar o estado visual do checkbox do botão "Selecionar Todos"
+   * e decidir se o próximo clique irá selecionar tudo ou limpar a seleção.
+   */
+  const areAllSelected = React.useMemo(() => {
+    if (allSelectableValues.length === 0) return false;
+    return allSelectableValues.every(val => selectedValues.includes(val));
+  }, [allSelectableValues, selectedValues]);
+
   // Encontra a opção ou opções atualmente selecionadas para exibir no botão gatilho
   const triggerText = React.useMemo(() => {
     if (multiple) {
-      if (selectedValues.length === 0) {
+      // Se nenhuma opção estiver selecionada ou se todas estiverem selecionadas,
+      // mostra o texto da opção padrão (ex: "Todas as Lojas" ou "Todos")
+      if (selectedValues.length === 0 || areAllSelected) {
         const defaultOpt = options.find(opt => opt.value === "");
         return defaultOpt ? defaultOpt.label : placeholder;
       }
       const selectedLabels = selectedValues
-        .map(val => options.find(opt => opt.value === val)?.label)
+        .map(val => {
+          const opt = options.find(o => o.value === val);
+          if (val === "null" || (opt && opt.label === "null")) return "(Vazio)";
+          return opt ? opt.label : val;
+        })
         .filter(Boolean);
       
       if (selectedLabels.length <= 2) {
@@ -95,17 +119,31 @@ export default function SearchableSelect({
       return `${selectedLabels.length} selecionados`;
     } else {
       const selectedOption = options.find(opt => opt.value === value);
-      return selectedOption ? selectedOption.label : placeholder;
+      if (selectedOption) {
+        return selectedOption.value === "null" || selectedOption.label === "null" ? "(Vazio)" : selectedOption.label;
+      }
+      return placeholder;
     }
-  }, [options, value, selectedValues, multiple, placeholder]);
+  }, [options, value, selectedValues, multiple, placeholder, areAllSelected]);
 
-  // Seleciona um item. Se for multiseleção, alterna a presença do item no array.
+  /**
+   * Gerencia a seleção e a multiseleção dos itens.
+   * Se for multiseleção, ao clicar na opção padrão (valor vazio, representando "Todos"),
+   * o componente agora seleciona explicitamente todas as opções válidas ao invés de limpar,
+   * permitindo ao usuário desmarcar individualmente o que ele não precisa.
+   */
   const handleSelect = (val: string) => {
     if (multiple) {
       let nextList: string[];
       if (val === "") {
-        // Clicar na opção vazia (ex: "Todos") limpa todas as outras seleções
-        nextList = [];
+        // Clicar na opção "Todos" (valor "")
+        if (areAllSelected && selectedValues.length > 0) {
+          // Se todas as opções já estão marcadas, o clique limpa todas as seleções
+          nextList = [];
+        } else {
+          // Se não estavam todas marcadas, o clique marca todas
+          nextList = allSelectableValues;
+        }
       } else {
         if (selectedValues.includes(val)) {
           nextList = selectedValues.filter(v => v !== val);
@@ -178,10 +216,13 @@ export default function SearchableSelect({
               </div>
             ) : (
               filteredOptions.map((opt) => {
-                // Para multiseleção: a opção "Todos" (valor "") fica marcada se não houver outras seleções.
-                // Outras opções ficam marcadas se estiverem na lista de selecionadas.
+                // Para multiseleção, a opção "Todos" (valor "") fica marcada se nenhuma opção estiver
+                // selecionada (filtro padrão de tudo) OU se todas as opções estiverem selecionadas explicitamente.
+                // As outras opções individuais ficam marcadas se estiverem contidas na lista de selecionadas.
                 const isSelected = multiple
-                  ? (opt.value === "" ? selectedValues.length === 0 : selectedValues.includes(opt.value))
+                  ? (opt.value === "" 
+                      ? (selectedValues.length === 0 || areAllSelected) 
+                      : selectedValues.includes(opt.value))
                   : opt.value === value;
 
                 return (
@@ -208,7 +249,7 @@ export default function SearchableSelect({
                         )}
                       </div>
                     )}
-                    <span className="truncate">{opt.label}</span>
+                    <span className="truncate">{opt.label === "null" || opt.value === "null" ? "(Vazio)" : opt.label}</span>
                   </div>
                 );
               })

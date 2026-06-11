@@ -1,4 +1,4 @@
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, Q
 from django.db.models.functions import TruncMonth
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -32,37 +32,79 @@ def diarias_list_api(request):
     if diarista:
         diaristas = [d.strip() for d in diarista.split(",") if d.strip()]
         if diaristas:
-            queryset = queryset.filter(diarista__in=diaristas)
+            has_null = "null" in diaristas
+            vals = [d for d in diaristas if d != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(diarista__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(diarista__isnull=True) | Q(diarista="")
+            queryset = queryset.filter(q_obj)
 
     loja_id = request.query_params.get("loja")
     if loja_id:
         lojas_ids = [l.strip() for l in loja_id.split(",") if l.strip()]
         if lojas_ids:
-            queryset = queryset.filter(loja_id__in=lojas_ids)
+            has_null = "null" in lojas_ids
+            vals = [l for l in lojas_ids if l != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(loja_id__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(loja_id__isnull=True)
+            queryset = queryset.filter(q_obj)
 
     turno = request.query_params.get("turno")
     if turno:
         turnos = [t.strip() for t in turno.split(",") if t.strip()]
         if turnos:
-            queryset = queryset.filter(turno__in=turnos)
+            has_null = "null" in turnos
+            vals = [t for t in turnos if t != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(turno__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(turno__isnull=True) | Q(turno="")
+            queryset = queryset.filter(q_obj)
 
     motivo = request.query_params.get("motivo")
     if motivo:
         motivos = [m.strip() for m in motivo.split(",") if m.strip()]
         if motivos:
-            queryset = queryset.filter(motivo__in=motivos)
+            has_null = "null" in motivos
+            vals = [m for m in motivos if m != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(motivo__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(motivo__isnull=True) | Q(motivo="")
+            queryset = queryset.filter(q_obj)
 
     status_filtro = request.query_params.get("status")
     if status_filtro:
         status_lista = [s.strip() for s in status_filtro.split(",") if s.strip()]
         if status_lista:
-            queryset = queryset.filter(status__in=status_lista)
+            has_null = "null" in status_lista
+            vals = [s for s in status_lista if s != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(status__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(status__isnull=True) | Q(status="")
+            queryset = queryset.filter(q_obj)
 
     solicitante = request.query_params.get("solicitante")
     if solicitante:
         solicitantes = [s.strip() for s in solicitante.split(",") if s.strip()]
         if solicitantes:
-            queryset = queryset.filter(solicitante__in=solicitantes)
+            has_null = "null" in solicitantes
+            vals = [s for s in solicitantes if s != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(solicitante__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(solicitante__isnull=True) | Q(solicitante="")
+            queryset = queryset.filter(q_obj)
 
     # Filtro por Mês/Ano (competência) no formato YYYY-MM
     mes_ano = request.query_params.get("mes_ano")
@@ -192,16 +234,42 @@ def diarias_filtro_opcoes_api(request):
     garantindo que o usuário só filtre por dados válidos presentes no banco.
     """
     diaristas = Diaria.objects.values_list("diarista", flat=True).distinct().order_by("diarista")
+    diaristas_list = sorted(list(set(d.strip() for d in diaristas if d and d.strip())))
+    has_null_diarista = Diaria.objects.filter(Q(diarista__isnull=True) | Q(diarista="")).exists()
+    if has_null_diarista:
+        diaristas_list.append("null")
+
     turnos = Diaria.objects.values_list("turno", flat=True).distinct().order_by("turno")
+    turnos_list = sorted(list(set(t.strip() for t in turnos if t and t.strip())))
+    has_null_turno = Diaria.objects.filter(Q(turno__isnull=True) | Q(turno="")).exists()
+    if has_null_turno:
+        turnos_list.append("null")
+
     motivos = Diaria.objects.values_list("motivo", flat=True).distinct().order_by("motivo")
+    motivos_list = sorted(list(set(m.strip() for m in motivos if m and m.strip())))
+    has_null_motivo = Diaria.objects.filter(Q(motivo__isnull=True) | Q(motivo="")).exists()
+    if has_null_motivo:
+        motivos_list.append("null")
+
     status_opcoes = Diaria.objects.values_list("status", flat=True).distinct().order_by("status")
+    status_opcoes_list = sorted(list(set(s.strip() for s in status_opcoes if s and s.strip())))
+    has_null_status = Diaria.objects.filter(Q(status__isnull=True) | Q(status="")).exists()
+    if has_null_status:
+        status_opcoes_list.append("null")
+
     solicitantes_raw = Diaria.objects.values_list("solicitante", flat=True).distinct()
-    solicitantes = sorted(list(set(s.strip().upper() for s in solicitantes_raw if s)))
+    solicitantes = sorted(list(set(s.strip().upper() for s in solicitantes_raw if s and s.strip())))
+    has_null_solicitante = Diaria.objects.filter(Q(solicitante__isnull=True) | Q(solicitante="")).exists()
+    if has_null_solicitante:
+        solicitantes.append("null")
  
     # Mapeia as lojas associadas que possuem diárias cadastradas
     lojas_ids = Diaria.objects.filter(loja__isnull=False).values_list("loja_id", flat=True).distinct()
     lojas = Loja.objects.filter(id__in=lojas_ids).values("id", "nome_referencia")
     lojas_lista = [{"value": str(l["id"]), "label": l["nome_referencia"]} for l in lojas]
+    has_null_loja = Diaria.objects.filter(loja__isnull=True).exists()
+    if has_null_loja:
+        lojas_lista.append({"value": "null", "label": "(Vazio)"})
  
     # Mapeia os meses/anos únicos disponíveis (data_servico)
     datas = Diaria.objects.values_list("data_servico", flat=True).distinct().order_by("-data_servico")
@@ -221,11 +289,11 @@ def diarias_filtro_opcoes_api(request):
         })
  
     return Response({
-        "diaristas": list(diaristas),
+        "diaristas": diaristas_list,
         "lojas": lojas_lista,
-        "turnos": list(turnos),
-        "motivos": list(motivos),
-        "status": list(status_opcoes),
+        "turnos": turnos_list,
+        "motivos": motivos_list,
+        "status": status_opcoes_list,
         "solicitantes": solicitantes,
         "meses_anos": meses_formatados
     })

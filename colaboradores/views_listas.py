@@ -122,11 +122,19 @@ def _buscar_colaboradores_ativos():
 def _aplicar_filtros_colaboradores(colaboradores_qs, filtros):
     """
     Aplica os filtros da listagem de ativos de forma direta e previsível.
+    Suporta filtragem por registros sem informação (nulo/vazio) quando o valor "null" é recebido.
     """
     if filtros["loja"]:
         lojas_list = [l.strip() for l in filtros["loja"].split(",") if l.strip()]
         if lojas_list:
-            colaboradores_qs = colaboradores_qs.filter(loja_id__in=lojas_list)
+            has_null = "null" in lojas_list
+            ids = [l for l in lojas_list if l != "null"]
+            q_obj = Q()
+            if ids:
+                q_obj = Q(loja_id__in=ids)
+            if has_null:
+                q_obj = q_obj | Q(loja_id__isnull=True)
+            colaboradores_qs = colaboradores_qs.filter(q_obj)
 
     if filtros["loja_gestao"]:
         colaboradores_qs = colaboradores_qs.filter(
@@ -137,12 +145,26 @@ def _aplicar_filtros_colaboradores(colaboradores_qs, filtros):
     if filtros["re"]:
         re_list = [r.strip() for r in filtros["re"].split(",") if r.strip()]
         if re_list:
-            colaboradores_qs = colaboradores_qs.filter(re__in=re_list)
+            has_null = "null" in re_list
+            vals = [r for r in re_list if r != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(re__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(re__isnull=True) | Q(re="")
+            colaboradores_qs = colaboradores_qs.filter(q_obj)
 
     if filtros["nome"]:
         nome_list = [n.strip() for n in filtros["nome"].split(",") if n.strip()]
         if nome_list:
-            colaboradores_qs = colaboradores_qs.filter(nome__in=nome_list)
+            has_null = "null" in nome_list
+            vals = [n for n in nome_list if n != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(nome__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(nome__isnull=True) | Q(nome="")
+            colaboradores_qs = colaboradores_qs.filter(q_obj)
 
     if filtros["cargo"]:
         colaboradores_qs = colaboradores_qs.filter(cargo__iexact=filtros["cargo"])
@@ -150,20 +172,29 @@ def _aplicar_filtros_colaboradores(colaboradores_qs, filtros):
     if filtros["status"]:
         status_list = [s.strip() for s in filtros["status"].split(",") if s.strip()]
         if status_list:
+            has_null = "null" in status_list
+            vals = [s for s in status_list if s != "null"]
             q_obj = Q()
-            if "ativo" in status_list:
-                other_statuses = [s for s in status_list if s != "ativo"]
+            if "ativo" in vals:
+                other_statuses = [s for s in vals if s != "ativo"]
                 q_obj = Q(status__in=other_statuses) | ~Q(status__in=["A", "F"])
-            else:
-                q_obj = Q(status__in=status_list)
+            elif vals:
+                q_obj = Q(status__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(status__isnull=True) | Q(status="")
             colaboradores_qs = colaboradores_qs.filter(q_obj)
 
     if filtros["status_gestao"]:
         status_list = [s.strip() for s in filtros["status_gestao"].split(",") if s.strip()]
         if status_list:
-            colaboradores_qs = colaboradores_qs.filter(
-                status_gestao__in=status_list
-            )
+            has_null = "null" in status_list
+            vals = [s for s in status_list if s != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(status_gestao__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(status_gestao__isnull=True) | Q(status_gestao="")
+            colaboradores_qs = colaboradores_qs.filter(q_obj)
 
     if filtros["funcao_divergente"] == "S":
         ids_funcao_divergente = [
@@ -171,7 +202,7 @@ def _aplicar_filtros_colaboradores(colaboradores_qs, filtros):
             for colaborador in colaboradores_qs
             if funcao_esta_divergente(colaborador)
         ]
-        colaboradores_qs = colaboradores_qs.filter(id__in=ids_funcao_divergente)
+        colaboradores_qs = colaboradores_qs.filter(id__in=ids_fungent_divergente if 'ids_fungent_divergente' in locals() else ids_funcao_divergente)
 
     if filtros["divergente"] == "S":
         colaboradores_qs = colaboradores_qs.exclude(status="A").exclude(
@@ -203,21 +234,43 @@ def _aplicar_filtros_colaboradores(colaboradores_qs, filtros):
 def _aplicar_filtros_demitidos(colaboradores_qs, filtros):
     """
     Aplica os filtros da listagem de demitidos mantendo a regra separada dos ativos.
+    Suporta filtragem por registros sem informação (nulo/vazio) quando o valor "null" é recebido.
     """
     if filtros["loja"]:
         lojas_list = [l.strip() for l in filtros["loja"].split(",") if l.strip()]
         if lojas_list:
-            colaboradores_qs = colaboradores_qs.filter(loja_id__in=lojas_list)
+            has_null = "null" in lojas_list
+            ids = [l for l in lojas_list if l != "null"]
+            q_obj = Q()
+            if ids:
+                q_obj = Q(loja_id__in=ids)
+            if has_null:
+                q_obj = q_obj | Q(loja_id__isnull=True)
+            colaboradores_qs = colaboradores_qs.filter(q_obj)
 
     if filtros["re"]:
         re_list = [r.strip() for r in filtros["re"].split(",") if r.strip()]
         if re_list:
-            colaboradores_qs = colaboradores_qs.filter(re__in=re_list)
+            has_null = "null" in re_list
+            vals = [r for r in re_list if r != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(re__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(re__isnull=True) | Q(re="")
+            colaboradores_qs = colaboradores_qs.filter(q_obj)
 
     if filtros["nome"]:
         nome_list = [n.strip() for n in filtros["nome"].split(",") if n.strip()]
         if nome_list:
-            colaboradores_qs = colaboradores_qs.filter(nome__in=nome_list)
+            has_null = "null" in nome_list
+            vals = [n for n in nome_list if n != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(nome__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(nome__isnull=True) | Q(nome="")
+            colaboradores_qs = colaboradores_qs.filter(q_obj)
 
     if filtros["cargo"]:
         colaboradores_qs = colaboradores_qs.filter(cargo__iexact=filtros["cargo"])
@@ -225,9 +278,14 @@ def _aplicar_filtros_demitidos(colaboradores_qs, filtros):
     if filtros["status_gestao"]:
         status_list = [s.strip() for s in filtros["status_gestao"].split(",") if s.strip()]
         if status_list:
-            colaboradores_qs = colaboradores_qs.filter(
-                status_gestao__in=status_list
-            )
+            has_null = "null" in status_list
+            vals = [s for s in status_list if s != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(status_gestao__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(status_gestao__isnull=True) | Q(status_gestao="")
+            colaboradores_qs = colaboradores_qs.filter(q_obj)
 
     if filtros["status_divergente"] == "S":
         colaboradores_qs = colaboradores_qs.filter(_filtro_status_divergente_demitido())
@@ -371,6 +429,9 @@ def colaborador_filtro_opcoes(request):
         proc_re = _processar_colaboradores_termino(qs_re, today, data_filtro, data_fim)
         res_set = set(item["colaborador"].re.strip() for item in proc_re if item["colaborador"].re)
         res_list = sorted(list(res_set))
+        has_null_re = any(not item["colaborador"].re for item in proc_re)
+        if has_null_re:
+            res_list.append("null")
 
         # 2. Opções de Nome (ignora a seleção de Nome)
         qs_nome = _buscar_colaboradores_com_termino()
@@ -384,6 +445,9 @@ def colaborador_filtro_opcoes(request):
         proc_nome = _processar_colaboradores_termino(qs_nome, today, data_filtro, data_fim)
         nomes_set = set(item["colaborador"].nome.strip().upper() for item in proc_nome if item["colaborador"].nome)
         nomes_list = sorted(list(nomes_set))
+        has_null_nome = any(not item["colaborador"].nome for item in proc_nome)
+        if has_null_nome:
+            nomes_list.append("null")
 
         # 3. Opções de Coordenador (ignora a seleção de Coordenador)
         qs_coord = _buscar_colaboradores_com_termino()
@@ -397,11 +461,16 @@ def colaborador_filtro_opcoes(request):
         )
         proc_coord = _processar_colaboradores_termino(qs_coord, today, data_filtro, data_fim)
         coords_set = set()
+        has_null_coord = False
         for item in proc_coord:
             colab = item["colaborador"]
             if colab.loja and colab.loja.coordenador and colab.loja.coordenador.nome:
                 coords_set.add(colab.loja.coordenador.nome.strip().upper())
+            else:
+                has_null_coord = True
         coordenadores_list = sorted(list(coords_set))
+        if has_null_coord:
+            coordenadores_list.append("null")
 
         # 4. Opções de Status de Gestão (ignora a seleção de Status Gestão)
         qs_sg = _buscar_colaboradores_com_termino()
@@ -414,8 +483,17 @@ def colaborador_filtro_opcoes(request):
             nome_query=nome_val,
         )
         proc_sg = _processar_colaboradores_termino(qs_sg, today, data_filtro, data_fim)
-        sg_set = set(item["colaborador"].status_gestao.strip().upper() for item in proc_sg if item["colaborador"].status_gestao)
+        sg_set = set()
+        has_null_sg = False
+        for item in proc_sg:
+            colab = item["colaborador"]
+            if colab.status_gestao:
+                sg_set.add(colab.status_gestao.strip().upper())
+            else:
+                has_null_sg = True
         status_gestao_list = sorted(list(sg_set))
+        if has_null_sg:
+            status_gestao_list.append("null")
 
     elif is_demitido:
         filtros_base = _ler_filtros_demitidos(request.GET)
@@ -427,6 +505,9 @@ def colaborador_filtro_opcoes(request):
         qs_re = _aplicar_filtros_demitidos(qs_re, filtros_re)
         res_set = set(qs_re.values_list("re", flat=True).distinct())
         res_list = sorted(list(r.strip() for r in res_set if r and r.strip()))
+        has_null_re = qs_re.filter(Q(re__isnull=True) | Q(re="")).exists()
+        if has_null_re:
+            res_list.append("null")
 
         # 2. Opções de Nome
         filtros_nome = filtros_base.copy()
@@ -435,6 +516,9 @@ def colaborador_filtro_opcoes(request):
         qs_nome = _aplicar_filtros_demitidos(qs_nome, filtros_nome)
         nomes_set = set(qs_nome.values_list("nome", flat=True).distinct())
         nomes_list = sorted(list(n.strip().upper() for n in nomes_set if n and n.strip()))
+        has_null_nome = qs_nome.filter(Q(nome__isnull=True) | Q(nome="")).exists()
+        if has_null_nome:
+            nomes_list.append("null")
 
         # 3. Opções de Loja
         filtros_loja = filtros_base.copy()
@@ -446,6 +530,9 @@ def colaborador_filtro_opcoes(request):
             [{"id": str(lid), "nome_referencia": lref} for lid, lref in lojas_set],
             key=lambda x: x["nome_referencia"]
         )
+        has_null_loja = qs_loja.filter(loja__isnull=True).exists()
+        if has_null_loja:
+            lojas_list.append({"id": "null", "nome_referencia": "(Vazio)"})
 
         # 4. Opções de Status Gestão
         filtros_sg = filtros_base.copy()
@@ -454,6 +541,9 @@ def colaborador_filtro_opcoes(request):
         qs_sg = _aplicar_filtros_demitidos(qs_sg, filtros_sg)
         sg_set = set(qs_sg.values_list("status_gestao", flat=True).distinct())
         status_gestao_list = sorted(list(s.strip().upper() for s in sg_set if s and s.strip()))
+        has_null_sg = qs_sg.filter(Q(status_gestao__isnull=True) | Q(status_gestao="")).exists()
+        if has_null_sg:
+            status_gestao_list.append("null")
 
     else:  # ativos
         filtros_base = _ler_filtros_colaboradores(request.GET)
@@ -465,6 +555,9 @@ def colaborador_filtro_opcoes(request):
         qs_re = _aplicar_filtros_colaboradores(qs_re, filtros_re)
         res_set = set(qs_re.values_list("re", flat=True).distinct())
         res_list = sorted(list(r.strip() for r in res_set if r and r.strip()))
+        has_null_re = qs_re.filter(Q(re__isnull=True) | Q(re="")).exists()
+        if has_null_re:
+            res_list.append("null")
 
         # 2. Opções de Nome
         filtros_nome = filtros_base.copy()
@@ -473,6 +566,9 @@ def colaborador_filtro_opcoes(request):
         qs_nome = _aplicar_filtros_colaboradores(qs_nome, filtros_nome)
         nomes_set = set(qs_nome.values_list("nome", flat=True).distinct())
         nomes_list = sorted(list(n.strip().upper() for n in nomes_set if n and n.strip()))
+        has_null_nome = qs_nome.filter(Q(nome__isnull=True) | Q(nome="")).exists()
+        if has_null_nome:
+            nomes_list.append("null")
 
         # 3. Opções de Loja
         filtros_loja = filtros_base.copy()
@@ -484,6 +580,9 @@ def colaborador_filtro_opcoes(request):
             [{"id": str(lid), "nome_referencia": lref} for lid, lref in lojas_set],
             key=lambda x: x["nome_referencia"]
         )
+        has_null_loja = qs_loja.filter(loja__isnull=True).exists()
+        if has_null_loja:
+            lojas_list.append({"id": "null", "nome_referencia": "(Vazio)"})
 
         # 4. Opções de Status
         filtros_st = filtros_base.copy()
@@ -492,6 +591,9 @@ def colaborador_filtro_opcoes(request):
         qs_st = _aplicar_filtros_colaboradores(qs_st, filtros_st)
         status_set = set(qs_st.values_list("status", flat=True).distinct())
         status_list = sorted(list(s.strip().upper() for s in status_set if s and s.strip()))
+        has_null_status = qs_st.filter(Q(status__isnull=True) | Q(status="")).exists()
+        if has_null_status:
+            status_list.append("null")
 
         # 5. Opções de Status Gestão
         filtros_sg = filtros_base.copy()
@@ -500,6 +602,9 @@ def colaborador_filtro_opcoes(request):
         qs_sg = _aplicar_filtros_colaboradores(qs_sg, filtros_sg)
         sg_set = set(qs_sg.values_list("status_gestao", flat=True).distinct())
         status_gestao_list = sorted(list(s.strip().upper() for s in sg_set if s and s.strip()))
+        has_null_sg = qs_sg.filter(Q(status_gestao__isnull=True) | Q(status_gestao="")).exists()
+        if has_null_sg:
+            status_gestao_list.append("null")
 
     return Response({
         "res": [{"value": r, "label": r} for r in res_list],

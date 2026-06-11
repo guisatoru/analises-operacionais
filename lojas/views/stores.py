@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -28,12 +29,26 @@ def store_list(request):
     if search_text:
         busca_list = [b.strip() for b in search_text.split(",") if b.strip()]
         if busca_list:
-            stores = stores.filter(nome_referencia__in=busca_list)
+            has_null = "null" in busca_list
+            vals = [b for b in busca_list if b != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(nome_referencia__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(nome_referencia__isnull=True) | Q(nome_referencia="")
+            stores = stores.filter(q_obj)
 
     if client_name:
         cliente_list = [c.strip() for c in client_name.split(",") if c.strip()]
         if cliente_list:
-            stores = stores.filter(cliente__in=cliente_list)
+            has_null = "null" in cliente_list
+            vals = [c for c in cliente_list if c != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(cliente__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(cliente__isnull=True) | Q(cliente="")
+            stores = stores.filter(q_obj)
 
     if panel_name:
         stores = stores.filter(quadro=panel_name)
@@ -41,12 +56,26 @@ def store_list(request):
     if status_value:
         status_list = [s.strip() for s in status_value.split(",") if s.strip()]
         if status_list:
-            stores = stores.filter(status__in=status_list)
+            has_null = "null" in status_list
+            vals = [s for s in status_list if s != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(status__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(status__isnull=True) | Q(status="")
+            stores = stores.filter(q_obj)
 
     if cost_center:
         cc_list = [cc.strip() for cc in cost_center.split(",") if cc.strip()]
         if cc_list:
-            stores = stores.filter(centro_de_custo__in=cc_list)
+            has_null = "null" in cc_list
+            vals = [cc for cc in cc_list if cc != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(centro_de_custo__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(centro_de_custo__isnull=True) | Q(centro_de_custo="")
+            stores = stores.filter(q_obj)
     if store_code and store_code.isdigit():
         stores = stores.filter(codigo_loja=int(store_code))
 
@@ -196,40 +225,80 @@ def store_filtro_opcoes(request):
         if busca_val and not ignore_busca:
             bl = [b.strip() for b in busca_val.split(",") if b.strip()]
             if bl:
-                qs = qs.filter(nome_referencia__in=bl)
+                has_null = "null" in bl
+                vals = [b for b in bl if b != "null"]
+                q_obj = Q()
+                if vals:
+                    q_obj = Q(nome_referencia__in=vals)
+                if has_null:
+                    q_obj = q_obj | Q(nome_referencia__isnull=True) | Q(nome_referencia="")
+                qs = qs.filter(q_obj)
         if cliente_val and not ignore_cliente:
             cl = [c.strip() for c in cliente_val.split(",") if c.strip()]
             if cl:
-                qs = qs.filter(cliente__in=cl)
+                has_null = "null" in cl
+                vals = [c for c in cl if c != "null"]
+                q_obj = Q()
+                if vals:
+                    q_obj = Q(cliente__in=vals)
+                if has_null:
+                    q_obj = q_obj | Q(cliente__isnull=True) | Q(cliente="")
+                qs = qs.filter(q_obj)
         if status_val and not ignore_status:
             sl = [s.strip() for s in status_val.split(",") if s.strip()]
             if sl:
-                qs = qs.filter(status__in=sl)
+                has_null = "null" in sl
+                vals = [s for s in sl if s != "null"]
+                q_obj = Q()
+                if vals:
+                    q_obj = Q(status__in=vals)
+                if has_null:
+                    q_obj = q_obj | Q(status__isnull=True) | Q(status="")
+                qs = qs.filter(q_obj)
         if cc_val and not ignore_cc:
             ccl = [c.strip() for c in cc_val.split(",") if c.strip()]
             if ccl:
-                qs = qs.filter(centro_de_custo__in=ccl)
+                has_null = "null" in ccl
+                vals = [c for c in ccl if c != "null"]
+                q_obj = Q()
+                if vals:
+                    q_obj = Q(centro_de_custo__in=vals)
+                if has_null:
+                    q_obj = q_obj | Q(centro_de_custo__isnull=True) | Q(centro_de_custo="")
+                qs = qs.filter(q_obj)
         return qs
 
     # 1. Opções de Busca (Nome de Referência)
     qs_nomes = filtrar(Loja.objects.all(), ignore_busca=True)
     nomes_set = set(qs_nomes.values_list("nome_referencia", flat=True))
     nomes_list = sorted(list(n.strip() for n in nomes_set if n and n.strip()))
+    has_null_nome = qs_nomes.filter(Q(nome_referencia__isnull=True) | Q(nome_referencia="")).exists()
+    if has_null_nome:
+        nomes_list.append("null")
 
     # 2. Opções de Cliente / Regional
     qs_clientes = filtrar(Loja.objects.all(), ignore_cliente=True)
     clientes_set = set(qs_clientes.values_list("cliente", flat=True))
     clientes_list = sorted(list(c.strip() for c in clientes_set if c and c.strip()))
+    has_null_cliente = qs_clientes.filter(Q(cliente__isnull=True) | Q(cliente="")).exists()
+    if has_null_cliente:
+        clientes_list.append("null")
 
     # 3. Opções de Centro de Custo
     qs_cc = filtrar(Loja.objects.all(), ignore_cc=True)
     cc_set = set(qs_cc.values_list("centro_de_custo", flat=True))
     cc_list = sorted(list(cc.strip() for cc in cc_set if cc and cc.strip()))
+    has_null_cc = qs_cc.filter(Q(centro_de_custo__isnull=True) | Q(centro_de_custo="")).exists()
+    if has_null_cc:
+        cc_list.append("null")
 
     # 4. Opções de Status
     qs_status = filtrar(Loja.objects.all(), ignore_status=True)
     status_set = set(qs_status.values_list("status", flat=True))
     status_list = sorted(list(s.strip() for s in status_set if s and s.strip()))
+    has_null_status = qs_status.filter(Q(status__isnull=True) | Q(status="")).exists()
+    if has_null_status:
+        status_list.append("null")
 
     return Response({
         "nomes": [{"value": n, "label": n} for n in nomes_list],

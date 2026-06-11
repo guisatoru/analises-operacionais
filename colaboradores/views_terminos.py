@@ -231,6 +231,7 @@ def _filtrar_terminos_queryset(
     """
     Aplica filtros de banco de dados nos colaboradores de término para limitar a lista.
     Este filtro resolve buscas por termo geral, listas de matrícula (RE), nome, coordenador e status.
+    Suporta a filtragem por registros sem informação (nulo/vazio) quando o valor "null" é recebido.
     """
     if search_query:
         colaboradores_qs = colaboradores_qs.filter(
@@ -240,22 +241,50 @@ def _filtrar_terminos_queryset(
     if re_query:
         re_list = [r.strip() for r in re_query.split(",") if r.strip()]
         if re_list:
-            colaboradores_qs = colaboradores_qs.filter(re__in=re_list)
+            has_null = "null" in re_list
+            vals = [r for r in re_list if r != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(re__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(re__isnull=True) | Q(re="")
+            colaboradores_qs = colaboradores_qs.filter(q_obj)
 
     if nome_query:
         nome_list = [n.strip() for n in nome_query.split(",") if n.strip()]
         if nome_list:
-            colaboradores_qs = colaboradores_qs.filter(nome__in=nome_list)
+            has_null = "null" in nome_list
+            vals = [n for n in nome_list if n != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(nome__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(nome__isnull=True) | Q(nome="")
+            colaboradores_qs = colaboradores_qs.filter(q_obj)
 
     if coordenador_query:
         coordenadores_list = [c.strip() for c in coordenador_query.split(",") if c.strip()]
         if coordenadores_list:
-            colaboradores_qs = colaboradores_qs.filter(loja__coordenador__nome__in=coordenadores_list)
+            has_null = "null" in coordenadores_list
+            vals = [c for c in coordenadores_list if c != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(loja__coordenador__nome__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(loja__isnull=True) | Q(loja__coordenador__isnull=True) | Q(loja__coordenador__nome="") | Q(loja__coordenador__nome__isnull=True)
+            colaboradores_qs = colaboradores_qs.filter(q_obj)
 
     if status_gestao_query:
         status_list = [s.strip() for s in status_gestao_query.split(",") if s.strip()]
         if status_list:
-            colaboradores_qs = colaboradores_qs.filter(status_gestao__in=status_list)
+            has_null = "null" in status_list
+            vals = [s for s in status_list if s != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(status_gestao__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(status_gestao__isnull=True) | Q(status_gestao="")
+            colaboradores_qs = colaboradores_qs.filter(q_obj)
 
     return colaboradores_qs
 
