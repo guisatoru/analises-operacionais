@@ -59,12 +59,6 @@ const getDesvioBadge = (desvioStr: string) => {
   );
 };
 
-/**
- * Painel de Resultados do Comparativo Orçado vs Real.
- * 
- * Por que existe: Exibe os KPIs consolidados (Total Folha, Total Orçado, Desvio Geral)
- * e renderiza o relatório analítico por rubricas de salário base, insalubridade e adicional noturno.
- */
 export default function ComparativoTable({
   resultado,
   loading,
@@ -108,7 +102,7 @@ export default function ComparativoTable({
 
   if (!resultado) {
     return (
-      <div className="py-20 text-center text-neutral-450 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs shadow-sm">
+      <div className="py-20 text-center text-neutral-455 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs shadow-sm">
         Selecione as competências na barra lateral para gerar o relatório comparativo.
       </div>
     );

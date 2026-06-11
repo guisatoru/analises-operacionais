@@ -108,14 +108,18 @@ def api_me(request):
     })
 
 @api_view(["PUT", "PATCH"])
-@permission_classes([IsAuthenticated, IsAdministrador])
+@permission_classes([IsAuthenticated])
 def usuario_update(request, pk):
     """
-    Esta view existe para permitir a edição de usuários do sistema por outros administradores,
-    garantindo que se possa atualizar os dados de cadastro (nome, e-mail), redefinir senhas
-    e ativar/desativar contas, com validações de segurança para que um administrador não
-    consiga desativar o seu próprio acesso.
+    Esta view permite a edição de usuários do sistema por outros administradores
+    ou por si próprio (perfil).
+    
+    Docstring explicativa em português:
+    Esta view serve para permitir que os administradores editem o cadastro de outros usuários,
+    e que usuários comuns possam editar suas próprias informações (nome, e-mail e senha)
+    sem precisar de direitos administrativos gerais, mantendo a integridade e segurança do sistema.
     """
+    from usuarios.decorators import usuario_e_administrador
     try:
         usuario = User.objects.get(pk=pk)
     except User.DoesNotExist:
@@ -123,6 +127,15 @@ def usuario_update(request, pk):
             "success": False,
             "error": "Usuário não encontrado."
         }, status=status.HTTP_404_NOT_FOUND)
+
+    is_self = (request.user == usuario)
+    is_admin = usuario_e_administrador(request.user)
+
+    if not (is_self or is_admin):
+        return Response({
+            "success": False,
+            "error": "Você não tem permissão para editar este usuário."
+        }, status=status.HTTP_403_FORBIDDEN)
 
     # Não permitir desativar a si próprio para evitar lockout acidental do sistema
     is_active = request.data.get("is_active")
@@ -138,7 +151,13 @@ def usuario_update(request, pk):
     email = request.data.get("email")
     password = request.data.get("password")
 
-    if username:
+    # Apenas admin pode alterar o username
+    if username and username != usuario.username:
+        if not is_admin:
+            return Response({
+                "success": False,
+                "error": "Você não tem permissão para alterar o nome de usuário."
+            }, status=status.HTTP_403_FORBIDDEN)
         if User.objects.filter(username=username).exclude(pk=pk).exists():
             return Response({
                 "success": False,
@@ -152,13 +171,23 @@ def usuario_update(request, pk):
         usuario.last_name = last_name
     if email is not None:
         usuario.email = email
+        
     if is_active is not None:
+        if not is_admin:
+            return Response({
+                "success": False,
+                "error": "Você não tem permissão para alterar o status de ativação."
+            }, status=status.HTTP_403_FORBIDDEN)
         usuario.is_active = bool(is_active)
 
     if password:
         usuario.set_password(password)
 
     usuario.save()
+
+    # Se editou a própria senha, faz o login de novo para manter a sessão ativa
+    if is_self and password:
+        login(request, usuario)
 
     return Response({
         "success": True,

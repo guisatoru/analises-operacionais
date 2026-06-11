@@ -1,5 +1,7 @@
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
+import { useState } from 'react';
 import Sidebar from './Sidebar';
+import PerfilEditModal from './Usuarios/PerfilEditModal';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from './ui/sidebar';
 import {
   Breadcrumb,
@@ -27,6 +29,7 @@ interface LayoutProps {
  */
 export default function Layout({ isAuthenticated, username, onLogout, role }: LayoutProps) {
   const location = useLocation();
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -69,7 +72,12 @@ export default function Layout({ isAuthenticated, username, onLogout, role }: La
   return (
     <SidebarProvider>
       {/* Menu Lateral de Navegação */}
-      <Sidebar username={username} onLogout={onLogout} role={role} />
+      <Sidebar 
+        username={username} 
+        onLogout={onLogout} 
+        role={role} 
+        onOpenProfile={() => setProfileModalOpen(true)} 
+      />
 
       {/* Conteúdo Principal da Área de Trabalho */}
       <SidebarInset className="h-screen overflow-hidden">
@@ -106,6 +114,13 @@ export default function Layout({ isAuthenticated, username, onLogout, role }: La
           <Outlet />
         </div>
       </SidebarInset>
+
+      {profileModalOpen && (
+        <PerfilEditModal
+          onClose={() => setProfileModalOpen(false)}
+          onSaveSuccess={() => setProfileModalOpen(false)}
+        />
+      )}
     </SidebarProvider>
   );
 }

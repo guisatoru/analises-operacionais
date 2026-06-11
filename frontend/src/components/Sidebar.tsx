@@ -36,6 +36,7 @@ interface SidebarProps {
   username?: string;
   onLogout: () => void;
   role?: string;
+  onOpenProfile?: () => void;
 }
 
 /**
@@ -45,7 +46,7 @@ interface SidebarProps {
  * Utiliza o visual e componentes oficiais do Shadcn UI (grupos, switcher de workspace,
  * rodapé com dados do perfil e submenus colapsáveis).
  */
-export default function Sidebar({ username = 'Usuário', onLogout, role }: SidebarProps) {
+export default function Sidebar({ username = 'Usuário', onLogout, role, onOpenProfile }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { open } = useSidebar();
@@ -266,7 +267,10 @@ export default function Sidebar({ username = 'Usuário', onLogout, role }: Sideb
       {/* Rodapé - Informações do Usuário & Logout */}
       <SidebarFooter>
         <div className="flex flex-col gap-2">
-          <div className={`flex items-center justify-between p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-850 cursor-pointer transition-colors group ${!open ? 'justify-center' : ''}`}>
+          <div 
+            onClick={() => onOpenProfile?.()}
+            className={`flex items-center justify-between p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-850 cursor-pointer transition-colors group ${!open ? 'justify-center' : ''}`}
+          >
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-8 h-8 rounded-full bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 flex items-center justify-center text-xs font-bold shrink-0 shadow-xs uppercase">
                 {username ? username.substring(0, 2) : 'US'}
