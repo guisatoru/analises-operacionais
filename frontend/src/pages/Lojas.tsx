@@ -28,12 +28,18 @@ export default function Lojas() {
   const [cliente, setCliente] = useState('');
   const [statusFiltro, setStatusFiltro] = useState('');
   const [centroCusto, setCentroCusto] = useState('');
+  const [coordenadorFiltro, setCoordenadorFiltro] = useState('');
+  const [supervisorFiltro, setSupervisorFiltro] = useState('');
+  const [codigoLojaFiltro, setCodigoLojaFiltro] = useState('');
   
   // Estados para as opções dinâmicas dos filtros (estilo Excel)
   const [nomesOpcoes, setNomesOpcoes] = useState<{ value: string; label: string }[]>([]);
   const [clientesOpcoes, setClientesOpcoes] = useState<{ value: string; label: string }[]>([]);
   const [centrosCustoOpcoes, setCentrosCustoOpcoes] = useState<{ value: string; label: string }[]>([]);
   const [statusOpcoes, setStatusOpcoes] = useState<{ value: string; label: string }[]>([]);
+  const [coordenadoresOpcoes, setCoordenadoresOpcoes] = useState<{ value: string; label: string }[]>([]);
+  const [supervisoresOpcoes, setSupervisoresOpcoes] = useState<{ value: string; label: string }[]>([]);
+  const [codigosOpcoes, setCodigosOpcoes] = useState<{ value: string; label: string }[]>([]);
   const [loadingOpcoes, setLoadingOpcoes] = useState(false);
   
   const [fetchTrigger, setFetchTrigger] = useState(0);
@@ -54,7 +60,7 @@ export default function Lojas() {
   // Carrega as lojas ao inicializar ou mudar de página/filtros
   useEffect(() => {
     fetchLojas(true);
-  }, [busca, cliente, statusFiltro, centroCusto, fetchTrigger]);
+  }, [busca, cliente, statusFiltro, centroCusto, coordenadorFiltro, supervisorFiltro, codigoLojaFiltro, fetchTrigger]);
 
   useEffect(() => {
     fetchLojas();
@@ -78,6 +84,9 @@ export default function Lojas() {
             cliente: cliente || undefined,
             status: statusFiltro || undefined,
             centro_de_custo: centroCusto || undefined,
+            coordenador: coordenadorFiltro || undefined,
+            supervisor: supervisorFiltro || undefined,
+            codigo_loja: codigoLojaFiltro || undefined,
           }
         });
         
@@ -86,6 +95,9 @@ export default function Lojas() {
           setClientesOpcoes(response.data.clientes || []);
           setCentrosCustoOpcoes(response.data.centros_custo || []);
           setStatusOpcoes(response.data.status || []);
+          setCoordenadoresOpcoes(response.data.coordenadores || []);
+          setSupervisoresOpcoes(response.data.supervisores || []);
+          setCodigosOpcoes(response.data.codigos || []);
         }
       } catch (err) {
         console.error('Erro ao buscar opções de filtros para lojas:', err);
@@ -95,7 +107,7 @@ export default function Lojas() {
     };
 
     fetchFiltroOpcoes();
-  }, [busca, cliente, statusFiltro, centroCusto]);
+  }, [busca, cliente, statusFiltro, centroCusto, coordenadorFiltro, supervisorFiltro, codigoLojaFiltro]);
 
   const fetchCoordenadores = async () => {
     try {
@@ -131,6 +143,9 @@ export default function Lojas() {
           cliente: cliente || undefined,
           status: statusFiltro || undefined,
           centro_de_custo: centroCusto || undefined,
+          coordenador: coordenadorFiltro || undefined,
+          supervisor: supervisorFiltro || undefined,
+          codigo_loja: codigoLojaFiltro || undefined,
         }
       });
 
@@ -161,6 +176,9 @@ export default function Lojas() {
     setCliente('');
     setStatusFiltro('');
     setCentroCusto('');
+    setCoordenadorFiltro('');
+    setSupervisorFiltro('');
+    setCodigoLojaFiltro('');
     setFetchTrigger(prev => prev + 1);
   };
 
@@ -276,6 +294,23 @@ export default function Lojas() {
 
           <div>
             <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
+              Código da Loja
+            </label>
+            <SearchableSelect
+              options={[
+                { value: "", label: "Todos os Códigos" },
+                ...codigosOpcoes
+              ]}
+              value={codigoLojaFiltro}
+              onChange={setCodigoLojaFiltro}
+              placeholder="Todos os Códigos"
+              multiple={true}
+              loading={loadingOpcoes}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Cliente / Regional
             </label>
             <SearchableSelect
@@ -303,6 +338,40 @@ export default function Lojas() {
               value={centroCusto}
               onChange={setCentroCusto}
               placeholder="Todos os Centros"
+              multiple={true}
+              loading={loadingOpcoes}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
+              Coordenador
+            </label>
+            <SearchableSelect
+              options={[
+                { value: "", label: "Todos os Coordenadores" },
+                ...coordenadoresOpcoes
+              ]}
+              value={coordenadorFiltro}
+              onChange={setCoordenadorFiltro}
+              placeholder="Todos os Coordenadores"
+              multiple={true}
+              loading={loadingOpcoes}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
+              Supervisor
+            </label>
+            <SearchableSelect
+              options={[
+                { value: "", label: "Todos os Supervisores" },
+                ...supervisoresOpcoes
+              ]}
+              value={supervisorFiltro}
+              onChange={setSupervisorFiltro}
+              placeholder="Todos os Supervisores"
               multiple={true}
               loading={loadingOpcoes}
             />

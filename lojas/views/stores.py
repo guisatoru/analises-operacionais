@@ -25,6 +25,8 @@ def store_list(request):
     status_value = request.GET.get("status", "").strip()
     cost_center = request.GET.get("centro_de_custo", "").strip()
     store_code = request.GET.get("codigo_loja", "").strip()
+    supervisor_val = request.GET.get("supervisor", "").strip()
+    coordenador_val = request.GET.get("coordenador", "").strip()
 
     if search_text:
         busca_list = [b.strip() for b in search_text.split(",") if b.strip()]
@@ -76,8 +78,45 @@ def store_list(request):
             if has_null:
                 q_obj = q_obj | Q(centro_de_custo__isnull=True) | Q(centro_de_custo="")
             stores = stores.filter(q_obj)
-    if store_code and store_code.isdigit():
-        stores = stores.filter(codigo_loja=int(store_code))
+
+    if supervisor_val:
+        supervisor_list = [s.strip() for s in supervisor_val.split(",") if s.strip()]
+        if supervisor_list:
+            has_null = "null" in supervisor_list
+            vals = [s for s in supervisor_list if s != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(supervisor_id__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(supervisor__isnull=True)
+            stores = stores.filter(q_obj)
+
+    if coordenador_val:
+        coordenador_list = [c.strip() for c in coordenador_val.split(",") if c.strip()]
+        if coordenador_list:
+            has_null = "null" in coordenador_list
+            vals = [c for c in coordenador_list if c != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(coordenador_id__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(coordenador__isnull=True)
+            stores = stores.filter(q_obj)
+
+    if store_code:
+        code_list = [c.strip() for c in store_code.split(",") if c.strip()]
+        if code_list:
+            has_null = "null" in code_list
+            vals = []
+            for c in code_list:
+                if c != "null" and c.isdigit():
+                    vals.append(int(c))
+            q_obj = Q()
+            if vals:
+                q_obj = Q(codigo_loja__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(codigo_loja__isnull=True)
+            stores = stores.filter(q_obj)
 
     if request.GET.get("sem_paginacao", "").strip().lower() in ("true", "1", "yes", "t"):
         serializer = LojaSerializer(stores, many=True)
@@ -211,7 +250,7 @@ def supervisor_list_create(request):
 @permission_classes([IsAuthenticated])
 def store_filtro_opcoes(request):
     """
-    Retorna as opções de filtro para lojas (nome de referência, cliente, centro de custo e status).
+    Retorna as opções de filtro para lojas (nome de referência, cliente, centro de custo, status, supervisor, coordenador e código).
     Este endpoint resolve as opções de forma reativa e independente (estilo Excel),
     onde o cálculo para cada campo ignora a seleção do próprio campo.
     """
@@ -219,9 +258,12 @@ def store_filtro_opcoes(request):
     cliente_val = request.GET.get("cliente", "").strip()
     status_val = request.GET.get("status", "").strip()
     cc_val = request.GET.get("centro_de_custo", "").strip()
+    supervisor_val = request.GET.get("supervisor", "").strip()
+    coordenador_val = request.GET.get("coordenador", "").strip()
+    store_code_val = request.GET.get("codigo_loja", "").strip()
 
     # Função auxiliar para aplicar filtros nas consultas de opções
-    def filtrar(qs, ignore_busca=False, ignore_cliente=False, ignore_status=False, ignore_cc=False):
+    def filtrar(qs, ignore_busca=False, ignore_cliente=False, ignore_status=False, ignore_cc=False, ignore_supervisor=False, ignore_coordenador=False, ignore_codigo=False):
         if busca_val and not ignore_busca:
             bl = [b.strip() for b in busca_val.split(",") if b.strip()]
             if bl:
@@ -266,6 +308,42 @@ def store_filtro_opcoes(request):
                 if has_null:
                     q_obj = q_obj | Q(centro_de_custo__isnull=True) | Q(centro_de_custo="")
                 qs = qs.filter(q_obj)
+        if supervisor_val and not ignore_supervisor:
+            svl = [s.strip() for s in supervisor_val.split(",") if s.strip()]
+            if svl:
+                has_null = "null" in svl
+                vals = [s for s in svl if s != "null"]
+                q_obj = Q()
+                if vals:
+                    q_obj = Q(supervisor_id__in=vals)
+                if has_null:
+                    q_obj = q_obj | Q(supervisor__isnull=True)
+                qs = qs.filter(q_obj)
+        if coordenador_val and not ignore_coordenador:
+            cvl = [c.strip() for c in coordenador_val.split(",") if c.strip()]
+            if cvl:
+                has_null = "null" in cvl
+                vals = [c for c in cvl if c != "null"]
+                q_obj = Q()
+                if vals:
+                    q_obj = Q(coordenador_id__in=vals)
+                if has_null:
+                    q_obj = q_obj | Q(coordenador__isnull=True)
+                qs = qs.filter(q_obj)
+        if store_code_val and not ignore_codigo:
+            codel = [c.strip() for c in store_code_val.split(",") if c.strip()]
+            if codel:
+                has_null = "null" in codel
+                vals = []
+                for c in codel:
+                    if c != "null" and c.isdigit():
+                        vals.append(int(c))
+                q_obj = Q()
+                if vals:
+                    q_obj = Q(codigo_loja__in=vals)
+                if has_null:
+                    q_obj = q_obj | Q(codigo_loja__isnull=True)
+                qs = qs.filter(q_obj)
         return qs
 
     # 1. Opções de Busca (Nome de Referência)
@@ -300,9 +378,37 @@ def store_filtro_opcoes(request):
     if has_null_status:
         status_list.append("null")
 
+    # 5. Opções de Coordenador
+    qs_coord = filtrar(Loja.objects.all(), ignore_coordenador=True)
+    coords_in_stores = qs_coord.exclude(coordenador__isnull=True).values_list("coordenador_id", "coordenador__nome").distinct().order_by("coordenador__nome")
+    coordenadores_list = [{"value": str(cid), "label": cnome} for cid, cnome in coords_in_stores]
+    has_null_coord = qs_coord.filter(coordenador__isnull=True).exists()
+    if has_null_coord:
+        coordenadores_list.append({"value": "null", "label": "Sem Coordenador"})
+
+    # 6. Opções de Supervisor
+    qs_super = filtrar(Loja.objects.all(), ignore_supervisor=True)
+    supers_in_stores = qs_super.exclude(supervisor__isnull=True).values_list("supervisor_id", "supervisor__nome").distinct().order_by("supervisor__nome")
+    supervisores_list = [{"value": str(sid), "label": snome} for sid, snome in supers_in_stores]
+    has_null_super = qs_super.filter(supervisor__isnull=True).exists()
+    if has_null_super:
+        supervisores_list.append({"value": "null", "label": "Sem Supervisor"})
+
+    # 7. Opções de Código de Loja
+    qs_codigos = filtrar(Loja.objects.all(), ignore_codigo=True)
+    codigos_set = set(qs_codigos.exclude(codigo_loja__isnull=True).values_list("codigo_loja", flat=True))
+    codigos_list = sorted(list(int(c) for c in codigos_set))
+    codigos_formatted = [{"value": str(c), "label": str(c)} for c in codigos_list]
+    has_null_codigo = qs_codigos.filter(codigo_loja__isnull=True).exists()
+    if has_null_codigo:
+        codigos_formatted.append({"value": "null", "label": "Sem Código"})
+
     return Response({
         "nomes": [{"value": n, "label": n} for n in nomes_list],
         "clientes": [{"value": c, "label": c} for c in clientes_list],
         "centros_custo": [{"value": cc, "label": cc} for cc in cc_list],
-        "status": [{"value": s, "label": "Ativa" if s == "ATIVA" else "Inativa"} for s in status_list]
+        "status": [{"value": s, "label": "Ativa" if s == "ATIVA" else "Inativa"} for s in status_list],
+        "coordenadores": coordenadores_list,
+        "supervisores": supervisores_list,
+        "codigos": codigos_formatted,
     })
