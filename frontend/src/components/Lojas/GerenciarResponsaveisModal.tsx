@@ -32,6 +32,21 @@ export default function GerenciarResponsaveisModal({
   const [selectedItem, setSelectedItem] = useState<Responsavel | null>(null);
   const [nome, setNome] = useState('');
   const [re, setRe] = useState('');
+  const [coordenadorId, setCoordenadorId] = useState('');
+  const [coordenadoresOpcoes, setCoordenadoresOpcoes] = useState<Responsavel[]>([]);
+
+  const fetchCoordenadoresOpcoes = async () => {
+    try {
+      const response = await api.get('/lojas/api/coordenadores/');
+      setCoordenadoresOpcoes(response.data || []);
+    } catch (err) {
+      console.error('Erro ao buscar coordenadores para opções:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCoordenadoresOpcoes();
+  }, []);
 
   // Busca dados dependendo da aba ativa
   const fetchItems = async () => {
@@ -58,6 +73,7 @@ export default function GerenciarResponsaveisModal({
   const handleOpenCreate = () => {
     setNome('');
     setRe('');
+    setCoordenadorId('');
     setFormMode('create');
     setErrorMsg(null);
   };
@@ -67,6 +83,7 @@ export default function GerenciarResponsaveisModal({
     setSelectedItem(item);
     setNome(item.nome);
     setRe(item.re || '');
+    setCoordenadorId(item.coordenador || '');
     setFormMode('edit');
     setErrorMsg(null);
   };
@@ -77,10 +94,13 @@ export default function GerenciarResponsaveisModal({
     setErrorMsg(null);
     setActionLoading(true);
 
-    const payload = {
+    const payload: any = {
       nome: nome.trim(),
       re: re.trim(),
     };
+    if (activeTab === 'supervisores') {
+      payload.coordenador = coordenadorId || null;
+    }
 
     const endpointBase = activeTab === 'coordenadores' ? '/lojas/api/coordenadores/' : '/lojas/api/supervisores/';
     const endpoint = formMode === 'edit' && selectedItem ? `${endpointBase}${selectedItem.id}/` : endpointBase;
@@ -207,6 +227,7 @@ export default function GerenciarResponsaveisModal({
                       <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-800 text-[10px] font-bold text-neutral-600 dark:text-neutral-350 uppercase tracking-wider">
                         <th className="py-2 px-4">Nome</th>
                         <th className="py-2 px-4">RE</th>
+                        {activeTab === 'supervisores' && <th className="py-2 px-4">Coordenador</th>}
                         <th className="py-2 px-4 text-right">Ações</th>
                       </tr>
                     </thead>
@@ -215,6 +236,11 @@ export default function GerenciarResponsaveisModal({
                         <tr key={item.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/40 transition-colors">
                           <td className="py-2.5 px-4 font-semibold">{item.nome}</td>
                           <td className="py-2.5 px-4 font-mono text-neutral-500">{item.re || '—'}</td>
+                          {activeTab === 'supervisores' && (
+                            <td className="py-2.5 px-4 font-semibold text-neutral-600 dark:text-neutral-450">
+                              {item.coordenador_nome || '—'}
+                            </td>
+                          )}
                           <td className="py-2.5 px-4 text-right space-x-1.5 whitespace-nowrap">
                             <button
                               onClick={() => handleOpenEdit(item)}
@@ -275,6 +301,18 @@ export default function GerenciarResponsaveisModal({
                     placeholder="Ex: 012345"
                   />
                 </div>
+
+                {activeTab === 'supervisores' && (
+                  <div className="md:col-span-2">
+                    <FormField
+                      label="Coordenador Associado"
+                      type="select"
+                      value={coordenadorId}
+                      onChange={setCoordenadorId}
+                      options={coordenadoresOpcoes.map((c) => ({ value: c.id, label: c.nome }))}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200 dark:border-neutral-800">

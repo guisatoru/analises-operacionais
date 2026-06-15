@@ -35,6 +35,8 @@ class SupervisorSerializer(serializers.ModelSerializer):
     Este serializer existe para formatar as informações de supervisores de loja,
     convertendo o ID em string para o frontend.
     """
+    coordenador_nome = serializers.CharField(source="coordenador.nome", read_only=True)
+
     class Meta:
         model = Supervisor
         fields = "__all__"
@@ -43,6 +45,8 @@ class SupervisorSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
         if "id" in data and data["id"] is not None:
             data["id"] = str(data["id"])
+        if "coordenador" in data and data["coordenador"] is not None:
+            data["coordenador"] = str(data["coordenador"])
         return data
 
 class LojaSerializer(serializers.ModelSerializer):

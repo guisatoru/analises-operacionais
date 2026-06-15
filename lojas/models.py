@@ -82,6 +82,14 @@ class Supervisor(models.Model):
     nome = models.CharField("Nome", max_length=120, unique=True)
     re = models.CharField("RE", max_length=20, blank=True, default="")
     regiao = models.CharField("Região (UF)", max_length=50, blank=True, default="")
+    coordenador = models.ForeignKey(
+        Coordenador,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="supervisores",
+        verbose_name="Coordenador",
+    )
 
     class Meta:
         verbose_name = "Supervisor"

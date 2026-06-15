@@ -96,7 +96,7 @@ def importar_premios_de_excel(arquivo_excel, progress_callback=None):
     # Mapeia supervisores (RE -> Supervisor)
     mapa_supervisores = {
         limpar_re(s.re): s
-        for s in Supervisor.objects.exclude(re="")
+        for s in Supervisor.objects.select_related("coordenador").exclude(re="")
         if s.re
     }
 
@@ -157,6 +157,8 @@ def importar_premios_de_excel(arquivo_excel, progress_callback=None):
                 coordenador_resolvido = mapa_coordenadores[re_limpo]
             elif re_limpo and re_limpo in mapa_supervisores:
                 supervisor_resolvido = mapa_supervisores[re_limpo]
+                if supervisor_resolvido.coordenador:
+                    coordenador_resolvido = supervisor_resolvido.coordenador
             else:
                 # 2. Caso contrário, tenta resolver pela loja
                 # Caso seja lançamento manual, busca pela loja associada ao colaborador via RE (employee_id)

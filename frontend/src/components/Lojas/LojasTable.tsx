@@ -39,6 +39,8 @@ export interface Responsavel {
   nome: string;
   re?: string;
   regiao?: string;
+  coordenador?: string;
+  coordenador_nome?: string;
 }
 
 interface LojasTableProps {
