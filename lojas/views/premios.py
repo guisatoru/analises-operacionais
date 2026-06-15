@@ -187,6 +187,22 @@ def premios_list_api(request):
         } for item in dist_order_type
     ]
 
+    # Subdivisão de pedidos manuais por roteiro para o relatório mensal.
+    # Por que existe: Permite auditar quantos prêmios manuais foram lançados via VEX ou via FOLHA.
+    manual_queryset = queryset.filter(order_type="MANUAL")
+    dist_manual_roteiro = (
+        manual_queryset.values("roteiro")
+        .annotate(quantidade=Count("id"), total=Sum("reward_value"))
+        .order_by("-quantidade")
+    )
+    dados_resumo_manual = [
+        {
+            "roteiro": item["roteiro"] if item["roteiro"] else "N/D",
+            "quantidade": item["quantidade"],
+            "total": float(item["total"] or 0)
+        } for item in dist_manual_roteiro
+    ]
+
     # 5. Distribuição por Roteiro (FOLHA vs VEX)
     dist_roteiro = (
         queryset.values("roteiro")
@@ -264,6 +280,7 @@ def premios_list_api(request):
             "coordenador": dados_grafico_coordenador,
             "lojas": dados_grafico_loja
         },
+        "resumo_manual": dados_resumo_manual,
         "resultados": serializer.data
     })
 

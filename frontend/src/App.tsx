@@ -14,6 +14,7 @@ import Escopos from './pages/Escopos';
 import Comparativo from './pages/Comparativo';
 import Diarias from './pages/Diarias';
 import Premios from './pages/Premios';
+import RelatorioPremios from './pages/RelatorioPremios';
 import Usuarios from './pages/Usuarios';
 import { Toaster } from './components/ui/sonner';
 
@@ -125,6 +126,19 @@ function App() {
             } 
           />
         </Route>
+
+        {/* Rota para visualização e impressão do relatório mensal de prêmios */}
+        {/* Por que existe: Permite a impressão de relatório A4 limpo e sem a barra de navegação lateral. */}
+        <Route 
+          path="/premios/relatorio" 
+          element={
+            isAuthenticated ? (
+              <RelatorioPremios />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } 
+        />
 
         {/* Redirecionamento de rotas inexistentes para o Dashboard ou Login */}
         <Route path="*" element={<Navigate to="/" replace />} />

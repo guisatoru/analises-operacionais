@@ -6,7 +6,8 @@ import {
   DollarSign, 
   TrendingUp,
   Tag,
-  Shuffle
+  Shuffle,
+  FileText
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -147,10 +148,33 @@ export default function Premios() {
   return (
     <div className="space-y-6">
       {/* Cabeçalho */}
+      {/* Por que existe: Título principal do dashboard de prêmios com botão para exportação do PDF mensal */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-50">Desempenho de Prêmios Pagos</h1>
           <p className="text-sm text-neutral-500 font-medium">Auditoria e conciliação financeira de premiações de funcionários</p>
+        </div>
+        <div className="flex items-center">
+          <button
+            onClick={() => {
+              const params = new URLSearchParams();
+              if (filtroPeriodo) params.append('period', filtroPeriodo);
+              if (filtroLoja) params.append('loja', filtroLoja);
+              if (filtroStatus) params.append('status', filtroStatus);
+              if (filtroVerbName) params.append('verb_name', filtroVerbName);
+              if (filtroSupervisor) params.append('supervisor', filtroSupervisor);
+              if (filtroCoordenador) params.append('coordenador', filtroCoordenador);
+              if (filtroUf) params.append('uf', filtroUf);
+              if (filtroOrderType) params.append('order_type', filtroOrderType);
+              if (filtroRoteiro) params.append('roteiro', filtroRoteiro);
+              
+              window.open(`/premios/relatorio?${params.toString()}`, '_blank');
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-colors font-medium rounded-lg text-sm shadow-sm"
+          >
+            <FileText className="h-4 w-4" />
+            <span>Exportar PDF</span>
+          </button>
         </div>
       </div>
 
