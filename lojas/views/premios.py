@@ -26,7 +26,7 @@ def premios_list_api(request):
     supervisor, coordenador, status, tipo de prêmio, roteiro e tipo de pedido) e
     calcula as métricas financeiras consolidadas (Valor Gasto, Quantidade e Preço Médio).
     """
-    queryset = Premio.objects.all().select_related("loja")
+    queryset = Premio.objects.all().select_related("loja", "coordenador", "supervisor")
 
     # Filtro de Período (separado por vírgula, ex: 202605)
     periodo_val = request.query_params.get("period")
@@ -63,7 +63,7 @@ def premios_list_api(request):
         if verbs:
             queryset = queryset.filter(verb_name__in=verbs)
 
-    # Filtro de Supervisor da Loja
+    # Filtro de Supervisor do Prêmio
     supervisor_val = request.query_params.get("supervisor")
     if supervisor_val:
         supervisores = [s.strip() for s in supervisor_val.split(",") if s.strip()]
@@ -72,12 +72,12 @@ def premios_list_api(request):
             vals = [s for s in supervisores if s != "null"]
             q_obj = Q()
             if vals:
-                q_obj = Q(loja__supervisor__nome__in=vals)
+                q_obj = Q(supervisor__nome__in=vals)
             if has_null:
-                q_obj = q_obj | Q(loja__isnull=True) | Q(loja__supervisor__isnull=True)
+                q_obj = q_obj | Q(supervisor__isnull=True)
             queryset = queryset.filter(q_obj)
 
-    # Filtro de Coordenador da Loja
+    # Filtro de Coordenador do Prêmio
     coordenador_val = request.query_params.get("coordenador")
     if coordenador_val:
         coordenadores = [c.strip() for c in coordenador_val.split(",") if c.strip()]
@@ -86,12 +86,12 @@ def premios_list_api(request):
             vals = [c for c in coordenadores if c != "null"]
             q_obj = Q()
             if vals:
-                q_obj = Q(loja__coordenador__nome__in=vals)
+                q_obj = Q(coordenador__nome__in=vals)
             if has_null:
-                q_obj = q_obj | Q(loja__isnull=True) | Q(loja__coordenador__isnull=True)
+                q_obj = q_obj | Q(coordenador__isnull=True)
             queryset = queryset.filter(q_obj)
 
-    # Filtro de UF da Loja
+    # Filtro de UF do Prêmio
     uf_val = request.query_params.get("uf")
     if uf_val:
         ufs = [u.strip().upper() for u in uf_val.split(",") if u.strip()]
@@ -100,9 +100,9 @@ def premios_list_api(request):
             vals = [u for u in ufs if u != "null"]
             q_obj = Q()
             if vals:
-                q_obj = Q(loja__uf__in=vals)
+                q_obj = Q(uf__in=vals)
             if has_null:
-                q_obj = q_obj | Q(loja__isnull=True) | Q(loja__uf="") | Q(loja__uf__isnull=True)
+                q_obj = q_obj | Q(uf__isnull=True) | Q(uf="")
             queryset = queryset.filter(q_obj)
 
     # Filtro de Tipo de Pedido (order_type: SISTEMA, MANUAL)
@@ -203,13 +203,13 @@ def premios_list_api(request):
 
     # 6. Distribuição por UF (Região)
     dist_uf = (
-        queryset.values("loja__uf")
+        queryset.values("uf")
         .annotate(quantidade=Count("id"), total=Sum("reward_value"))
         .order_by("-total")
     )
     dados_grafico_uf = [
         {
-            "uf": item["loja__uf"] if item["loja__uf"] else "N/A",
+            "uf": item["uf"] if item["uf"] else "N/A",
             "quantidade": item["quantidade"],
             "total": float(item["total"] or 0)
         } for item in dist_uf
@@ -217,13 +217,13 @@ def premios_list_api(request):
 
     # 7. Distribuição por Coordenador
     dist_coord = (
-        queryset.values("loja__coordenador__nome")
+        queryset.values("coordenador__nome")
         .annotate(quantidade=Count("id"), total=Sum("reward_value"))
         .order_by("-total")
     )
     dados_grafico_coordenador = [
         {
-            "coordenador": item["loja__coordenador__nome"] if item["loja__coordenador__nome"] else "N/A",
+            "coordenador": item["coordenador__nome"] if item["coordenador__nome"] else "N/A",
             "quantidade": item["quantidade"],
             "total": float(item["total"] or 0)
         } for item in dist_coord
@@ -293,22 +293,22 @@ def premios_filtro_opcoes_api(request):
     roteiros = Premio.objects.values_list("roteiro", flat=True).distinct().order_by("roteiro")
     roteiros_list = sorted(list(set(r.strip().upper() for r in roteiros if r and r.strip())))
 
-    # Filtros herdados das Lojas
-    supervisores = Premio.objects.filter(loja__supervisor__isnull=False).values_list("loja__supervisor__nome", flat=True).distinct()
-    supervisores_list = sorted(list(set(s.strip().upper() for s in supervisores if s and s.strip())))
-    has_null_supervisor = Premio.objects.filter(Q(loja__isnull=True) | Q(loja__supervisor__isnull=True)).exists()
+    # Filtros do próprio prêmio
+    supervisores = Premio.objects.filter(supervisor__isnull=False).values_list("supervisor__nome", flat=True).distinct()
+    supervisores_list = sorted(list(set(s.strip() for s in supervisores if s and s.strip())))
+    has_null_supervisor = Premio.objects.filter(supervisor__isnull=True).exists()
     if has_null_supervisor:
         supervisores_list.append("null")
 
-    coordenadores = Premio.objects.filter(loja__coordenador__isnull=False).values_list("loja__coordenador__nome", flat=True).distinct()
-    coordenadores_list = sorted(list(set(c.strip().upper() for c in coordenadores if c and c.strip())))
-    has_null_coordenador = Premio.objects.filter(Q(loja__isnull=True) | Q(loja__coordenador__isnull=True)).exists()
+    coordenadores = Premio.objects.filter(coordenador__isnull=False).values_list("coordenador__nome", flat=True).distinct()
+    coordenadores_list = sorted(list(set(c.strip() for c in coordenadores if c and c.strip())))
+    has_null_coordenador = Premio.objects.filter(coordenador__isnull=True).exists()
     if has_null_coordenador:
         coordenadores_list.append("null")
 
-    ufs = Premio.objects.filter(loja__isnull=False).values_list("loja__uf", flat=True).distinct()
+    ufs = Premio.objects.filter(uf__isnull=False).exclude(uf="").values_list("uf", flat=True).distinct()
     ufs_list = sorted(list(set(u.strip().upper() for u in ufs if u and u.strip())))
-    has_null_uf = Premio.objects.filter(Q(loja__isnull=True) | Q(loja__uf="")).exists()
+    has_null_uf = Premio.objects.filter(Q(uf__isnull=True) | Q(uf="")).exists()
     if has_null_uf:
         ufs_list.append("null")
 
@@ -341,3 +341,4 @@ def premios_filtro_opcoes_api(request):
         "lojas": lojas_lista,
         "periodos": periodos_lista
     })
+

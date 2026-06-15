@@ -314,6 +314,8 @@ class PremioSerializer(serializers.ModelSerializer):
     convertendo chaves primárias e valores numéricos como strings para conformidade do frontend.
     """
     loja_nome = serializers.CharField(source="loja.nome_referencia", read_only=True)
+    coordenador_nome = serializers.CharField(source="coordenador.nome", read_only=True)
+    supervisor_nome = serializers.CharField(source="supervisor.nome", read_only=True)
 
     class Meta:
         model = Premio
@@ -325,8 +327,13 @@ class PremioSerializer(serializers.ModelSerializer):
             data["id"] = str(data["id"])
         if "loja" in data and data["loja"] is not None:
             data["loja"] = str(data["loja"])
+        if "coordenador" in data and data["coordenador"] is not None:
+            data["coordenador"] = str(data["coordenador"])
+        if "supervisor" in data and data["supervisor"] is not None:
+            data["supervisor"] = str(data["supervisor"])
         if "reward_value" in data and data["reward_value"] is not None:
             data["reward_value"] = str(data["reward_value"])
         return data
+
 
 

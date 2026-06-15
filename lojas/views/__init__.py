@@ -24,6 +24,8 @@ from .stores import (
     store_update,
     coordenador_list_create,
     supervisor_list_create,
+    coordenador_detail_update_delete,
+    supervisor_detail_update_delete,
     store_filtro_opcoes,
 )
 
@@ -53,6 +55,8 @@ __all__ = [
     "loja_config_insalubridade",
     "coordenador_list_create",
     "supervisor_list_create",
+    "coordenador_detail_update_delete",
+    "supervisor_detail_update_delete",
     "store_filtro_opcoes",
     "diarias_list_api",
     "diarias_filtro_opcoes_api",

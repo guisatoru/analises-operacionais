@@ -6,6 +6,8 @@ export interface PremioData {
   status: string;
   cost_center_name: string;
   loja_nome?: string;
+  coordenador_nome?: string;
+  supervisor_nome?: string;
   verb_name: string;
   reward_value: string;
   period: string;
@@ -90,7 +92,7 @@ export default function PremiosTable({
 
       <div className="overflow-x-auto">
         {loading && premios.length === 0 ? (
-          <div className="py-20 text-center text-neutral-400">
+          <div className="py-20 text-center text-neutral-450">
             <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-neutral-950 dark:text-white" />
             <span>Carregando tabela de prêmios...</span>
           </div>
@@ -105,6 +107,8 @@ export default function PremiosTable({
                 <th className="py-4 px-6">Tipo de Prêmio</th>
                 <th className="py-4 px-6">Centro de Custo</th>
                 <th className="py-4 px-6">Loja</th>
+                <th className="py-4 px-6">Coordenador</th>
+                <th className="py-4 px-6">Supervisor</th>
                 <th className="py-4 px-6 text-center">Período</th>
                 <th className="py-4 px-6 text-center">Tipo Pedido</th>
                 <th className="py-4 px-6 text-center">Roteiro</th>
@@ -123,6 +127,12 @@ export default function PremiosTable({
                     ) : (
                       <span className="text-red-400 italic text-xs">Não vinculada</span>
                     )}
+                  </td>
+                  <td className="py-4 px-6 text-neutral-750 dark:text-neutral-350 font-medium">
+                    {p.coordenador_nome || '—'}
+                  </td>
+                  <td className="py-4 px-6 text-neutral-750 dark:text-neutral-350 font-medium">
+                    {p.supervisor_nome || '—'}
                   </td>
                   <td className="py-4 px-6 text-center text-neutral-600 dark:text-neutral-400 font-medium">
                     {formatPeriod(p.period)}

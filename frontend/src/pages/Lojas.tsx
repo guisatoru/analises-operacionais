@@ -6,6 +6,7 @@ import SearchableSelect from '../components/ui/searchable-select';
 import LojasTable, { type Loja, type Responsavel } from '../components/Lojas/LojasTable';
 import CadastroLojaModal from '../components/Lojas/CadastroLojaModal';
 import InsalubridadeModal from '../components/Lojas/InsalubridadeModal';
+import GerenciarResponsaveisModal from '../components/Lojas/GerenciarResponsaveisModal';
 
 /**
  * Página de Gestão de Lojas.
@@ -47,6 +48,7 @@ export default function Lojas() {
   // Estados dos Modais
   const [showCadastroModal, setShowCadastroModal] = useState(false);
   const [showInsalubridadeModal, setShowInsalubridadeModal] = useState(false);
+  const [showResponsaveisModal, setShowResponsaveisModal] = useState(false);
   
   // Estado da loja sendo criada/editada/configurada
   const [selectedLoja, setSelectedLoja] = useState<Loja | null>(null);
@@ -263,13 +265,21 @@ export default function Lojas() {
           <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-50">Lojas do Grupo</h1>
           <p className="text-sm text-neutral-500">Visualização de cadastros de filiais e parametrização financeira</p>
         </div>
-        <button
-          onClick={handleOpenCadastroNovo}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full text-xs font-bold hover:bg-neutral-850 dark:hover:bg-neutral-100 shadow-xs transition-all shadow-sm"
-        >
-          <Plus className="h-4 w-4" />
-          Cadastrar Nova Loja
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowResponsaveisModal(true)}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 border border-neutral-200 dark:border-neutral-850 hover:bg-neutral-50 dark:hover:bg-neutral-800 rounded-full text-xs font-bold text-neutral-800 dark:text-white transition-all shadow-xs cursor-pointer"
+          >
+            Gerenciar Responsáveis
+          </button>
+          <button
+            onClick={handleOpenCadastroNovo}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full text-xs font-bold hover:bg-neutral-850 dark:hover:bg-neutral-100 shadow-xs transition-all shadow-sm cursor-pointer"
+          >
+            <Plus className="h-4 w-4" />
+            Cadastrar Nova Loja
+          </button>
+        </div>
       </div>
 
       {/* Bloco de Filtros */}
@@ -453,6 +463,18 @@ export default function Lojas() {
         <InsalubridadeModal
           loja={selectedLoja}
           onClose={() => setShowInsalubridadeModal(false)}
+        />
+      )}
+
+      {/* Modal de Gerenciamento de Responsáveis */}
+      {showResponsaveisModal && (
+        <GerenciarResponsaveisModal
+          onClose={() => setShowResponsaveisModal(false)}
+          onRefresh={() => {
+            fetchCoordenadores();
+            fetchSupervisores();
+            fetchLojas();
+          }}
         />
       )}
     </div>

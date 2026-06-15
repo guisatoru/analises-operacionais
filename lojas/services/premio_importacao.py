@@ -1,7 +1,7 @@
 import pandas as pd
 from decimal import Decimal
 from django.db import transaction
-from lojas.models import Premio, Loja
+from lojas.models import Premio, Loja, Coordenador, Supervisor
 from colaboradores.models import Colaborador
 from lojas.services.diaria_importacao import construir_mapa_lojas, normalizar_nome
 
@@ -45,6 +45,8 @@ def importar_premios_de_excel(arquivo_excel, progress_callback=None):
     
     Para lançamentos manuais (order_type == 'MANUAL'), a loja é obtida a partir do RE
     do colaborador (coluna employee_id) no banco de dados.
+    Caso o RE pertença a um coordenador ou supervisor diretamente, a loja ficará em branco
+    mas o coordenador/supervisor correspondente e sua respectiva UF (região) serão preenchidos no prêmio.
 
     Docstring explicativa: Este serviço existe para automatizar o parsing e a conciliação
     financeira de prêmios pagos a partir de planilhas Excel operacionais. Ele mapeia
@@ -82,6 +84,20 @@ def importar_premios_de_excel(arquivo_excel, progress_callback=None):
         limpar_re(c.re): c.loja 
         for c in Colaborador.objects.all().select_related("loja")
         if c.re
+    }
+
+    # Mapeia coordenadores (RE -> Coordenador)
+    mapa_coordenadores = {
+        limpar_re(c.re): c
+        for c in Coordenador.objects.exclude(re="")
+        if c.re
+    }
+
+    # Mapeia supervisores (RE -> Supervisor)
+    mapa_supervisores = {
+        limpar_re(s.re): s
+        for s in Supervisor.objects.exclude(re="")
+        if s.re
     }
 
     periodos_presentes = []
@@ -128,24 +144,46 @@ def importar_premios_de_excel(arquivo_excel, progress_callback=None):
             order_type = str(row["order_type"]).strip().upper() if pd.notna(row["order_type"]) else ""
             roteiro = str(row["Roteiro"]).strip().upper() if pd.notna(row["Roteiro"]) else ""
 
-            # Resolve a loja física correspondente
+            # Resolve os dados relacionais do prêmio
             loja_resolvida = None
+            coordenador_resolvido = None
+            supervisor_resolvido = None
+            uf_resolvido = None
             
-            # Caso seja lançamento manual, busca pela loja associada ao colaborador via RE (employee_id)
-            if order_type == "MANUAL":
-                re_limpo = limpar_re(row.get("employee_id"))
-                if re_limpo in mapa_colaboradores:
-                    loja_resolvida = mapa_colaboradores[re_limpo]
+            re_limpo = limpar_re(row.get("employee_id"))
+            
+            # 1. Primeiro verifica se o RE pertence diretamente a um coordenador ou supervisor
+            if re_limpo and re_limpo in mapa_coordenadores:
+                coordenador_resolvido = mapa_coordenadores[re_limpo]
+            elif re_limpo and re_limpo in mapa_supervisores:
+                supervisor_resolvido = mapa_supervisores[re_limpo]
+            else:
+                # 2. Caso contrário, tenta resolver pela loja
+                # Caso seja lançamento manual, busca pela loja associada ao colaborador via RE (employee_id)
+                if order_type == "MANUAL" and re_limpo:
+                    if re_limpo in mapa_colaboradores:
+                        loja_resolvida = mapa_colaboradores[re_limpo]
+                        if loja_resolvida:
+                            coordenador_resolvido = loja_resolvida.coordenador
+                            supervisor_resolvido = loja_resolvida.supervisor
+                            uf_resolvido = loja_resolvida.uf
 
-            # Caso não tenha resolvido (ou não seja manual), tenta pelo centro de custo
-            if not loja_resolvida and cost_center:
-                cc_normalizado = normalizar_nome(cost_center)
-                loja_resolvida = mapa_lojas.get(cc_normalizado)
+                # Caso não tenha resolvido (ou não seja manual), tenta pelo centro de custo
+                if not loja_resolvida and cost_center:
+                    cc_normalizado = normalizar_nome(cost_center)
+                    loja_resolvida = mapa_lojas.get(cc_normalizado)
+                    if loja_resolvida:
+                        coordenador_resolvido = loja_resolvida.coordenador
+                        supervisor_resolvido = loja_resolvida.supervisor
+                        uf_resolvido = loja_resolvida.uf
 
             premio_obj = Premio(
                 status=status[:100],
                 cost_center_name=cost_center[:255],
                 loja=loja_resolvida,
+                coordenador=coordenador_resolvido,
+                supervisor=supervisor_resolvido,
+                uf=uf_resolvido[:2] if uf_resolvido else None,
                 verb_name=verb_name[:255],
                 reward_value=reward_value,
                 period=period_raw[:20],
@@ -173,4 +211,3 @@ def importar_premios_de_excel(arquivo_excel, progress_callback=None):
         progress_callback(100, "Carga de prêmios concluída com sucesso!")
 
     return stats
-

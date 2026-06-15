@@ -412,3 +412,58 @@ def store_filtro_opcoes(request):
         "supervisores": supervisores_list,
         "codigos": codigos_formatted,
     })
+
+
+@api_view(["GET", "PUT", "PATCH", "DELETE"])
+@permission_classes([IsAuthenticated])
+def coordenador_detail_update_delete(request, pk):
+    """
+    Retorna, atualiza ou exclui um coordenador específico.
+    
+    Docstring explicativa: Esta view realiza operações individuais em um coordenador,
+    permitindo a edição de seu nome, RE e região, além de possibilitar a exclusão.
+    """
+    coord = get_object_or_404(Coordenador, pk=pk)
+    if request.method in ["PUT", "PATCH"]:
+        serializer = CoordenadorSerializer(coord, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response({
+            "success": False,
+            "errors": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+    elif request.method == "DELETE":
+        coord.delete()
+        return Response({"success": True, "message": "Coordenador excluído com sucesso."})
+
+    serializer = CoordenadorSerializer(coord)
+    return Response(serializer.data)
+
+
+@api_view(["GET", "PUT", "PATCH", "DELETE"])
+@permission_classes([IsAuthenticated])
+def supervisor_detail_update_delete(request, pk):
+    """
+    Retorna, atualiza ou exclui um supervisor específico.
+    
+    Docstring explicativa: Esta view realiza operações individuais em um supervisor,
+    permitindo a edição de seu nome, RE e região, além de possibilitar a exclusão.
+    """
+    sup = get_object_or_404(Supervisor, pk=pk)
+    if request.method in ["PUT", "PATCH"]:
+        serializer = SupervisorSerializer(sup, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response({
+            "success": False,
+            "errors": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+    elif request.method == "DELETE":
+        sup.delete()
+        return Response({"success": True, "message": "Supervisor excluído com sucesso."})
+
+    serializer = SupervisorSerializer(sup)
+    return Response(serializer.data)
+

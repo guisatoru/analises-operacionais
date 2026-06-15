@@ -37,6 +37,8 @@ export interface Loja {
 export interface Responsavel {
   id: string;
   nome: string;
+  re?: string;
+  regiao?: string;
 }
 
 interface LojasTableProps {

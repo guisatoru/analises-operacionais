@@ -61,6 +61,8 @@ class Coordenador(models.Model):
     """
 
     nome = models.CharField("Nome", max_length=120, unique=True)
+    re = models.CharField("RE", max_length=20, blank=True, default="")
+    regiao = models.CharField("Região (UF)", max_length=50, blank=True, default="")
 
     class Meta:
         verbose_name = "Coordenador"
@@ -78,6 +80,8 @@ class Supervisor(models.Model):
     """
 
     nome = models.CharField("Nome", max_length=120, unique=True)
+    re = models.CharField("RE", max_length=20, blank=True, default="")
+    regiao = models.CharField("Região (UF)", max_length=50, blank=True, default="")
 
     class Meta:
         verbose_name = "Supervisor"
@@ -879,6 +883,23 @@ class Premio(models.Model):
         related_name="premios",
         verbose_name="Loja Associada (TOTVS)",
     )
+    coordenador = models.ForeignKey(
+        Coordenador,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="premios",
+        verbose_name="Coordenador",
+    )
+    supervisor = models.ForeignKey(
+        Supervisor,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="premios",
+        verbose_name="Supervisor",
+    )
+    uf = models.CharField("UF", max_length=2, choices=UF_CHOICES, blank=True, null=True)
     verb_name = models.CharField("Tipo de Prêmio", max_length=255)
     reward_value = models.DecimalField("Valor do Prêmio", max_digits=12, decimal_places=2, default=0.00)
     period = models.CharField("Período (YYYYMM)", max_length=20)
