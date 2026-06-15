@@ -176,7 +176,10 @@ def premios_list_api(request):
     # 4. Distribuição por Tipo de Pedido (SISTEMA vs MANUAL)
     dist_order_type = (
         queryset.values("order_type")
-        .annotate(quantidade=Count("id"), total=Sum("reward_value"))
+        .annotate(
+            quantidade=Count("id"),
+            total=Sum("reward_value", filter=Q(status__in=["PAGO", "APROVADO"]))
+        )
         .order_by("-quantidade")
     )
     dados_grafico_order_type = [
@@ -192,7 +195,10 @@ def premios_list_api(request):
     manual_queryset = queryset.filter(order_type="MANUAL")
     dist_manual_roteiro = (
         manual_queryset.values("roteiro")
-        .annotate(quantidade=Count("id"), total=Sum("reward_value"))
+        .annotate(
+            quantidade=Count("id"),
+            total=Sum("reward_value", filter=Q(status__in=["PAGO", "APROVADO"]))
+        )
         .order_by("-quantidade")
     )
     dados_resumo_manual = [
@@ -206,7 +212,10 @@ def premios_list_api(request):
     # 5. Distribuição por Roteiro (FOLHA vs VEX)
     dist_roteiro = (
         queryset.values("roteiro")
-        .annotate(quantidade=Count("id"), total=Sum("reward_value"))
+        .annotate(
+            quantidade=Count("id"),
+            total=Sum("reward_value", filter=Q(status__in=["PAGO", "APROVADO"]))
+        )
         .order_by("-quantidade")
     )
     dados_grafico_roteiro = [
@@ -220,7 +229,10 @@ def premios_list_api(request):
     # 6. Distribuição por UF (Região)
     dist_uf = (
         queryset.values("uf")
-        .annotate(quantidade=Count("id"), total=Sum("reward_value"))
+        .annotate(
+            quantidade=Count("id"),
+            total=Sum("reward_value", filter=Q(status__in=["PAGO", "APROVADO"]))
+        )
         .order_by("-total")
     )
     dados_grafico_uf = [
@@ -234,7 +246,10 @@ def premios_list_api(request):
     # 7. Distribuição por Coordenador
     dist_coord = (
         queryset.values("coordenador__nome")
-        .annotate(quantidade=Count("id"), total=Sum("reward_value"))
+        .annotate(
+            quantidade=Count("id"),
+            total=Sum("reward_value", filter=Q(status__in=["PAGO", "APROVADO"]))
+        )
         .order_by("-total")
     )
     dados_grafico_coordenador = [
@@ -249,7 +264,10 @@ def premios_list_api(request):
     dist_loja = (
         queryset.filter(loja__isnull=False)
         .values("loja__nome_referencia")
-        .annotate(quantidade=Count("id"), total=Sum("reward_value"))
+        .annotate(
+            quantidade=Count("id"),
+            total=Sum("reward_value", filter=Q(status__in=["PAGO", "APROVADO"]))
+        )
         .order_by("-total")[:10]
     )
     dados_grafico_loja = [
