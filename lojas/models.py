@@ -861,3 +861,39 @@ class Diaria(models.Model):
     def __str__(self):
         return f"{self.id_diaria} — {self.diarista} — {self.local}"
 
+
+class Premio(models.Model):
+    """
+    Este modelo existe para gerenciar e armazenar o histórico de prêmios pagos
+    para fins de dashboards analíticos e conciliação financeira de campanhas.
+    Armazena apenas os dados estruturais necessários para filtros e BI, omitindo dados pessoais.
+    """
+
+    status = models.CharField("Status do Prêmio", max_length=100)
+    cost_center_name = models.CharField("Centro de Custo (Original)", max_length=255)
+    loja = models.ForeignKey(
+        Loja,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="premios",
+        verbose_name="Loja Associada (TOTVS)",
+    )
+    verb_name = models.CharField("Tipo de Prêmio", max_length=255)
+    reward_value = models.DecimalField("Valor do Prêmio", max_digits=12, decimal_places=2, default=0.00)
+    period = models.CharField("Período (YYYYMM)", max_length=20)
+    order_type = models.CharField("Tipo de Pedido", max_length=50)
+    roteiro = models.CharField("Roteiro", max_length=50)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Prêmio"
+        verbose_name_plural = "Prêmios"
+        ordering = ["-period", "id"]
+
+    def __str__(self):
+        return f"{self.period} — {self.verb_name} — R$ {self.reward_value}"
+
+

@@ -34,6 +34,11 @@ urlpatterns = [
     path("diarias/importar/", configuracoes.diaria_import_async, name="importar_diarias"),
     path("diarias/", views.diarias_list_api, name="lista_diarias"),
     path("diarias/filtro-opcoes/", views.diarias_filtro_opcoes_api, name="diarias_filtro_opcoes"),
+
+    # ========== PRÊMIOS (BI & Importador) ==========
+    path("premios/importar/", configuracoes.premio_import_async, name="importar_premios"),
+    path("premios/", views.premios_list_api, name="lista_premios"),
+    path("premios/filtro-opcoes/", views.premios_filtro_opcoes_api, name="premios_filtro_opcoes"),
     
     # ========== NOVAS URLs (usando configuracoes) ==========
     path("importacoes/", configuracoes.importacoes, name="importacoes"),

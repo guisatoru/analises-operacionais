@@ -13,6 +13,7 @@ import Importacoes from './pages/Importacoes';
 import Escopos from './pages/Escopos';
 import Comparativo from './pages/Comparativo';
 import Diarias from './pages/Diarias';
+import Premios from './pages/Premios';
 import Usuarios from './pages/Usuarios';
 import { Toaster } from './components/ui/sonner';
 
@@ -109,6 +110,7 @@ function App() {
           <Route path="/escopos" element={<Escopos />} />
           <Route path="/comparativo" element={<Comparativo />} />
           <Route path="/diarias" element={<Diarias />} />
+          <Route path="/premios" element={<Premios />} />
           <Route path="/colaboradores" element={<Colaboradores />} />
           <Route path="/terminos" element={<Terminos />} />
           <Route path="/importacoes" element={<Importacoes />} />

@@ -12,6 +12,7 @@ from colaboradores.services.colaborador_importacao import importar_colaboradores
 from colaboradores.services.gestao_importacao import importar_gestao_pessoas
 from lojas.services.folha_importacao import importar_folha_de_texto
 from lojas.services.diaria_importacao import importar_diarias_de_texto
+from lojas.services.premio_importacao import importar_premios_de_excel
 
 
 @api_view(["GET"])
@@ -144,6 +145,30 @@ def diaria_import_async(request):
         mensagem_inicial="Iniciando processamento do arquivo de diárias...",
     )
 
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def premio_import_async(request):
+    """
+    Inicia a importação assíncrona do arquivo Excel de Prêmios Pagos via upload.
+    """
+    arquivo = request.FILES.get("arquivo")
+    if not arquivo:
+        return Response({"success": False, "error": "Nenhum arquivo enviado."}, status=status.HTTP_400_BAD_REQUEST)
+
+    nome = (arquivo.name or "").lower()
+    if not (nome.endswith(".xlsx") or nome.endswith(".xlsm") or nome.endswith(".xls")):
+        return Response({
+            "success": False,
+            "error": "Envie uma planilha Excel válida (.xlsx, .xlsm, .xls)."
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    return _iniciar_importacao_async(
+        tipo_importacao="premio",
+        payload={"conteudo": arquivo.read(), "nome": arquivo.name or "premios.xlsx"},
+        titulo="Progresso da Importação de Prêmios",
+        mensagem_inicial="Iniciando processamento da planilha de prêmios...",
+    )
+
 def _iniciar_importacao_async(tipo_importacao, payload, titulo, mensagem_inicial):
     """
     Função utilitária que inicia a thread de importação em background
@@ -230,6 +255,14 @@ def _processar_importacao_background(import_id, tipo_importacao):
                 progress_callback=atualizar_progresso,
             )
             mensagem, status_msg = _montar_mensagem_diaria(resultado)
+        elif tipo_importacao == "premio":
+            arquivo_excel = BytesIO(payload["conteudo"])
+            arquivo_excel.name = payload.get("nome", "premios.xlsx")
+            resultado = importar_premios_de_excel(
+                arquivo_excel,
+                progress_callback=atualizar_progresso,
+            )
+            mensagem, status_msg = _montar_mensagem_premio(resultado)
         else:
             raise ValueError("Tipo de importacao invalido.")
 
@@ -326,6 +359,20 @@ def _montar_mensagem_diaria(resultado):
     mensagem = (
         f"Importação de Diárias concluída: {resultado['total']} linhas processadas. "
         f"{resultado['criados']} criadas, {resultado['atualizados']} atualizadas."
+    )
+    if resultado["erros"] > 0:
+        mensagem += f" {resultado['erros']} erros ignorados."
+        return mensagem, "warning"
+    return mensagem, "success"
+
+def _montar_mensagem_premio(resultado):
+    if resultado["criados"] == 0:
+        return "Nenhum prêmio processado. Verifique as colunas da planilha.", "warning"
+
+    periodos_str = ", ".join(resultado["periodos"])
+    mensagem = (
+        f"Importação de Prêmios concluída para o(s) período(s) [{periodos_str}]: "
+        f"{resultado['total']} linhas processadas, {resultado['criados']} prêmios salvos."
     )
     if resultado["erros"] > 0:
         mensagem += f" {resultado['erros']} erros ignorados."

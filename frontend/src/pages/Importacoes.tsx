@@ -5,7 +5,8 @@ import {
   FileText, 
   CheckCircle2, 
   AlertCircle, 
-  X 
+  X,
+  Coins
 } from 'lucide-react';
 import api from '../api/client';
 import UploadCard from '../components/Importacoes/UploadCard';
@@ -32,6 +33,7 @@ export default function Importacoes() {
   const [gestaoFile, setGestaoFile] = useState<File | null>(null);
   const [folhaFile, setFolhaFile] = useState<File | null>(null);
   const [diariaFile, setDiariaFile] = useState<File | null>(null);
+  const [premioFile, setPremioFile] = useState<File | null>(null);
 
   // Estados de controle do processo de importação
   const [importStatus, setImportStatus] = useState<ImportStatus | null>(null);
@@ -56,6 +58,7 @@ export default function Importacoes() {
           setGestaoFile(null);
           setFolhaFile(null);
           setDiariaFile(null);
+          setPremioFile(null);
         } else if (data.status === 'error') {
           clearInterval(intervalId);
           setLoading(false);
@@ -71,7 +74,7 @@ export default function Importacoes() {
   };
 
   // Faz o envio (upload) do arquivo para a API correspondente
-  const handleUpload = async (tipo: 'sra' | 'gestao' | 'folha' | 'diaria', file: File | null) => {
+  const handleUpload = async (tipo: 'sra' | 'gestao' | 'folha' | 'diaria' | 'premio', file: File | null) => {
     if (!file) {
       alert('Selecione um arquivo primeiro.');
       return;
@@ -95,6 +98,7 @@ export default function Importacoes() {
     else if (tipo === 'gestao') endpoint = '/colaboradores/importar-gestao/';
     else if (tipo === 'folha') endpoint = '/folhas/importar/';
     else if (tipo === 'diaria') endpoint = '/diarias/importar/';
+    else if (tipo === 'premio') endpoint = '/premios/importar/';
 
     try {
       const response = await api.post(endpoint, formData, {
@@ -134,7 +138,7 @@ export default function Importacoes() {
       )}
 
       {/* Grid de Cards de Upload */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         
         {/* Card Colaboradores SRA */}
         <UploadCard
@@ -202,6 +206,23 @@ export default function Importacoes() {
           loading={loading}
           buttonText="Importar Diárias"
           onUpload={() => handleUpload('diaria', diariaFile)}
+        />
+
+        {/* Card Prêmios Pagos */}
+        <UploadCard
+          title="Prêmios Pagos"
+          description="Carga da planilha de prêmios e campanhas operacionais. Formato aceito: Excel (.xlsx / .xlsm)."
+          icon={
+            <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600">
+              <Coins className="h-6 w-6" />
+            </div>
+          }
+          accept=".xlsx,.xlsm,.xls"
+          file={premioFile}
+          setFile={setPremioFile}
+          loading={loading}
+          buttonText="Importar Prêmios"
+          onUpload={() => handleUpload('premio', premioFile)}
         />
 
       </div>

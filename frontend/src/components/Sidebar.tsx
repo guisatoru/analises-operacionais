@@ -12,7 +12,8 @@ import {
   ChevronDown,
   ChevronRight,
   Building2,
-  CalendarCheck
+  CalendarCheck,
+  Coins
 } from 'lucide-react';
 import { 
   Sidebar as ShadcnSidebar, 
@@ -220,6 +221,19 @@ export default function Sidebar({ username = 'Usuário', onLogout, role, onOpenP
                   <Link to="/diarias">
                     <CalendarCheck className="h-5 w-5 shrink-0" />
                     {open && <span className="truncate">Diárias</span>}
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  asChild 
+                  isActive={location.pathname === '/premios'}
+                  title={!open ? "Prêmios" : undefined}
+                >
+                  <Link to="/premios">
+                    <Coins className="h-5 w-5 shrink-0" />
+                    {open && <span className="truncate">Prêmios</span>}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

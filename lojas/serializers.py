@@ -12,6 +12,7 @@ from .models import (
     Coordenador,
     Supervisor,
     Diaria,
+    Premio,
 )
 
 class CoordenadorSerializer(serializers.ModelSerializer):
@@ -305,4 +306,27 @@ class DiariaSerializer(serializers.ModelSerializer):
         if "valor" in data and data["valor"] is not None:
             data["valor"] = str(data["valor"])
         return data
+
+
+class PremioSerializer(serializers.ModelSerializer):
+    """
+    Este serializer existe para mapear o modelo de Premio em payloads JSON,
+    convertendo chaves primárias e valores numéricos como strings para conformidade do frontend.
+    """
+    loja_nome = serializers.CharField(source="loja.nome_referencia", read_only=True)
+
+    class Meta:
+        model = Premio
+        fields = "__all__"
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if "id" in data and data["id"] is not None:
+            data["id"] = str(data["id"])
+        if "loja" in data and data["loja"] is not None:
+            data["loja"] = str(data["loja"])
+        if "reward_value" in data and data["reward_value"] is not None:
+            data["reward_value"] = str(data["reward_value"])
+        return data
+
 
