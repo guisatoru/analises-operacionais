@@ -107,6 +107,60 @@ def importar_gestao_pessoas(arquivo_excel, progress_callback=None):
     colaboradores_atuais = {c.re: c for c in Colaborador.objects.all()}
     lojas_por_nome_gestao, nomes_gestao_duplicados = criar_mapa_lojas_por_nome_gestao()
     
+    # Identifica se o mesmo RE possui duplicidades na planilha (desconsiderando TRANSFERIDO)
+    # Explicação em português:
+    # Esta verificação encontra REs que possuem mais de uma linha na planilha após descartarmos
+    # as linhas com status "TRANSFERIDO" (que são transferências válidas).
+    alertas_status_multiplo = []
+    try:
+        # Filtra linhas cujo status não seja TRANSFERIDO e que não sejam vazias
+        df_validos = df[
+            df[col_status].notna() &
+            (df[col_status].astype(str).str.strip().str.upper() != "TRANSFERIDO") &
+            (df[col_status].astype(str).str.strip() != "")
+        ]
+        
+        # Agrupa por RE e conta a quantidade de ocorrências
+        counts_por_re = df_validos.groupby(col_re).size()
+        
+        # Filtra apenas os REs que possuem mais de uma ocorrência
+        re_duplicados = counts_por_re[counts_por_re > 1].index.tolist()
+        
+        for re_val in re_duplicados:
+            df_re = df_validos[df_validos[col_re] == re_val]
+            
+            # Coleta os status únicos para exibir no alerta
+            statuses = sorted(list(set(
+                str(s).strip().upper() 
+                for s in df_re[col_status].tolist()
+            )))
+            
+            # Busca o nome correspondente a este RE
+            col_nome_planilha = None
+            for col in df.columns:
+                if str(col).strip().upper() in ["NOME", "NOME DO FUNCIONÁRIO", "NOME FUNCIONÁRIO", "COLABORADOR"]:
+                    col_nome_planilha = col
+                    break
+            
+            nome_val = None
+            if col_nome_planilha:
+                nome_val = str(df_re.iloc[0][col_nome_planilha]).strip()
+            
+            if not nome_val:
+                colab_db = colaboradores_atuais.get(re_val)
+                if colab_db:
+                    nome_val = colab_db.nome
+                    
+            nome_final = nome_val if nome_val else "Nome não cadastrado"
+            
+            alertas_status_multiplo.append({
+                "re": re_val,
+                "nome": nome_final,
+                "statuses": statuses
+            })
+    except Exception:
+        pass
+
     stats = {
         'total_planilha': len(df_unico), 
         'atualizados': 0, 
@@ -116,6 +170,7 @@ def importar_gestao_pessoas(arquivo_excel, progress_callback=None):
         'lojas_gestao_encontradas': 0,
         'lojas_gestao_nao_encontradas': 0,
         'lojas_gestao_duplicadas': len(nomes_gestao_duplicados),
+        'alertas_status_multiplo': alertas_status_multiplo,
     }
 
     para_atualizar = []

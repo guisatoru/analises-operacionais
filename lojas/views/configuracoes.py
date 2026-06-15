@@ -327,10 +327,15 @@ def _montar_mensagem_gestao(resultado):
     if resultado["lojas_gestao_duplicadas"] > 0:
         mensagem += f" {resultado['lojas_gestao_duplicadas']} nomes de Gestao duplicados no cadastro de lojas."
 
+    alertas = resultado.get("alertas_status_multiplo", [])
+    if alertas:
+        mensagem += f" Atenção: {len(alertas)} colaborador(es) com múltiplos status diferentes na planilha."
+
     tem_alerta = (
         resultado["erros"] > 0
         or resultado["lojas_gestao_nao_encontradas"] > 0
         or resultado["lojas_gestao_duplicadas"] > 0
+        or len(alertas) > 0
     )
     if resultado["erros"] > 0:
         mensagem += f" {resultado['erros']} erros ignorados."

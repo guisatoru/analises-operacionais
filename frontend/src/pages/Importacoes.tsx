@@ -266,20 +266,41 @@ export default function Importacoes() {
               </div>
 
               {importStatus.status === 'completed' && (
-                <div className={`p-4 rounded-xl border flex gap-3 items-start ${
-                  importStatus.msg_type === 'success' 
-                    ? 'bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800/40 text-green-700 dark:text-green-300' 
-                    : 'bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 text-amber-700 dark:text-amber-300'
-                }`}>
-                  {importStatus.msg_type === 'success' ? (
-                    <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
-                  ) : (
-                    <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-                  )}
-                  <div className="space-y-1">
-                    <p className="font-bold text-sm">Importação Concluída</p>
-                    <p className="text-xs leading-relaxed">{importStatus.message}</p>
+                <div className="space-y-4">
+                  <div className={`p-4 rounded-xl border flex gap-3 items-start ${
+                    importStatus.msg_type === 'success' 
+                      ? 'bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800/40 text-green-700 dark:text-green-300' 
+                      : 'bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 text-amber-700 dark:text-amber-300'
+                  }`}>
+                    {importStatus.msg_type === 'success' ? (
+                      <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                    )}
+                    <div className="space-y-1">
+                      <p className="font-bold text-sm">Importação Concluída</p>
+                      <p className="text-xs leading-relaxed whitespace-pre-line">{importStatus.message}</p>
+                    </div>
                   </div>
+
+                  {importStatus.result?.alertas_status_multiplo?.length > 0 && (
+                    <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 rounded-xl space-y-2">
+                      <div className="flex items-center gap-2 font-bold text-xs text-red-800 dark:text-red-300">
+                        <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
+                        <span>Matrículas (RE) com múltiplos status na planilha:</span>
+                      </div>
+                      <div className="max-h-40 overflow-y-auto pr-1">
+                        <ul className="text-xs text-red-700 dark:text-red-400 space-y-1 list-disc pl-5">
+                          {importStatus.result.alertas_status_multiplo.map((alerta: any, idx: number) => (
+                            <li key={idx}>
+                              RE <span className="font-semibold">{alerta.re}</span> ({alerta.nome}):{" "}
+                              <span className="italic">{alerta.statuses.join(", ")}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

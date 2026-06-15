@@ -34,7 +34,6 @@ interface ColaboradoresFilterProps {
   setDivergenteQuery: (val: string) => void;
   soTotvsQuery: string;
   setSoTotvsQuery: (val: string) => void;
-
   onSubmit: (e: React.FormEvent) => void;
   onClear: () => void;
 }
