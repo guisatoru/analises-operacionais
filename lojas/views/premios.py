@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 
-from lojas.models import Premio, Loja
+from lojas.models import Premio, Loja, Coordenador
 from lojas.serializers import PremioSerializer
 
 class PremioPaginacao(PageNumberPagination):
@@ -143,6 +143,19 @@ def premios_list_api(request):
     preco_medio = soma_valores / count_pagos if count_pagos > 0 else 0.0
 
     # 2. Distribuição Mensal (Gráfico de Evolução)
+    if coordenador_val:
+        coordenadores_list_filter = [c.strip() for c in coordenador_val.split(",") if c.strip()]
+        vals_coordenadores = [c for c in coordenadores_list_filter if c != "null"]
+        coordenadores_qs = Coordenador.objects.filter(nome__in=vals_coordenadores)
+    else:
+        if not (loja_val or supervisor_val or coordenador_val):
+            coordenadores_qs = Coordenador.objects.all()
+        else:
+            coordenadores_ids = queryset.exclude(coordenador__isnull=True).values_list("coordenador_id", flat=True).distinct()
+            coordenadores_qs = Coordenador.objects.filter(id__in=coordenadores_ids)
+
+    orcamento_premios_total = float(coordenadores_qs.aggregate(total=Sum("orcamento_premios"))["total"] or 0.0)
+
     dist_mensal = (
         queryset.values("period")
         .annotate(total=Sum("reward_value"), quantidade=Count("id"))
@@ -156,7 +169,8 @@ def premios_list_api(request):
         dados_grafico_linha.append({
             "mes": label,
             "faturamento": float(item["total"] or 0),
-            "quantidade": item["quantidade"]
+            "quantidade": item["quantidade"],
+            "orcamento": orcamento_premios_total
         })
 
     # 3. Distribuição por Status

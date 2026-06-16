@@ -43,6 +43,8 @@ export interface Responsavel {
   regiao?: string;
   coordenador?: string;
   coordenador_nome?: string;
+  orcamento_diarias?: string;
+  orcamento_premios?: string;
 }
 
 interface LojasTableProps {

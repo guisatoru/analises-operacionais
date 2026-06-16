@@ -288,15 +288,27 @@ export default function Premios() {
                     <YAxis stroke="#888888" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `R$ ${v}`} />
                     <Tooltip 
                       contentStyle={{ background: '#171717', border: 'none', borderRadius: '8px', fontSize: '11px', color: '#fff' }} 
-                      formatter={(value: any) => [formatarReal(Number(value)), 'Valor Gasto']}
+                      formatter={(value: any, name: any) => [formatarReal(Number(value)), name]}
                     />
                     <Line 
                       type="monotone" 
                       dataKey="faturamento" 
+                      name="Valor Gasto"
                       stroke="#8b5cf6" 
                       strokeWidth={3} 
                       dot={{ r: 4 }} 
                       activeDot={{ r: 6 }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="orcamento" 
+                      name="Orçamento"
+                      stroke="#a3a3a3" 
+                      strokeWidth={2} 
+                      strokeDasharray="5 5"
+                      opacity={0.5}
+                      dot={false}
+                      activeDot={false}
                     />
                   </LineChart>
                 </ResponsiveContainer>

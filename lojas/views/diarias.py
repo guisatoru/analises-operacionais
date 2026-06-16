@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 
-from lojas.models import Diaria, Loja
+from lojas.models import Diaria, Loja, Coordenador
 from lojas.serializers import DiariaSerializer
 
 class DiariaPaginacao(PageNumberPagination):
@@ -169,6 +169,19 @@ def diarias_list_api(request):
     pendentes_count = queryset.filter(status__icontains="Pendente").count()
 
     # 2. Distribuição de Faturamento por Mês (Gráfico de Linha)
+    if coordenador_val:
+        coordenadores_list_filter = [c.strip() for c in coordenador_val.split(",") if c.strip()]
+        vals_coordenadores = [c for c in coordenadores_list_filter if c != "null"]
+        coordenadores_qs = Coordenador.objects.filter(nome__in=vals_coordenadores)
+    else:
+        if not (loja_id or supervisor_val or coordenador_val):
+            coordenadores_qs = Coordenador.objects.all()
+        else:
+            coordenadores_ids = queryset.exclude(loja__coordenador__isnull=True).values_list("loja__coordenador_id", flat=True).distinct()
+            coordenadores_qs = Coordenador.objects.filter(id__in=coordenadores_ids)
+
+    orcamento_diarias_total = float(coordenadores_qs.aggregate(total=Sum("orcamento_diarias"))["total"] or 0.0)
+
     faturamento_mensal = (
         queryset.annotate(mes_ref=TruncMonth("data_servico"))
         .values("mes_ref")
@@ -181,7 +194,8 @@ def diarias_list_api(request):
             mes_label = f["mes_ref"].strftime("%m/%Y")
             dados_grafico_linha.append({
                 "mes": mes_label,
-                "faturamento": float(f["total"] or 0)
+                "faturamento": float(f["total"] or 0),
+                "orcamento": orcamento_diarias_total
             })
 
     # 3. Distribuição por Status (Gráfico de Rosca)

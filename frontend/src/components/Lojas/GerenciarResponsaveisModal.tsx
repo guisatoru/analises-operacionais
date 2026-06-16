@@ -33,6 +33,8 @@ export default function GerenciarResponsaveisModal({
   const [nome, setNome] = useState('');
   const [re, setRe] = useState('');
   const [coordenadorId, setCoordenadorId] = useState('');
+  const [orcamentoDiarias, setOrcamentoDiarias] = useState('');
+  const [orcamentoPremios, setOrcamentoPremios] = useState('');
   const [coordenadoresOpcoes, setCoordenadoresOpcoes] = useState<Responsavel[]>([]);
 
   const fetchCoordenadoresOpcoes = async () => {
@@ -74,6 +76,8 @@ export default function GerenciarResponsaveisModal({
     setNome('');
     setRe('');
     setCoordenadorId('');
+    setOrcamentoDiarias('');
+    setOrcamentoPremios('');
     setFormMode('create');
     setErrorMsg(null);
   };
@@ -84,6 +88,8 @@ export default function GerenciarResponsaveisModal({
     setNome(item.nome);
     setRe(item.re || '');
     setCoordenadorId(item.coordenador || '');
+    setOrcamentoDiarias(item.orcamento_diarias || '');
+    setOrcamentoPremios(item.orcamento_premios || '');
     setFormMode('edit');
     setErrorMsg(null);
   };
@@ -98,6 +104,10 @@ export default function GerenciarResponsaveisModal({
       nome: nome.trim(),
       re: re.trim(),
     };
+    if (activeTab === 'coordenadores') {
+      payload.orcamento_diarias = orcamentoDiarias ? parseFloat(orcamentoDiarias) : 0;
+      payload.orcamento_premios = orcamentoPremios ? parseFloat(orcamentoPremios) : 0;
+    }
     if (activeTab === 'supervisores') {
       payload.coordenador = coordenadorId || null;
     }
@@ -301,6 +311,33 @@ export default function GerenciarResponsaveisModal({
                     placeholder="Ex: 012345"
                   />
                 </div>
+
+                {activeTab === 'coordenadores' && (
+                  <>
+                    <div>
+                      <FormField
+                        label="Orçamento Mensal Diárias (R$)"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={orcamentoDiarias}
+                        onChange={setOrcamentoDiarias}
+                        placeholder="Ex: 5000.00"
+                      />
+                    </div>
+                    <div>
+                      <FormField
+                        label="Orçamento Mensal Prêmios (R$)"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={orcamentoPremios}
+                        onChange={setOrcamentoPremios}
+                        placeholder="Ex: 10000.00"
+                      />
+                    </div>
+                  </>
+                )}
 
                 {activeTab === 'supervisores' && (
                   <div className="md:col-span-2">

@@ -63,6 +63,8 @@ class Coordenador(models.Model):
     nome = models.CharField("Nome", max_length=120, unique=True)
     re = models.CharField("RE", max_length=20, blank=True, default="")
     regiao = models.CharField("Região (UF)", max_length=50, blank=True, default="")
+    orcamento_diarias = models.DecimalField("Orçamento Diárias", max_digits=12, decimal_places=2, default=0.00)
+    orcamento_premios = models.DecimalField("Orçamento Prêmios", max_digits=12, decimal_places=2, default=0.00)
 
     class Meta:
         verbose_name = "Coordenador"

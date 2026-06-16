@@ -28,6 +28,10 @@ class CoordenadorSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
         if "id" in data and data["id"] is not None:
             data["id"] = str(data["id"])
+        if "orcamento_diarias" in data and data["orcamento_diarias"] is not None:
+            data["orcamento_diarias"] = str(data["orcamento_diarias"])
+        if "orcamento_premios" in data and data["orcamento_premios"] is not None:
+            data["orcamento_premios"] = str(data["orcamento_premios"])
         return data
 
 class SupervisorSerializer(serializers.ModelSerializer):
