@@ -124,10 +124,8 @@ export function buildCalendarDays(
       if (agendamento.loja_nome) {
         const lojaFound = lojasMap.get(normalizeHeader(agendamento.loja_nome));
         cliente = lojaFound?.cliente || '';
-        if (lojaFound?.supervisor) {
-          supervisor = typeof lojaFound.supervisor === 'object' 
-            ? (lojaFound.supervisor as any).nome 
-            : String(lojaFound.supervisor);
+        if (lojaFound?.supervisor_nome) {
+          supervisor = lojaFound.supervisor_nome;
         }
       }
     }

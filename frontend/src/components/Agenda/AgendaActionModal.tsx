@@ -104,12 +104,7 @@ export function AgendaActionModal({
     ? `${selectedLojaObj.rua || ''} - ${selectedLojaObj.bairro || ''}, ${selectedLojaObj.municipio || ''} - ${selectedLojaObj.uf || ''}`.trim()
     : '';
 
-  let supervisorExibicao = '';
-  if (selectedLojaObj && selectedLojaObj.supervisor) {
-    supervisorExibicao = typeof selectedLojaObj.supervisor === 'object' 
-      ? (selectedLojaObj.supervisor as any).nome 
-      : String(selectedLojaObj.supervisor);
-  }
+  const supervisorExibicao = selectedLojaObj?.supervisor_nome || '';
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">

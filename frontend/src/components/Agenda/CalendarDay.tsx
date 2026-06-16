@@ -78,11 +78,7 @@ export const CalendarDay = memo(({
             {item.label}
           </p>
           
-          {item.status === 'agendado' && item.funcao && item.funcao !== 'Apoio' && (
-            <p className="text-[10px] text-neutral-500 font-semibold italic mt-0.5">
-              Função: {item.funcao}
-            </p>
-          )}
+
         </div>
 
         {/* Ícone de Turno no canto inferior esquerdo */}

@@ -55,6 +55,9 @@ class LojaSerializer(serializers.ModelSerializer):
     Garante de forma estrita que o ID da loja e o código da loja sejam retornados como strings,
     além de manter o formato de texto para o centro de custo de acordo com as regras de segurança do projeto.
     """
+    supervisor_nome = serializers.CharField(source="supervisor.nome", read_only=True)
+    coordenador_nome = serializers.CharField(source="coordenador.nome", read_only=True)
+
     class Meta:
         model = Loja
         fields = "__all__"

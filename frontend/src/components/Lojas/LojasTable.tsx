@@ -26,6 +26,8 @@ export interface Loja {
   sub_regiao?: string;
   coordenador?: string; // ID do coordenador relacional
   supervisor?: string; // ID do supervisor relacional
+  coordenador_nome?: string;
+  supervisor_nome?: string;
   nome_totvs?: string;
   nome_geovictoria?: string;
   nome_gestao?: string;
