@@ -26,6 +26,7 @@ interface AgendaActionModalProps {
   lojasMap: Map<string, Loja>;
   agendamentos: Agendamento[];
   onSubmit: (formData: any) => void;
+  onClear?: () => void;
 }
 
 /**
@@ -44,10 +45,15 @@ export function AgendaActionModal({
   lojas,
   lojasMap,
   agendamentos,
-  onSubmit
+  onSubmit,
+  onClear
 }: AgendaActionModalProps) {
   const [copied, setCopied] = useState(false);
   const [localForm, setLocalForm] = useState(initialForm);
+
+  const hasExistingAgendamento = selectedDateRange.some(date => 
+    agendamentos.some(a => a.data === date && String(a.colaborador) === String(selectedColaborador.id))
+  );
 
   useEffect(() => {
     if (isOpen && initialForm) {
@@ -307,21 +313,35 @@ export function AgendaActionModal({
         </div>
 
         {/* Rodapé com botões de Ação */}
-        <div className="flex justify-end gap-3 p-6 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-2.5 rounded-lg border border-neutral-200 dark:border-neutral-800 text-sm font-bold text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            form="agendamento-form"
-            className="px-5 py-2.5 rounded-lg bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-sm font-bold hover:bg-neutral-800 dark:hover:opacity-90 transition-colors cursor-pointer"
-          >
-            Salvar Roteiro
-          </button>
+        {/* Rodapé com botões de Ação */}
+        <div className="flex justify-between items-center p-6 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 shrink-0">
+          <div>
+            {hasExistingAgendamento && onClear && (
+              <button
+                type="button"
+                onClick={onClear}
+                className="px-5 py-2.5 rounded-xl border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/20 text-sm font-bold text-red-650 hover:text-red-750 transition-colors cursor-pointer"
+              >
+                Limpar Agendamento
+              </button>
+            )}
+          </div>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2.5 rounded-lg border border-neutral-200 dark:border-neutral-800 text-sm font-bold text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              form="agendamento-form"
+              className="px-5 py-2.5 rounded-lg bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-sm font-bold hover:bg-neutral-800 dark:hover:opacity-90 transition-colors cursor-pointer"
+            >
+              Salvar Roteiro
+            </button>
+          </div>
         </div>
       </div>
     </div>

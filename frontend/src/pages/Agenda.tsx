@@ -215,6 +215,40 @@ export default function Agenda() {
     setDragEnd(null);
   }, [setDragStart, setDragEnd]);
 
+  // Limpa (exclui) o agendamento das datas selecionadas no banco de dados, voltando para o estado "livre"
+  const handleClearAgendamento = useCallback(async () => {
+    if (!selectedColaboradorId) return;
+
+    const targetDates = selectedDateRange.length > 0 ? selectedDateRange : [selectedDate];
+    const toDelete = agendamentos.filter(
+      a => targetDates.includes(a.data) && String(a.colaborador) === String(selectedColaboradorId)
+    );
+
+    if (toDelete.length === 0) {
+      closeDayModal();
+      return;
+    }
+
+    try {
+      setLoadingAgendamentos(true);
+      await Promise.all(
+        toDelete.map((a) => {
+          if (a.id) {
+            return api.delete(`/colaboradores/agendamentos/${a.id}/excluir/`);
+          }
+          return Promise.resolve();
+        })
+      );
+      await fetchAgendamentos();
+      closeDayModal();
+    } catch (err) {
+      console.error('Erro ao excluir agendamentos:', err);
+      setErrorMsg('Não foi possível excluir o agendamento no servidor.');
+    } finally {
+      setLoadingAgendamentos(false);
+    }
+  }, [selectedColaboradorId, selectedDate, selectedDateRange, agendamentos, fetchAgendamentos, closeDayModal]);
+
   // Salva ou edita a programação da agenda (upsert em lote)
   const handleModalSubmit = async (formData: any) => {
     if (!selectedColaboradorId) return;
@@ -401,6 +435,7 @@ export default function Agenda() {
           lojasMap={lojasMap}
           agendamentos={agendamentos}
           onSubmit={handleModalSubmit}
+          onClear={handleClearAgendamento}
         />
       )}
     </div>
