@@ -16,29 +16,29 @@
   --card-foreground: 240 10% 12%;
   --popover: 0 0% 100%;
   --popover-foreground: 240 10% 12%;
-  --primary: 240 10% 12%; /* Botões e elementos de destaque na cor grafite escuro */
+  --primary: 185 30% 45%; /* Teal da logo novoLOGO.png (#579aa0) */
   --primary-foreground: 0 0% 100%; /* Texto branco sobre fundo primário */
-  --secondary: 240 5% 90%; /* Pílulas secundárias cinza claro */
-  --secondary-foreground: 240 10% 12%;
+  --secondary: 25 10% 90%; /* Tom cinza suave com leve matiz quente do logo */
+  --secondary-foreground: 25 20% 20%;
   --muted: 240 5% 96%;
   --muted-foreground: 240 5% 45%;
-  --accent: 240 5% 90%;
-  --accent-foreground: 240 10% 12%;
+  --accent: 185 30% 95%; /* Tom teal muito suave para hovers e marcações */
+  --accent-foreground: 185 45% 20%;
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 0 0% 98%;
   --border: 240 5.9% 90%; /* Bordas suaves cinza claro */
   --input: 240 5.9% 90%;
-  --ring: 240 10% 12%;
+  --ring: 185 30% 45%;
 
   /* Variáveis específicas para a Sidebar no padrão Shadcn */
   --sidebar-background: 0 0% 100%; /* Fundo da sidebar branco limpo */
-  --sidebar-foreground: 240 5% 26%;
-  --sidebar-primary: 240 10% 12%; /* Pílula ativa em grafite */
+  --sidebar-foreground: 185 40% 20%;
+  --sidebar-primary: 185 30% 45%; /* Pílula ativa em teal */
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 240 4.8% 95.9%;
-  --sidebar-accent-foreground: 240 5.9% 10%;
+  --sidebar-accent: 185 30% 95%; /* Hover em tom suave de teal */
+  --sidebar-accent-foreground: 185 40% 20%;
   --sidebar-border: 240 5.9% 90%;
-  --sidebar-ring: 240 10% 12%;
+  --sidebar-ring: 185 30% 45%;
   
   --radius: 0.75rem; /* Cantos arredondados premium de 12px (rounded-xl) */
 }
@@ -90,7 +90,7 @@
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   margin: 0;
   padding: 0;
   transition: background-color 0.2s ease, color 0.2s ease;
@@ -125,8 +125,8 @@ body {
 }
 
 :where(input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], select, textarea):focus {
-  border-color: #18181b;
-  box-shadow: 0 0 0 1px #18181b, 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  border-color: #579aa0;
+  box-shadow: 0 0 0 1px #579aa0, 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 :where(input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], select, textarea):hover {
@@ -135,7 +135,7 @@ body {
 
 /* Botões Customizados */
 .btn-primary {
-  background-color: #18181b;
+  background-color: #579aa0;
   color: #ffffff;
   font-weight: 500;
   font-size: 0.875rem;
@@ -151,7 +151,7 @@ body {
 }
 
 .btn-primary:hover {
-  background-color: #27272a;
+  background-color: #467e83; /* Tom ligeiramente mais escuro para hover */
   transform: translateY(-0.5px);
 }
 
@@ -161,7 +161,7 @@ body {
 
 .btn-secondary {
   background-color: #f4f4f5;
-  color: #18181b;
+  color: #579aa0;
   font-weight: 500;
   font-size: 0.875rem;
   padding: 0.5rem 1.25rem;
@@ -177,7 +177,7 @@ body {
 
 .btn-secondary:hover {
   background-color: #e4e4e7;
-  color: #09090b;
+  color: #467e83;
 }
 
 /* Tabelas Premium */

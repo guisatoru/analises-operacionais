@@ -38,7 +38,7 @@ export default function Layout({ isAuthenticated, username, onLogout, role }: La
   // Mapeamento manual e amigável da rota atual para definir o setor e a página ativa
   const path = location.pathname.replace(/^\/|\/$/g, '');
   let sector = '';
-  let pageName = 'Dashboard';
+  let pageName = 'Início';
 
   if (path === 'lojas') {
     sector = 'Operação & Equipe';
@@ -72,7 +72,7 @@ export default function Layout({ isAuthenticated, username, onLogout, role }: La
     pageName = 'Usuários';
   } else {
     sector = 'Geral';
-    pageName = 'Dashboard';
+    pageName = 'Início';
   }
 
   return (

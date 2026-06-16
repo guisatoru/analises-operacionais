@@ -11,10 +11,10 @@ import {
   ChevronsUpDown,
   ChevronDown,
   ChevronRight,
-  Building2,
   CalendarCheck,
   Coins
 } from 'lucide-react';
+import { logoBase64 } from '../assets/logoBase64';
 import { 
   Sidebar as ShadcnSidebar, 
   SidebarHeader, 
@@ -71,8 +71,8 @@ export default function Sidebar({ username = 'Usuário', onLogout, role, onOpenP
       <SidebarHeader>
         <div className="flex items-center justify-between w-full p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-850 cursor-pointer transition-colors group">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-xs">
-              <Building2 className="h-5 w-5" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white overflow-hidden shadow-xs border border-neutral-100">
+              <img src={logoBase64} alt="Logo" className="h-7 w-7 object-contain" />
             </div>
             {open && (
               <div className="flex flex-col min-w-0 text-left">
@@ -102,11 +102,11 @@ export default function Sidebar({ username = 'Usuário', onLogout, role, onOpenP
                 <SidebarMenuButton 
                   asChild 
                   isActive={location.pathname === '/'}
-                  title={!open ? "Dashboard" : undefined}
+                  title={!open ? "Início" : undefined}
                 >
                   <Link to="/">
                     <LayoutDashboard className="h-5 w-5 shrink-0" />
-                    {open && <span className="truncate">Dashboard</span>}
+                    {open && <span className="truncate">Início</span>}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -333,7 +333,7 @@ export default function Sidebar({ username = 'Usuário', onLogout, role, onOpenP
             className={`flex items-center justify-between p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-850 cursor-pointer transition-colors group ${!open ? 'justify-center' : ''}`}
           >
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 flex items-center justify-center text-xs font-bold shrink-0 shadow-xs uppercase">
+              <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold shrink-0 shadow-xs uppercase">
                 {username ? username.substring(0, 2) : 'US'}
               </div>
               {open && (
