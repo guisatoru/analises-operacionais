@@ -2,6 +2,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from django.db.models import Q
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from .models import Agendamento, Colaborador
@@ -102,12 +103,18 @@ def agendamento_delete(request, pk):
 @permission_classes([IsAuthenticated])
 def colaborador_ativos_completo(request):
     """
-    Retorna todos os colaboradores ativos (sem paginação).
+    Retorna todos os colaboradores ativos filtrados por busca (Nome ou RE).
 
-    Por que existe: Fornece ao frontend a listagem total de colaboradores ativos
-    para alimentação da barra lateral de busca e seleção na Agenda.
+    Por que existe: Fornece ao frontend a listagem de colaboradores ativos sob demanda
+    à medida que o usuário digita na busca para não pesar o carregamento inicial da Agenda.
     """
-    colaboradores_qs = Colaborador.objects.exclude(status="D")
+    busca = request.GET.get("busca", "").strip()
+    if not busca:
+        return Response([])
+
+    colaboradores_qs = Colaborador.objects.exclude(status="D").filter(
+        Q(nome__icontains=busca) | Q(re__icontains=busca)
+    )
     serializer = ColaboradorLightSerializer(colaboradores_qs, many=True)
     return Response(serializer.data)
 

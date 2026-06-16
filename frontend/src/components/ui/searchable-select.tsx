@@ -23,6 +23,7 @@ interface SearchableSelectProps {
   className?: string;
   multiple?: boolean;
   loading?: boolean;
+  onSearchChange?: (value: string) => void;
 }
 
 /**
@@ -44,7 +45,8 @@ export default function SearchableSelect({
   emptyMessage = "Nenhum resultado encontrado.",
   className,
   multiple = false,
-  loading = false
+  loading = false,
+  onSearchChange
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
@@ -185,7 +187,11 @@ export default function SearchableSelect({
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSearch(val);
+                if (onSearchChange) onSearchChange(val);
+              }}
               placeholder={searchPlaceholder}
               className="w-full input-with-icon-left-sm pr-2.5 py-1.5 border border-neutral-200 dark:border-neutral-800 rounded-md bg-neutral-50 dark:bg-neutral-950 text-xs focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white focus:outline-none"
               onClick={(e) => e.stopPropagation()} // Impede o fechamento do painel ao clicar no input
@@ -193,7 +199,11 @@ export default function SearchableSelect({
             {search && (
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); setSearch(""); }}
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  setSearch(""); 
+                  if (onSearchChange) onSearchChange("");
+                }}
                 className="absolute right-2 top-2 p-0.5 rounded text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-850 cursor-pointer transition-colors"
               >
                 <X className="h-3.5 w-3.5" />

@@ -28,14 +28,12 @@ export default function Agenda() {
   const [year, setYear] = useState<number>(today.getFullYear());
 
   // Estados de dados principais
-  const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
   const [visibleCollaborators, setVisibleCollaborators] = useState<Colaborador[]>([]);
   const [lojas, setLojas] = useState<Loja[]>([]);
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [selectedColaboradorId, setSelectedColaboradorId] = useState<string | null>(null);
 
   // Estados de carregamento e erro
-  const [loadingInitial, setLoadingInitial] = useState<boolean>(true);
   const [loadingAgendamentos, setLoadingAgendamentos] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -71,25 +69,20 @@ export default function Agenda() {
     openDayModal(range[0]);
   });
 
-  // Carrega lista de lojas e colaboradores ativos na montagem da tela
+  // Carrega lista de lojas na montagem da tela
   useEffect(() => {
     const fetchBaseData = async () => {
       try {
-        setLoadingInitial(true);
         setErrorMsg(null);
         
-        const [lojasRes, colabsRes] = await Promise.all([
+        const [lojasRes] = await Promise.all([
           api.get('/lojas/?sem_paginacao=true'),
-          api.get('/colaboradores/agendamentos/colaboradores-ativos/')
         ]);
         
         setLojas(lojasRes.data || []);
-        setColaboradores(colabsRes.data || []);
       } catch (err) {
         console.error('Erro ao carregar dados mestres para a agenda:', err);
-        setErrorMsg('Não foi possível inicializar os dados da equipe ou das lojas.');
-      } finally {
-        setLoadingInitial(false);
+        setErrorMsg('Não foi possível inicializar os dados das lojas.');
       }
     };
     
@@ -98,7 +91,6 @@ export default function Agenda() {
 
   // Recarrega os agendamentos do mês sempre que mudar de mês/ano
   const fetchAgendamentos = useCallback(async () => {
-    if (colaboradores.length === 0) return;
     try {
       setLoadingAgendamentos(true);
       const mesIso = `${year}-${String(month + 1).padStart(2, '0')}`;
@@ -110,23 +102,31 @@ export default function Agenda() {
       const data: Agendamento[] = response.data || [];
       setAgendamentos(data);
 
-      // Identifica os IDs dos colaboradores que possuem agendamentos no mês
-      const scheduledIds = new Set(data.map(a => String(a.colaborador)));
-
-      // Filtra da lista geral de colaboradores
-      const scheduledColabs = colaboradores.filter(c => scheduledIds.has(String(c.id)));
+      // Constrói a lista de colaboradores que já possuem agendamentos no mês
+      const uniqueColabsMap = new Map<string, Colaborador>();
+      data.forEach((a) => {
+        if (a.colaborador) {
+          uniqueColabsMap.set(String(a.colaborador), {
+            id: String(a.colaborador),
+            nome: a.colaborador_nome || 'Colaborador',
+            re: a.colaborador_re || '',
+            cargo: a.funcao || 'Apoio',
+            status: 'ATIVA'
+          } as any);
+        }
+      });
 
       setVisibleCollaborators(prev => {
         const map = new Map<string, Colaborador>();
         // Insere os que já possuem escala
-        scheduledColabs.forEach(c => map.set(String(c.id), c));
+        uniqueColabsMap.forEach((c, id) => map.set(id, c));
         // Preserva os que já estavam listados na tela
         prev.forEach(c => map.set(String(c.id), c));
 
         // Se houver um selecionado, garante sua presença na barra lateral
-        if (selectedColaboradorId) {
-          const selColab = colaboradores.find(c => String(c.id) === String(selectedColaboradorId));
-          if (selColab) map.set(String(selColab.id), selColab);
+        if (selectedColaboradorId && !map.has(selectedColaboradorId)) {
+          const selColab = prev.find(c => String(c.id) === selectedColaboradorId);
+          if (selColab) map.set(selectedColaboradorId, selColab);
         }
 
         return Array.from(map.values());
@@ -136,16 +136,16 @@ export default function Agenda() {
     } finally {
       setLoadingAgendamentos(false);
     }
-  }, [colaboradores, month, year, selectedColaboradorId]);
+  }, [month, year, selectedColaboradorId]);
 
   useEffect(() => {
     fetchAgendamentos();
-  }, [month, year, colaboradores.length]);
+  }, [month, year]);
 
   // Encontra o colaborador selecionado na lista
   const selectedColaborador = useMemo(() => {
-    return colaboradores.find(c => c.id === selectedColaboradorId) || null;
-  }, [colaboradores, selectedColaboradorId]);
+    return visibleCollaborators.find(c => c.id === selectedColaboradorId) || null;
+  }, [visibleCollaborators, selectedColaboradorId]);
 
   // Constrói a lista dos dias do calendário formatados
   const calendarDays = useMemo(() => {
@@ -324,14 +324,7 @@ export default function Agenda() {
     }
   }, [selectedColaboradorId, agendamentos]);
 
-  if (loadingInitial) {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-neutral-900 dark:text-white" />
-        <span className="text-sm font-medium text-neutral-500">Iniciando a Agenda...</span>
-      </div>
-    );
-  }
+
 
   return (
     <div className="space-y-6">
@@ -346,7 +339,6 @@ export default function Agenda() {
       {/* Grid Principal Layout com a Sidebar na Esquerda */}
       <section className="flex flex-col gap-6 lg:flex-row items-start">
         <CleanerSidebar 
-          allColaboradores={colaboradores}
           visibleColaboradores={visibleCollaborators}
           selectedColaboradorId={selectedColaboradorId}
           onSelectColaborador={(id) => { setSelectedColaboradorId(id); closeDayModal(); }}
