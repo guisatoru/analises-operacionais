@@ -118,3 +118,58 @@ def colaborador_ativos_completo(request):
     serializer = ColaboradorLightSerializer(colaboradores_qs, many=True)
     return Response(serializer.data)
 
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def historico_limpeza_vidros(request):
+    """
+    Calcula e retorna a lista de todas as lojas e há quantos dias foi a sua última limpeza de vidros.
+    
+    Por que existe: Esta view consolida as informações da escala diária para prover um
+    painel de controle operacional e de periodicidade, ordenando as lojas da que está há mais tempo sem
+    atendimento para a mais recente (apenas para o cargo/função de 'Limpador de Vidros').
+    """
+    from datetime import date
+    hoje = date.today()
+    
+    # Lojas ativas
+    lojas = Loja.objects.filter(status='ATIVA')
+    
+    # Busca agendamentos de limpadores de vidro com status concluído ou agendado no passado/presente
+    agendamentos = Agendamento.objects.filter(
+        data__lte=hoje,
+        status__in=['concluido', 'agendado'],
+        funcao__icontains='vidro'
+    ).select_related('colaborador')
+    
+    # Dicionário mapeando loja_id -> último agendamento
+    ultima_limpeza = {}
+    for agend in agendamentos:
+        if not agend.loja_id:
+            continue
+        loja_id = agend.loja_id
+        if loja_id not in ultima_limpeza or agend.data > ultima_limpeza[loja_id].data:
+            ultima_limpeza[loja_id] = agend
+
+    resultado = []
+    for loja in lojas:
+        ultimo_agend = ultima_limpeza.get(loja.id)
+        if ultimo_agend:
+            dias_passados = (hoje - ultimo_agend.data).days
+            ultima_data_str = ultimo_agend.data.strftime("%d/%m/%Y")
+            colaborador_nome = ultimo_agend.colaborador.nome
+            
+            resultado.append({
+                "loja_id": str(loja.id),
+                "loja_nome": loja.nome_referencia,
+                "ultima_data": ultima_data_str,
+                "dias_passados": dias_passados,
+                "colaborador": colaborador_nome
+            })
+        
+    # Ordenação: Lojas ordenadas por dias_passados de forma decrescente (mais dias sem limpeza primeiro).
+    resultado.sort(key=lambda x: -x["dias_passados"])
+    
+    return Response(resultado)
+
+

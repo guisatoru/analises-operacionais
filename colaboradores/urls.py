@@ -23,6 +23,7 @@ urlpatterns = [
     path('agendamentos/', views_agenda.agendamento_list_create, name='agendamento_list_create'),
     path('agendamentos/<int:pk>/excluir/', views_agenda.agendamento_delete, name='agendamento_delete'),
     path('agendamentos/colaboradores-ativos/', views_agenda.colaborador_ativos_completo, name='colaborador_ativos_completo'),
+    path('agendamentos/historico-limpeza/', views_agenda.historico_limpeza_vidros, name='historico_limpeza_vidros'),
 ]
 
 
