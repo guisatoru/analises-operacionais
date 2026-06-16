@@ -7,6 +7,7 @@ from django.db import models
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from unidecode import unidecode
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -234,9 +235,14 @@ def _filtrar_terminos_queryset(
     Suporta a filtragem por registros sem informação (nulo/vazio) quando o valor "null" é recebido.
     """
     if search_query:
-        colaboradores_qs = colaboradores_qs.filter(
-            Q(nome__icontains=search_query) | Q(re__icontains=search_query)
-        )
+        search_query_norm = unidecode(search_query).lower()
+        ids_validos = []
+        for colab in colaboradores_qs:
+            nome_norm = unidecode(colab.nome).lower()
+            re_norm = unidecode(colab.re or "").lower()
+            if search_query_norm in nome_norm or search_query_norm in re_norm:
+                ids_validos.append(colab.id)
+        colaboradores_qs = colaboradores_qs.filter(id__in=ids_validos)
 
     if re_query:
         re_list = [r.strip() for r in re_query.split(",") if r.strip()]

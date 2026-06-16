@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Search, AlertCircle, Calendar, Sparkles } from 'lucide-react';
 import api from '../api/client';
+import { normalizeString } from '../lib/utils';
 
 export interface HistoricoLimpeza {
   loja_id: string;
@@ -40,10 +41,11 @@ export default function HistoricoAgenda() {
     }
   };
 
-  // Filtra as lojas pela busca digitada pelo usuário
-  const filteredHistorico = historico.filter((item) =>
-    item.loja_nome.toLowerCase().includes(searchTerm.trim().toLowerCase())
-  );
+  // Filtra as lojas pela busca digitada pelo usuário (ignora acentos)
+  const filteredHistorico = historico.filter((item) => {
+    const normalizedSearch = normalizeString(searchTerm.trim());
+    return normalizeString(item.loja_nome).includes(normalizedSearch);
+  });
 
   // Helper para renderizar a badge colorida baseada no tempo decorrido
   const getTempoDecorridoBadge = (dias: number | null) => {

@@ -1,6 +1,7 @@
 import { memo, useState, useRef, useEffect } from 'react';
 import { Search, Loader2, X } from 'lucide-react';
 import api from '../../api/client';
+import { normalizeString } from '../../lib/utils';
 import type { Colaborador } from '../Colaboradores/ColaboradoresTable';
 
 interface CleanerSidebarProps {
@@ -58,13 +59,13 @@ export const CleanerSidebar = memo(({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Filtra os colaboradores por nome ou RE conforme a busca local (na lista da lateral)
+  // Filtra os colaboradores por nome ou RE conforme a busca local (na lista da lateral, ignorando acentos)
   const filteredColaboradores = visibleColaboradores.filter((colab) => {
-    const term = searchTerm.trim().toLowerCase();
+    const term = normalizeString(searchTerm.trim());
     if (!term) return true;
     return (
-      colab.nome.toLowerCase().includes(term) ||
-      colab.re.toLowerCase().includes(term)
+      normalizeString(colab.nome).includes(term) ||
+      normalizeString(colab.re).includes(term)
     );
   });
 

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ChevronDown, Search, X, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, normalizeString } from '@/lib/utils';
 
 /**
  * Interface dos objetos de opções do select.
@@ -63,13 +63,13 @@ export default function SearchableSelect({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Filtra as opções com base no texto digitado
+  // Filtra as opções com base no texto digitado (ignora acentos)
   const filteredOptions = React.useMemo(() => {
     if (!search) return options;
-    const lower = search.toLowerCase();
+    const normalizedSearch = normalizeString(search);
     return options.filter(opt => 
-      opt.label.toLowerCase().includes(lower) || 
-      opt.value.toLowerCase().includes(lower)
+      normalizeString(opt.label).includes(normalizedSearch) || 
+      normalizeString(opt.value).includes(normalizedSearch)
     );
   }, [options, search]);
 

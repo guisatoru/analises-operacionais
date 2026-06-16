@@ -5,6 +5,7 @@ from rest_framework import status
 from django.db.models import Q
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from unidecode import unidecode
 from .models import Agendamento, Colaborador
 from lojas.models import Loja
 from .serializers import AgendamentoSerializer, ColaboradorSerializer, ColaboradorLightSerializer
@@ -112,10 +113,20 @@ def colaborador_ativos_completo(request):
     if not busca:
         return Response([])
 
-    colaboradores_qs = Colaborador.objects.exclude(status="D").filter(
-        Q(nome__icontains=busca) | Q(re__icontains=busca)
-    )
-    serializer = ColaboradorLightSerializer(colaboradores_qs, many=True)
+    # Filtra no banco apenas os que não estão desligados para processar em memória
+    colaboradores_qs = Colaborador.objects.exclude(status="D")
+    
+    # Normaliza a busca para ignorar acentos e maiúsculas/minúsculas
+    busca_norm = unidecode(busca).lower()
+    
+    colabs_filtrados = []
+    for c in colaboradores_qs:
+        nome_norm = unidecode(c.nome).lower()
+        re_norm = unidecode(c.re or "").lower()
+        if busca_norm in nome_norm or busca_norm in re_norm:
+            colabs_filtrados.append(c)
+
+    serializer = ColaboradorLightSerializer(colabs_filtrados, many=True)
     return Response(serializer.data)
 
 
