@@ -132,6 +132,20 @@ export default function Sidebar({ username = 'Usuário', onLogout, role, onOpenP
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
+              {/* Agenda */}
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  asChild 
+                  isActive={location.pathname === '/agenda'}
+                  title={!open ? "Agenda" : undefined}
+                >
+                  <Link to="/agenda">
+                    <CalendarCheck className="h-5 w-5 shrink-0" />
+                    {open && <span className="truncate">Agenda de Apoio</span>}
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
               {/* Colaboradores com Submenu Colapsável */}
               <SidebarMenuItem>
                 <SidebarMenuButton 

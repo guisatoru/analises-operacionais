@@ -1,0 +1,408 @@
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { User, Loader2, AlertCircle } from 'lucide-react';
+import api from '../api/client';
+import { useCalendarDrag } from '../hooks/useCalendarDrag';
+import { buildCalendarDays, type Agendamento, type CalendarDayItem } from '../utils/agenda-utils';
+import { weekDays } from '../components/Agenda/constants';
+import type { Colaborador } from '../components/Colaboradores/ColaboradoresTable';
+import type { Loja } from '../components/Lojas/LojasTable';
+
+// Importação dos subcomponentes da Agenda
+import { CleanerSidebar } from '../components/Agenda/CleanerSidebar';
+import { CalendarHeader } from '../components/Agenda/CalendarHeader';
+import { CalendarDay } from '../components/Agenda/CalendarDay';
+import { CalendarNavigation } from '../components/Agenda/CalendarNavigation';
+import { AgendaActionModal } from '../components/Agenda/AgendaActionModal';
+
+/**
+ * Página principal de Planejamento e Programação da Agenda de Apoio.
+ * 
+ * Por que existe: Permite aos gestores programar e gerenciar a alocação
+ * diária da equipe de apoio nas lojas físicas, utilizando um calendário interativo.
+ */
+export default function Agenda() {
+  const today = new Date();
+
+  // Estados de navegação de data
+  const [month, setMonth] = useState<number>(today.getMonth());
+  const [year, setYear] = useState<number>(today.getFullYear());
+
+  // Estados de dados principais
+  const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
+  const [visibleCollaborators, setVisibleCollaborators] = useState<Colaborador[]>([]);
+  const [lojas, setLojas] = useState<Loja[]>([]);
+  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
+  const [selectedColaboradorId, setSelectedColaboradorId] = useState<string | null>(null);
+
+  // Estados de carregamento e erro
+  const [loadingInitial, setLoadingInitial] = useState<boolean>(true);
+  const [loadingAgendamentos, setLoadingAgendamentos] = useState<boolean>(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Estados do Modal
+  const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedDateRange, setSelectedDateRange] = useState<string[]>([]);
+  const [initialForm, setInitialForm] = useState<any>(null);
+
+  // Mapeia o nome das lojas de referência para busca rápida
+  const lojasMap = useMemo(() => {
+    const map = new Map<string, Loja>();
+    lojas.forEach((l) => {
+      const norm = l.nome_referencia.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      map.set(norm, l);
+    });
+    return map;
+  }, [lojas]);
+
+  // Hook de Drag and Drop para seleção de múltiplos dias
+  const {
+    dragStart,
+    dragEnd,
+    isDragging,
+    getDatesInRange,
+    handleMouseDown,
+    handleMouseEnter,
+    handleMouseUp,
+    setDragStart,
+    setDragEnd
+  } = useCalendarDrag((range) => {
+    setSelectedDateRange(range);
+    openDayModal(range[0]);
+  });
+
+  // Carrega lista de lojas e colaboradores ativos na montagem da tela
+  useEffect(() => {
+    const fetchBaseData = async () => {
+      try {
+        setLoadingInitial(true);
+        setErrorMsg(null);
+        
+        const [lojasRes, colabsRes] = await Promise.all([
+          api.get('/lojas/?sem_paginacao=true'),
+          api.get('/colaboradores/agendamentos/colaboradores-ativos/')
+        ]);
+        
+        setLojas(lojasRes.data || []);
+        setColaboradores(colabsRes.data || []);
+      } catch (err) {
+        console.error('Erro ao carregar dados mestres para a agenda:', err);
+        setErrorMsg('Não foi possível inicializar os dados da equipe ou das lojas.');
+      } finally {
+        setLoadingInitial(false);
+      }
+    };
+    
+    fetchBaseData();
+  }, []);
+
+  // Recarrega os agendamentos do mês sempre que mudar de mês/ano
+  const fetchAgendamentos = useCallback(async () => {
+    if (colaboradores.length === 0) return;
+    try {
+      setLoadingAgendamentos(true);
+      const mesIso = `${year}-${String(month + 1).padStart(2, '0')}`;
+      const response = await api.get('/colaboradores/agendamentos/', {
+        params: {
+          mes_ano: mesIso
+        }
+      });
+      const data: Agendamento[] = response.data || [];
+      setAgendamentos(data);
+
+      // Identifica os IDs dos colaboradores que possuem agendamentos no mês
+      const scheduledIds = new Set(data.map(a => String(a.colaborador)));
+
+      // Filtra da lista geral de colaboradores
+      const scheduledColabs = colaboradores.filter(c => scheduledIds.has(String(c.id)));
+
+      setVisibleCollaborators(prev => {
+        const map = new Map<string, Colaborador>();
+        // Insere os que já possuem escala
+        scheduledColabs.forEach(c => map.set(String(c.id), c));
+        // Preserva os que já estavam listados na tela
+        prev.forEach(c => map.set(String(c.id), c));
+
+        // Se houver um selecionado, garante sua presença na barra lateral
+        if (selectedColaboradorId) {
+          const selColab = colaboradores.find(c => String(c.id) === String(selectedColaboradorId));
+          if (selColab) map.set(String(selColab.id), selColab);
+        }
+
+        return Array.from(map.values());
+      });
+    } catch (err) {
+      console.error('Erro ao buscar agendamentos do mês:', err);
+    } finally {
+      setLoadingAgendamentos(false);
+    }
+  }, [colaboradores, month, year, selectedColaboradorId]);
+
+  useEffect(() => {
+    fetchAgendamentos();
+  }, [month, year, colaboradores.length]);
+
+  // Encontra o colaborador selecionado na lista
+  const selectedColaborador = useMemo(() => {
+    return colaboradores.find(c => c.id === selectedColaboradorId) || null;
+  }, [colaboradores, selectedColaboradorId]);
+
+  // Constrói a lista dos dias do calendário formatados
+  const calendarDays = useMemo(() => {
+    return buildCalendarDays(month, year, agendamentos, selectedColaboradorId, lojasMap);
+  }, [month, year, agendamentos, selectedColaboradorId, lojasMap]);
+
+  // Navega entre os meses
+  const moveMonth = useCallback((direction: number) => {
+    setMonth((prev) => {
+      let nextMonth = prev + direction;
+      if (nextMonth < 0) {
+        setYear((y) => y - 1);
+        return 11;
+      } else if (nextMonth > 11) {
+        setYear((y) => y + 1);
+        return 0;
+      }
+      return nextMonth;
+    });
+  }, []);
+
+  // Abre o modal de configuração de roteiro para o dia/dias selecionados
+  const openDayModal = useCallback((date: string) => {
+    const [y, m, d] = date.split('-').map(Number);
+    const isSunday = new Date(y, m - 1, d).getDay() === 0;
+    setSelectedDate(date);
+
+    // Procura se já existe agendamento nessa data para o colaborador selecionado
+    const agendamento = agendamentos.find(
+      item => item.data === date && String(item.colaborador) === String(selectedColaboradorId)
+    );
+
+    let formData = {
+      lojaId: '',
+      lojaTexto: '',
+      funcao: selectedColaborador?.cargo || 'Apoio',
+      status: (isSunday ? 'folga' : 'livre') as any,
+      turno: 'noturno' as 'matutino' | 'noturno',
+      horaEntrada: '',
+      horaSaida: '',
+      observacao: '',
+    };
+
+    if (agendamento) {
+      formData = {
+        lojaId: agendamento.loja || '',
+        lojaTexto: agendamento.loja_nome || '',
+        funcao: agendamento.funcao || selectedColaborador?.cargo || 'Apoio',
+        status: agendamento.status || 'agendado',
+        turno: agendamento.turno || 'noturno',
+        horaEntrada: agendamento.hora_entrada || '',
+        horaSaida: agendamento.hora_saida || '',
+        observacao: agendamento.observacao || '',
+      };
+    }
+
+    setInitialForm(formData);
+    setModalOpen(true);
+  }, [selectedColaborador, selectedColaboradorId, agendamentos]);
+
+  // Fecha o modal de agendamento e limpa os estados locais
+  const closeDayModal = useCallback(() => {
+    setModalOpen(false); 
+    setSelectedDateRange([]);
+    setInitialForm(null);
+    setDragStart(null);
+    setDragEnd(null);
+  }, [setDragStart, setDragEnd]);
+
+  // Salva ou edita a programação da agenda (upsert em lote)
+  const handleModalSubmit = async (formData: any) => {
+    if (!selectedColaboradorId) return;
+
+    const targetDates = selectedDateRange.length > 0 ? selectedDateRange : [selectedDate];
+    const payload = targetDates.map((dateStr) => {
+      const existing = agendamentos.find(
+        a => a.data === dateStr && String(a.colaborador) === String(selectedColaboradorId)
+      );
+      
+      const item: any = {
+        colaborador: selectedColaboradorId,
+        data: dateStr,
+        status: formData.status,
+        funcao: formData.funcao || 'Apoio',
+        observacao: formData.observacao.trim(),
+        turno: formData.turno,
+        hora_entrada: formData.horaEntrada,
+        hora_saida: formData.horaSaida
+      };
+
+      if (existing) {
+        item.id = existing.id;
+      }
+
+      if (formData.lojaId) {
+        item.loja = formData.lojaId;
+      } else {
+        item.loja = null;
+        item.loja_manual = formData.lojaTexto || null;
+      }
+
+      return item;
+    });
+
+    try {
+      setLoadingAgendamentos(true);
+      await api.post('/colaboradores/agendamentos/', payload);
+      await fetchAgendamentos();
+      closeDayModal();
+    } catch (err) {
+      console.error('Erro ao salvar agendamentos:', err);
+      setErrorMsg('Não foi possível salvar o agendamento no servidor.');
+    } finally {
+      setLoadingAgendamentos(false);
+    }
+  };
+
+  // Alterna o status do dia rapidamente de agendado para concluído (e vice-versa)
+  const toggleStatusQuickly = useCallback(async (event: React.MouseEvent, dayItem: CalendarDayItem) => {
+    event.stopPropagation();
+    if (!selectedColaboradorId || !dayItem.date || dayItem.status === 'livre' || dayItem.status === 'folga') return;
+
+    const existing = agendamentos.find(
+      a => a.data === dayItem.date && String(a.colaborador) === String(selectedColaboradorId)
+    );
+    if (!existing) return;
+
+    const nextStatus = existing.status === 'concluido' ? 'agendado' : 'concluido';
+    const payload = {
+      ...existing,
+      status: nextStatus
+    };
+
+    try {
+      setLoadingAgendamentos(true);
+      await api.post('/colaboradores/agendamentos/', [payload]);
+      await fetchAgendamentos();
+    } catch (err) {
+      console.error('Erro ao alterar status rápido:', err);
+    } finally {
+      setLoadingAgendamentos(false);
+    }
+  }, [selectedColaboradorId, agendamentos]);
+
+  if (loadingInitial) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-neutral-900 dark:text-white" />
+        <span className="text-sm font-medium text-neutral-500">Iniciando a Agenda...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Exibição de Alertas de Erro */}
+      {errorMsg && (
+        <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 rounded-xl text-sm flex gap-3 items-center">
+          <AlertCircle className="h-5 w-5 text-red-400 shrink-0" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
+
+      {/* Grid Principal Layout com a Sidebar na Esquerda */}
+      <section className="flex flex-col gap-6 lg:flex-row items-start">
+        <CleanerSidebar 
+          allColaboradores={colaboradores}
+          visibleColaboradores={visibleCollaborators}
+          selectedColaboradorId={selectedColaboradorId}
+          onSelectColaborador={(id) => { setSelectedColaboradorId(id); closeDayModal(); }}
+          onAddColaborador={(colab) => {
+            setVisibleCollaborators((prev) => {
+              if (prev.some(c => String(c.id) === String(colab.id))) return prev;
+              return [...prev, colab];
+            });
+            setSelectedColaboradorId(String(colab.id));
+            closeDayModal();
+          }}
+        />
+
+        {/* Área de Calendário */}
+        <div className="flex-1 min-w-0 w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-xs shadow-sm">
+          <CalendarHeader 
+            selectedColaborador={selectedColaborador}
+            month={month}
+            year={year}
+            onMoveMonth={moveMonth}
+            isDragging={isDragging}
+          />
+
+          {selectedColaboradorId ? (
+            <div className="overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-200 dark:bg-neutral-800 shadow-inner relative">
+              {loadingAgendamentos && (
+                <div className="absolute inset-0 z-50 bg-white/50 dark:bg-neutral-950/50 flex items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-neutral-900 dark:text-white" />
+                </div>
+              )}
+              
+              <div className="grid grid-cols-7 bg-neutral-50 dark:bg-neutral-850">
+                {weekDays.map((day) => (
+                  <div key={day} className="border-b border-neutral-200 dark:border-neutral-700 px-2 py-3 text-center text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-400">
+                    {day}
+                  </div>
+                ))}
+              </div>
+              
+              <div className="grid grid-cols-7 gap-px select-none bg-neutral-200 dark:bg-neutral-700">
+                {calendarDays.map((item) => (
+                  <CalendarDay 
+                    key={item.key}
+                    item={item}
+                    isInRange={!item.empty && !!dragStart && !!dragEnd && getDatesInRange(dragStart, dragEnd).includes(item.date!)}
+                    onMouseDown={handleMouseDown}
+                    onMouseEnter={handleMouseEnter}
+                    onMouseUp={handleMouseUp}
+                    onClick={openDayModal}
+                    onToggleStatus={toggleStatusQuickly}
+                  />
+                ))}
+              </div>
+
+              <div className="flex justify-end p-4 bg-white dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-800">
+                <CalendarNavigation 
+                  month={month} 
+                  year={year} 
+                  onMoveMonth={moveMonth} 
+                  isDragging={isDragging} 
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-950/30 py-24 text-center">
+              <div className="rounded-full bg-neutral-100 dark:bg-neutral-800 p-4 mb-4">
+                 <User className="h-8 w-8 text-neutral-400" />
+              </div>
+              <h4 className="text-base font-bold text-neutral-900 dark:text-neutral-55">Selecione um colaborador</h4>
+              <p className="mt-1 text-sm text-neutral-500 max-w-xs mx-auto">Utilize a barra de pesquisa à esquerda para selecionar um membro da equipe e gerenciar seu cronograma.</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Modal de Agendamento */}
+      {modalOpen && initialForm && selectedColaborador && (
+        <AgendaActionModal 
+          isOpen={modalOpen}
+          onClose={closeDayModal}
+          title={selectedDateRange.length > 0 ? 'Agendar Período' : 'Agendar Dia'}
+          selectedColaborador={selectedColaborador}
+          selectedDateRange={selectedDateRange.length > 0 ? selectedDateRange : [selectedDate!]}
+          initialForm={initialForm}
+          lojas={lojas}
+          lojasMap={lojasMap}
+          agendamentos={agendamentos}
+          onSubmit={handleModalSubmit}
+        />
+      )}
+    </div>
+  );
+}

@@ -120,3 +120,57 @@ class ControleTermino(models.Model):
 
     def __str__(self):
         return f"{self.colaborador.nome} - Etapa {self.etapa} - {self.get_acao_display()}"
+
+
+class Agendamento(models.Model):
+    """
+    Representa o agendamento de um colaborador de apoio a uma loja física em um dia.
+
+    Por que existe: Permite a programação diária dos roteiros da equipe de apoio. 
+    Contém a vinculação relacional ao colaborador e à loja física, o status do roteiro, 
+    o turno (matutino ou noturno), os horários previstos de entrada e saída, e observações operacionais.
+    """
+    STATUS_CHOICES = [
+        ('agendado', 'Agendado'),
+        ('concluido', 'Concluído'),
+        ('folga', 'Folga'),
+        ('livre', 'Sem Loja (Livre)'),
+        ('faltou', 'Falta'),
+    ]
+
+    colaborador = models.ForeignKey(
+        Colaborador,
+        on_delete=models.CASCADE,
+        related_name="agendamentos",
+        verbose_name="Colaborador",
+    )
+    loja = models.ForeignKey(
+        Loja,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="agendamentos",
+        verbose_name="Loja",
+    )
+    loja_manual = models.CharField("Loja Manual", max_length=255, blank=True, null=True)
+    funcao = models.CharField("Função a Exercer", max_length=150, default="Apoio")
+    data = models.DateField("Data do Roteiro")
+    status = models.CharField("Status", max_length=20, choices=STATUS_CHOICES, default='agendado')
+    turno = models.CharField("Turno", max_length=20, default='noturno')
+    hora_entrada = models.CharField("Hora Entrada", max_length=10, blank=True, null=True)
+    hora_saida = models.CharField("Hora Saída", max_length=10, blank=True, null=True)
+    observacao = models.TextField("Observação", blank=True, null=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Agendamento"
+        verbose_name_plural = "Agendamentos"
+        unique_together = ("colaborador", "data")
+        ordering = ["data"]
+
+    def __str__(self):
+        dest = self.loja.nome_referencia if self.loja else (self.loja_manual or "Sem Loja")
+        return f"{self.colaborador.nome} em {self.data} - {dest}"
+

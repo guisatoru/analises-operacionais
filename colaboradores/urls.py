@@ -1,6 +1,7 @@
 from django.urls import path
 from lojas.views import configuracoes
 from . import views
+from . import views_agenda
 
 app_name = 'colaboradores'
 
@@ -19,4 +20,9 @@ urlpatterns = [
     path('sync-lojas-geovictoria/pendencias/<str:tipo>/', views.exportar_pendencias_lojas_geovictoria, name='sync_lojas_geovictoria_pendencias'),
     path('sync-geovictoria/', views.sync_geovictoria, name='sync_geovictoria'),
     path('sync-geovictoria-progress/', views.sync_geovictoria_progress, name='sync_geovictoria_progress'),
+    path('agendamentos/', views_agenda.agendamento_list_create, name='agendamento_list_create'),
+    path('agendamentos/<int:pk>/excluir/', views_agenda.agendamento_delete, name='agendamento_delete'),
+    path('agendamentos/colaboradores-ativos/', views_agenda.colaborador_ativos_completo, name='colaborador_ativos_completo'),
 ]
+
+

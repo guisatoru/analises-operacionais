@@ -1,0 +1,334 @@
+import { useState, useEffect } from 'react';
+import { X, Calendar, MapPin, User, Copy, Check, FileText } from 'lucide-react';
+import SearchableSelect from '../ui/searchable-select';
+import { statusOptions } from './constants';
+import { formatWhatsAppMessage, maskTime, type Agendamento } from '../../utils/agenda-utils';
+import type { Colaborador } from '../Colaboradores/ColaboradoresTable';
+import type { Loja } from '../Lojas/LojasTable';
+
+interface AgendaActionModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  selectedColaborador: Colaborador;
+  selectedDateRange: string[];
+  initialForm: {
+    lojaId: string;
+    lojaTexto: string;
+    funcao: string;
+    status: 'agendado' | 'concluido' | 'folga' | 'livre' | 'faltou';
+    turno: 'matutino' | 'noturno';
+    horaEntrada: string;
+    horaSaida: string;
+    observacao: string;
+  };
+  lojas: Loja[];
+  lojasMap: Map<string, Loja>;
+  agendamentos: Agendamento[];
+  onSubmit: (formData: any) => void;
+}
+
+/**
+ * Modal para criação e edição de agendamentos.
+ * 
+ * Por que existe: Gerencia a atribuição de lojas e horários aos colaboradores de apoio,
+ * permitindo edição manual da função a ser exercida no dia e cópia rápida do roteiro para o WhatsApp.
+ */
+export function AgendaActionModal({
+  isOpen,
+  onClose,
+  title,
+  selectedColaborador,
+  selectedDateRange,
+  initialForm, 
+  lojas,
+  lojasMap,
+  agendamentos,
+  onSubmit
+}: AgendaActionModalProps) {
+  const [copied, setCopied] = useState(false);
+  const [localForm, setLocalForm] = useState(initialForm);
+
+  useEffect(() => {
+    if (isOpen && initialForm) {
+      setLocalForm(initialForm);
+    }
+  }, [isOpen, initialForm]);
+
+  if (!isOpen) return null;
+
+  const handleCopyAndOpenMaps = () => {
+    const { message, mapsLink } = formatWhatsAppMessage(
+      selectedColaborador,
+      selectedDateRange,
+      {
+        lojaTexto: localForm.lojaTexto,
+        status: localForm.status,
+        funcao: localForm.funcao
+      },
+      agendamentos,
+      lojasMap
+    );
+    navigator.clipboard.writeText(message);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    if (mapsLink) window.open(mapsLink, '_blank');
+  };
+
+  const handleInternalSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(localForm);
+  };
+
+  const handleShiftSelect = (t: 'matutino' | 'noturno') => {
+    setLocalForm(prev => ({ 
+      ...prev, 
+      turno: t,
+      horaEntrada: t === 'noturno' ? '22:00H' : '06:00H',
+      horaSaida: t === 'noturno' ? '05:00H' : '14:20H'
+    }));
+  };
+
+  // Prepara as opções de lojas para o SearchableSelect
+  const storeOptions = [
+    { value: '', label: 'Selecione uma loja...' },
+    ...lojas.filter(l => l.status === 'ATIVA').map(l => ({
+      value: String(l.id),
+      label: l.nome_referencia
+    }))
+  ];
+
+  // Encontra a loja selecionada atualmente para mostrar detalhes adicionais (endereço, supervisor)
+  const selectedLojaObj = lojas.find(l => String(l.id) === localForm.lojaId);
+  const enderecoExibicao = selectedLojaObj
+    ? `${selectedLojaObj.rua || ''} - ${selectedLojaObj.bairro || ''}, ${selectedLojaObj.municipio || ''} - ${selectedLojaObj.uf || ''}`.trim()
+    : '';
+
+  let supervisorExibicao = '';
+  if (selectedLojaObj && selectedLojaObj.supervisor) {
+    supervisorExibicao = typeof selectedLojaObj.supervisor === 'object' 
+      ? (selectedLojaObj.supervisor as any).nome 
+      : String(selectedLojaObj.supervisor);
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-scale-in flex flex-col max-h-[90vh]">
+        
+        {/* Header do Modal */}
+        <div className="flex items-center justify-between p-6 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 flex items-center justify-center font-bold shrink-0">
+              <Calendar className="h-5 w-5" />
+            </div>
+            <div className="text-left">
+              <h3 className="font-bold text-lg text-neutral-900 dark:text-neutral-100">
+                {title}
+              </h3>
+              <p className="text-xs text-neutral-500 uppercase tracking-widest">
+                Agendamento de Roteiro
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Corpo do Formulário */}
+        <div className="p-6 space-y-5 overflow-y-auto flex-1">
+          <form id="agendamento-form" onSubmit={handleInternalSubmit} className="space-y-4">
+            
+            {/* Dados do Colaborador */}
+            <div className="p-4 rounded-xl bg-neutral-50 dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 flex items-center justify-center font-bold text-lg uppercase shrink-0">
+                {selectedColaborador.nome.substring(0, 2)}
+              </div>
+              <div className="text-left">
+                <span className="block text-[10px] font-bold text-neutral-500 uppercase">Colaborador</span>
+                <span className="text-base font-bold text-neutral-900 dark:text-neutral-50">{selectedColaborador.nome}</span>
+                <span className="block text-[11px] text-neutral-500 font-mono mt-0.5">RE: {selectedColaborador.re} | Cargo: {selectedColaborador.cargo}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+              
+              {/* Seleção de Loja via SearchableSelect */}
+              <div className="md:col-span-2 space-y-1.5">
+                <span className="block text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase">Destino (Loja)</span>
+                <SearchableSelect
+                  options={storeOptions}
+                  value={localForm.lojaId}
+                  onChange={(val) => {
+                    const lojaFound = lojas.find(l => String(l.id) === val);
+                    const t = 'noturno';
+
+                    setLocalForm(prev => ({
+                      ...prev,
+                      lojaId: val,
+                      lojaTexto: lojaFound ? lojaFound.nome_referencia : '',
+                      status: val !== '' && (prev.status === 'livre' || prev.status === 'folga') ? 'agendado' : prev.status,
+                      turno: val !== '' ? t : prev.turno,
+                      horaEntrada: val !== '' ? prev.horaEntrada || '22:00H' : prev.horaEntrada,
+                      horaSaida: val !== '' ? prev.horaSaida || '05:00H' : prev.horaSaida
+                    }));
+                  }}
+                  placeholder="Pesquisar loja física..."
+                />
+              </div>
+
+              {/* Informações da Loja Selecionada */}
+              {localForm.lojaId && (
+                <div className="md:col-span-2 grid grid-cols-2 gap-3 p-3 bg-neutral-50 dark:bg-neutral-850 rounded-xl border border-neutral-200 dark:border-neutral-800">
+                  <div className="space-y-0.5">
+                    <span className="block text-[9px] font-bold text-neutral-500 uppercase">Endereço da Loja</span>
+                    <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300 flex items-center gap-1.5">
+                      <MapPin className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{enderecoExibicao || 'Sem endereço'}</span>
+                    </span>
+                  </div>
+                  <div className="space-y-0.5">
+                    <span className="block text-[9px] font-bold text-neutral-500 uppercase">Supervisor da Loja</span>
+                    <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300 flex items-center gap-1.5">
+                      <User className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{supervisorExibicao || 'Sem supervisor'}</span>
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Função a exercer (Definida Manualmente pelo usuário) */}
+              <div className="md:col-span-2 space-y-1.5">
+                <label className="block text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase">
+                  Função a Exercer no Roteiro
+                </label>
+                <input
+                  type="text"
+                  value={localForm.funcao}
+                  onChange={(e) => setLocalForm(prev => ({ ...prev, funcao: e.target.value }))}
+                  placeholder="Ex: Auxiliar de Apoio, Limpador de Vidros..."
+                  className="w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-4 py-2.5 text-sm font-semibold outline-none focus:border-neutral-900 dark:focus:border-neutral-300 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400"
+                />
+              </div>
+
+              {/* Status do Agendamento */}
+              <div className="space-y-1.5">
+                <span className="block text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase">Status</span>
+                <select
+                  value={localForm.status}
+                  onChange={(e) => setLocalForm(prev => ({ ...prev, status: e.target.value as any }))}
+                  className="w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-4 py-2.5 text-sm font-semibold outline-none text-neutral-900 dark:text-neutral-100"
+                >
+                  {statusOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Observação Interna */}
+              <div className="space-y-1.5 md:col-span-2">
+                <span className="block text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase">Observação Interna</span>
+                <textarea
+                  value={localForm.observacao}
+                  onChange={(e) => setLocalForm(prev => ({ ...prev, observacao: e.target.value }))}
+                  rows={2}
+                  placeholder="Dica de acesso, contato local, etc."
+                  className="w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-4 py-3 text-sm font-medium outline-none text-neutral-900 dark:text-neutral-100"
+                />
+              </div>
+            </div>
+
+            {/* Configurações do Roteiro (WhatsApp / Detalhes) */}
+            {localForm.lojaId && (
+              <div className="space-y-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-950/20 p-5 text-left">
+                <div className="flex items-center gap-2 mb-1">
+                  <FileText className="h-4 w-4 text-neutral-900 dark:text-neutral-100" />
+                  <span className="text-xs font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wider">Cronograma e Horários</span>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <span className="block text-[10px] font-bold text-neutral-500 uppercase">Turno</span>
+                    <div className="flex gap-2">
+                      {(['matutino', 'noturno'] as const).map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => handleShiftSelect(t)}
+                          className={`flex-1 rounded-xl border py-2.5 text-xs font-bold transition cursor-pointer ${
+                            localForm.turno === t 
+                              ? 'bg-neutral-900 border-neutral-900 text-white dark:bg-white dark:border-white dark:text-neutral-900' 
+                              : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-550'
+                          }`}
+                        >
+                          {t === 'matutino' ? 'Matutino' : 'Noturno'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <span className="block text-[10px] font-bold text-neutral-500 uppercase">Entrada</span>
+                    <input 
+                      type="text" 
+                      value={localForm.horaEntrada}
+                      onChange={(e) => setLocalForm(prev => ({ ...prev, horaEntrada: maskTime(e.target.value) }))}
+                      className="w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-3 py-2 text-xs font-bold text-neutral-600 dark:text-neutral-300 outline-none"
+                      placeholder="Ex: 07:00H"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 md:col-start-2">
+                    <span className="block text-[10px] font-bold text-neutral-500 uppercase">Saída</span>
+                    <input 
+                      type="text" 
+                      value={localForm.horaSaida}
+                      onChange={(e) => setLocalForm(prev => ({ ...prev, horaSaida: maskTime(e.target.value) }))}
+                      className="w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-3 py-2 text-xs font-bold text-neutral-600 dark:text-neutral-300 outline-none"
+                      placeholder="Ex: 16:00H"
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  type="button" 
+                  onClick={handleCopyAndOpenMaps} 
+                  className={`flex items-center justify-center gap-2 w-full rounded-xl py-3.5 text-sm font-bold transition shadow-md cursor-pointer ${
+                    copied 
+                      ? 'bg-emerald-600 dark:bg-emerald-500 text-white' 
+                      : 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:opacity-90'
+                  }`}
+                >
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  {copied ? 'Copiado para WhatsApp!' : 'Copiar Roteiro e Abrir Google Maps'}
+                </button>
+              </div>
+            )}
+          </form>
+        </div>
+
+        {/* Rodapé com botões de Ação */}
+        <div className="flex justify-end gap-3 p-6 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2.5 rounded-lg border border-neutral-200 dark:border-neutral-800 text-sm font-bold text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            form="agendamento-form"
+            className="px-5 py-2.5 rounded-lg bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-sm font-bold hover:bg-neutral-800 dark:hover:opacity-90 transition-colors cursor-pointer"
+          >
+            Salvar Roteiro
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

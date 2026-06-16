@@ -43,6 +43,9 @@ export default function Layout({ isAuthenticated, username, onLogout, role }: La
   if (path === 'lojas') {
     sector = 'Operação & Equipe';
     pageName = 'Lojas';
+  } else if (path === 'agenda') {
+    sector = 'Operação & Equipe';
+    pageName = 'Agenda de Apoio';
   } else if (path === 'colaboradores') {
     sector = 'Operação & Equipe';
     pageName = 'Auditoria de Equipe';

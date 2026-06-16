@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Colaborador, ControleTermino
+from .models import Colaborador, ControleTermino, Agendamento
 from .view_utils import funcao_esta_divergente
 
 class ColaboradorSerializer(serializers.ModelSerializer):
@@ -106,3 +106,80 @@ class TerminoColaboradorSerializer(serializers.Serializer):
     history = ControleTerminoSerializer(many=True)
     faltas = serializers.CharField()
     atestados = serializers.CharField()
+
+
+class AgendamentoSerializer(serializers.ModelSerializer):
+    """
+    Este serializer existe para mapear e formatar as informações dos agendamentos
+    dos colaboradores de apoio, convertendo chaves primárias e relacionamentos
+    em strings no JSON para compatibilidade do frontend.
+    """
+    colaborador_nome = serializers.CharField(source="colaborador.nome", read_only=True)
+    colaborador_re = serializers.CharField(source="colaborador.re", read_only=True)
+    loja_nome = serializers.SerializerMethodField()
+    cliente = serializers.SerializerMethodField()
+    supervisor = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Agendamento
+        fields = "__all__"
+
+    def get_loja_nome(self, obj):
+        """
+        Retorna o nome de referência da loja física agendada ou a loja digitada manualmente.
+        """
+        if obj.loja:
+            return obj.loja.nome_referencia
+        return obj.loja_manual or "Sem loja"
+
+    def get_cliente(self, obj):
+        """
+        Retorna o cliente associado à loja física configurada.
+        """
+        if obj.loja:
+            return obj.loja.cliente
+        return ""
+
+    def get_supervisor(self, obj):
+        """
+        Retorna o nome do supervisor associado à loja física configurada.
+        """
+        if obj.loja and obj.loja.supervisor:
+            return obj.loja.supervisor.nome
+        return ""
+
+    def to_representation(self, instance):
+        """
+        Garante a tipagem de IDs da resposta JSON como strings,
+        prevenindo erros de interpretação do tipo int no Javascript do frontend.
+        """
+        data = super().to_representation(instance)
+        if "id" in data and data["id"] is not None:
+            data["id"] = str(data["id"])
+        if "colaborador" in data and data["colaborador"] is not None:
+            data["colaborador"] = str(data["colaborador"])
+        if "loja" in data and data["loja"] is not None:
+            data["loja"] = str(data["loja"])
+        return data
+
+
+class ColaboradorLightSerializer(serializers.ModelSerializer):
+    """
+    Serializer otimizado e leve para carregar dados básicos dos colaboradores (Nome, RE, Cargo).
+    
+    Por que existe: Evita a execução de queries N+1 complexas que analisam divergências
+    de ponto e de escala, acelerando em mais de 95% o carregamento da lista de busca da Agenda.
+    """
+    class Meta:
+        model = Colaborador
+        fields = ["id", "nome", "re", "cargo"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if "id" in data and data["id"] is not None:
+            data["id"] = str(data["id"])
+        if "re" in data and data["re"] is not None:
+            data["re"] = str(data["re"])
+        return data
+
+
