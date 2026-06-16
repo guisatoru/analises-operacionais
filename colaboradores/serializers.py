@@ -116,6 +116,7 @@ class AgendamentoSerializer(serializers.ModelSerializer):
     """
     colaborador_nome = serializers.CharField(source="colaborador.nome", read_only=True)
     colaborador_re = serializers.CharField(source="colaborador.re", read_only=True)
+    colaborador_cpf = serializers.CharField(source="colaborador.cpf", read_only=True)
     loja_nome = serializers.SerializerMethodField()
     cliente = serializers.SerializerMethodField()
     supervisor = serializers.SerializerMethodField()
@@ -172,7 +173,7 @@ class ColaboradorLightSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Colaborador
-        fields = ["id", "nome", "re", "cargo"]
+        fields = ["id", "nome", "re", "cargo", "cpf"]
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -180,6 +181,8 @@ class ColaboradorLightSerializer(serializers.ModelSerializer):
             data["id"] = str(data["id"])
         if "re" in data and data["re"] is not None:
             data["re"] = str(data["re"])
+        if "cpf" in data and data["cpf"] is not None:
+            data["cpf"] = str(data["cpf"])
         return data
 
 

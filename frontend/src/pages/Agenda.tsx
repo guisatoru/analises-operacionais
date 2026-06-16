@@ -110,6 +110,7 @@ export default function Agenda() {
             id: String(a.colaborador),
             nome: a.colaborador_nome || 'Colaborador',
             re: a.colaborador_re || '',
+            cpf: (a as any).colaborador_cpf || '',
             cargo: a.funcao || 'Apoio',
             status: 'ATIVA'
           } as any);

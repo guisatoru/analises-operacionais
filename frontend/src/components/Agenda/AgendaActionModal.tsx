@@ -5,6 +5,8 @@ import { statusOptions } from './constants';
 import { formatWhatsAppMessage, maskTime, type Agendamento } from '../../utils/agenda-utils';
 import type { Colaborador } from '../Colaboradores/ColaboradoresTable';
 import type { Loja } from '../Lojas/LojasTable';
+import { logoBase64 } from '../../assets/logoBase64';
+import api from '../../api/client';
 
 interface AgendaActionModalProps {
   isOpen: boolean;
@@ -60,6 +62,162 @@ export function AgendaActionModal({
       setLocalForm(initialForm);
     }
   }, [isOpen, initialForm]);
+
+  const [currentUser, setCurrentUser] = useState<{ name: string; email: string } | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      api.get('/usuarios/api/me/')
+        .then(res => {
+          if (res.data.authenticated && res.data.user) {
+            const u = res.data.user;
+            const fullName = `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username;
+            setCurrentUser({ name: fullName, email: u.email || '' });
+          }
+        })
+        .catch(err => console.error('Erro ao buscar usuário logado:', err));
+    }
+  }, [isOpen]);
+
+  const handleGenerateLetter = () => {
+    const sortedDates = [...selectedDateRange].sort();
+    const formatDateStr = (dStr: string) => {
+      const [y, m, d] = dStr.split('-');
+      return `${d}/${m}/${y}`;
+    };
+    
+    let dateText = '';
+    if (sortedDates.length === 1) {
+      dateText = `no dia ${formatDateStr(sortedDates[0])}`;
+    } else {
+      dateText = `no dia ${formatDateStr(sortedDates[0])} até ${formatDateStr(sortedDates[sortedDates.length - 1])}`;
+    }
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Por favor, ative os pop-ups para gerar a carta de apresentação.');
+      return;
+    }
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Carta de Apresentação - ${selectedColaborador.nome}</title>
+        <meta charset="utf-8">
+        <style>
+          @page {
+            size: A4;
+            margin: 25mm 25mm 20mm 25mm;
+          }
+          body {
+            font-family: 'Arial', sans-serif;
+            color: #000;
+            line-height: 1.8;
+            margin: 0;
+            padding: 0;
+            background: #fff;
+            font-size: 16px;
+          }
+          .container {
+            max-width: 100%;
+            margin: 0 auto;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 50px;
+          }
+          .logo {
+            max-height: 140px;
+            width: auto;
+          }
+          .store-name {
+            font-size: 19px;
+            font-weight: bold;
+            margin-bottom: 25px;
+            text-transform: uppercase;
+            margin-top: 30px;
+          }
+          .reference {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 35px;
+            text-transform: uppercase;
+          }
+          .salutation {
+            margin-bottom: 35px;
+          }
+          .body-text {
+            text-align: justify;
+            margin-bottom: 35px;
+          }
+          .disclaimer {
+            margin-bottom: 35px;
+          }
+          .closing {
+            margin-bottom: 45px;
+          }
+          .signature-section {
+            margin-top: 50px;
+          }
+          .signer-name {
+            font-weight: bold;
+            text-transform: uppercase;
+          }
+          .signer-title {
+            margin-bottom: 2px;
+          }
+          .signer-email {
+            color: #000;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <img class="logo" src="${logoBase64}" alt="Logo" />
+          </div>
+          
+          <div class="store-name">${(localForm.lojaTexto || 'Sem Loja / Digitação Manual').toUpperCase()}</div>
+          
+          <div class="reference">REF: APRESENTAÇÃO DE FUNCIONÁRIOS:</div>
+          
+          <div class="salutation">Prezados Senhores,</div>
+          
+          <p class="body-text">
+            Nós, da empresa Inovacao de Servicos LTDA, inscrita no CNPJ 17.965.438/0001-07, apresentamos o colaborador ${selectedColaborador.nome.toUpperCase()}, CPF: ${selectedColaborador.cpf || 'Não Informado'}, que irá atuar na função de ${(localForm.funcao || selectedColaborador.cargo || 'Apoio').toUpperCase()} ${dateText} das ${localForm.horaEntrada || '--:--'} às ${localForm.horaSaida || '--:--'}.
+          </p>
+          
+          <p class="disclaimer">
+            Estamos à disposição para quaisquer esclarecimentos.
+          </p>
+          
+          <p class="closing">
+            Atenciosamente,
+          </p>
+          
+          <div class="signature-section">
+            <div class="signer-name">${(currentUser?.name || 'Guilherme Satoru').toUpperCase()}</div>
+            <div class="signer-title">SUPORTE OPERACIONAL</div>
+            <div class="signer-email">${currentUser?.email || 'guilherme.satoru@inovacao.com'}</div>
+          </div>
+        </div>
+        
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 300);
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
 
   if (!isOpen) return null;
 
@@ -269,6 +427,17 @@ export function AgendaActionModal({
                           {t === 'matutino' ? 'Matutino' : 'Noturno'}
                         </button>
                       ))}
+                    </div>
+                    {/* Botão de Carta de Apresentação */}
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={handleGenerateLetter}
+                        className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800 py-2.5 text-xs font-bold text-neutral-700 dark:text-neutral-300 transition cursor-pointer shadow-xs"
+                      >
+                        <FileText className="h-4 w-4 shrink-0 text-neutral-500" />
+                        Gerar Carta de Apresentação
+                      </button>
                     </div>
                   </div>
 
