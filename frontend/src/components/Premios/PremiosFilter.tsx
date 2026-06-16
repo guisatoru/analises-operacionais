@@ -274,7 +274,7 @@ export default function PremiosFilter({
             <SearchableSelect
               options={[
                 { value: "", label: "Todas as UFs" },
-                ...opcoes.ufs.map((u) => ({ value: u, label: u }))
+                ...opcoes.ufs.map((u) => ({ value: u, label: u === 'null' ? 'N/A' : u }))
               ]}
               value={filtroUf}
               onChange={setFiltroUf}

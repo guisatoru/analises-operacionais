@@ -96,8 +96,8 @@ def premios_list_api(request):
     if uf_val:
         ufs = [u.strip().upper() for u in uf_val.split(",") if u.strip()]
         if ufs:
-            has_null = "null" in ufs
-            vals = [u for u in ufs if u != "null"]
+            has_null = "NULL" in ufs
+            vals = [u for u in ufs if u != "NULL"]
             q_obj = Q()
             if vals:
                 q_obj = Q(uf__in=vals)
