@@ -52,6 +52,7 @@ export const CalendarDay = memo(({
           isInRange ? 'bg-neutral-900/5 dark:bg-white/5' :
           item.status === 'concluido' ? 'bg-emerald-500/10 dark:bg-emerald-500/20 hover:bg-emerald-500/15 dark:hover:bg-emerald-500/25 border-emerald-100 dark:border-emerald-950/30' : 
           item.status === 'faltou' ? 'bg-red-500/10 dark:bg-red-500/20 hover:bg-red-500/15 dark:hover:bg-red-500/25' : 
+          item.status === 'atestado' ? 'bg-purple-500/10 dark:bg-purple-500/20 hover:bg-purple-500/15 dark:hover:bg-purple-500/25' : 
           item.status === 'folga' ? 'bg-amber-500/10 dark:bg-amber-500/20 hover:bg-amber-500/15 dark:hover:bg-amber-500/25' : 
           item.status === 'agendado' ? 'bg-neutral-50/60 dark:bg-neutral-850 hover:bg-neutral-100/80 dark:hover:bg-neutral-800' : 
           'hover:bg-neutral-50 dark:hover:bg-neutral-850'
@@ -68,6 +69,7 @@ export const CalendarDay = memo(({
             item.status === 'concluido' ? 'bg-emerald-600 dark:bg-emerald-500 text-white' : 
             item.status === 'agendado' ? 'bg-neutral-900 dark:bg-neutral-200 text-white dark:text-neutral-900' : 
             item.status === 'faltou' ? 'bg-red-600 dark:bg-red-500 text-white' : 
+            item.status === 'atestado' ? 'bg-purple-600 dark:bg-purple-500 text-white' : 
             item.status === 'folga' ? 'bg-amber-600 dark:bg-amber-500 text-white' : 
             'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'
           }`}>

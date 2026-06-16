@@ -136,6 +136,7 @@ class Agendamento(models.Model):
         ('folga', 'Folga'),
         ('livre', 'Sem Loja (Livre)'),
         ('faltou', 'Falta'),
+        ('atestado', 'Atestado'),
     ]
 
     colaborador = models.ForeignKey(

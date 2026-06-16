@@ -16,7 +16,7 @@ interface AgendaActionModalProps {
     lojaId: string;
     lojaTexto: string;
     funcao: string;
-    status: 'agendado' | 'concluido' | 'folga' | 'livre' | 'faltou';
+    status: 'agendado' | 'concluido' | 'folga' | 'livre' | 'faltou' | 'atestado';
     turno: 'matutino' | 'noturno';
     horaEntrada: string;
     horaSaida: string;

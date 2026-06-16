@@ -17,7 +17,7 @@ export interface Agendamento {
   loja_manual?: string | null;
   funcao: string;
   data: string; // YYYY-MM-DD
-  status: 'agendado' | 'concluido' | 'folga' | 'livre' | 'faltou';
+  status: 'agendado' | 'concluido' | 'folga' | 'livre' | 'faltou' | 'atestado';
   turno: 'matutino' | 'noturno';
   hora_entrada?: string | null;
   hora_saida?: string | null;
@@ -195,7 +195,7 @@ export function formatWhatsAppMessage(
       label = drawerForm.lojaTexto || (agend ? agend.loja_nome || '' : '');
     }
 
-    if (label && status !== 'folga' && status !== 'livre' && status !== 'faltou' && label !== 'Sem loja') {
+    if (label && status !== 'folga' && status !== 'livre' && status !== 'faltou' && status !== 'atestado' && label !== 'Sem loja') {
       if (!selectedStores.includes(label)) {
         selectedStores.push(label);
       }
@@ -205,6 +205,7 @@ export function formatWhatsAppMessage(
     if (status === 'folga') activity = '*FOLGA*';
     else if (status === 'livre') activity = '*DISPONÍVEL*';
     else if (status === 'faltou') activity = '*FALTA REGISTRADA*';
+    else if (status === 'atestado') activity = '*ATESTADO MÉDICO*';
 
     return `▫️ ${dayMonth} (${dayName}): ${activity}`;
   }).join('\n');
