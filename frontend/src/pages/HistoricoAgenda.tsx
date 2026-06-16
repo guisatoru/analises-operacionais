@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Search, AlertCircle, Calendar, Sparkles } from 'lucide-react';
+import { Search, AlertCircle, Calendar} from 'lucide-react';
 import api from '../api/client';
 import { normalizeString } from '../lib/utils';
 
@@ -103,7 +103,6 @@ export default function HistoricoAgenda() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 text-left">
         <div>
           <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-50 flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-purple-500 animate-pulse" />
             Histórico de Limpeza de Vidros
           </h1>
           <p className="text-sm text-neutral-500 mt-1">
