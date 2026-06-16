@@ -1,6 +1,5 @@
-import { memo, useState } from 'react';
-import { Search } from 'lucide-react';
-import SearchableSelect from '../ui/searchable-select';
+import { memo, useState, useRef, useEffect } from 'react';
+import { Search, Loader2, X } from 'lucide-react';
 import api from '../../api/client';
 import type { Colaborador } from '../Colaboradores/ColaboradoresTable';
 
@@ -42,9 +41,22 @@ export const CleanerSidebar = memo(({
   onAddColaborador
 }: CleanerSidebarProps) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchOptions, setSearchOptions] = useState<{ value: string; label: string }[]>([]);
+  const [directSearchQuery, setDirectSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Colaborador[]>([]);
   const [loadingSearch, setLoadingSearch] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Fecha o painel flutuante se o usuário clicar fora do componente de busca
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setShowResults(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Filtra os colaboradores por nome ou RE conforme a busca local (na lista da lateral)
   const filteredColaboradores = visibleColaboradores.filter((colab) => {
@@ -56,11 +68,15 @@ export const CleanerSidebar = memo(({
     );
   });
 
+  // Filtra os resultados da API para não exibir colaboradores que já estão na lateral
+  const filteredSearchResults = searchResults.filter(
+    c => !visibleColaboradores.some(vc => String(vc.id) === String(c.id))
+  );
+
   // Busca de forma reativa os colaboradores no banco somente quando digita
   const handleSearch = async (val: string) => {
     const term = val.trim();
     if (term.length < 2) {
-      setSearchOptions([]);
       setSearchResults([]);
       return;
     }
@@ -69,16 +85,7 @@ export const CleanerSidebar = memo(({
       const response = await api.get('/colaboradores/agendamentos/colaboradores-ativos/', {
         params: { busca: term }
       });
-      const data: Colaborador[] = response.data || [];
-      setSearchResults(data);
-      setSearchOptions(
-        data
-          .filter(c => !visibleColaboradores.some(vc => String(vc.id) === String(c.id)))
-          .map(c => ({
-            value: String(c.id),
-            label: `${c.nome} (RE: ${c.re})`
-          }))
-      );
+      setSearchResults(response.data || []);
     } catch (err) {
       console.error('Erro ao pesquisar colaboradores no backend:', err);
     } finally {
@@ -93,29 +100,74 @@ export const CleanerSidebar = memo(({
         <p className="text-xs text-neutral-500 mt-1 text-left">Selecione ou adicione um colaborador.</p>
       </div>
 
-      {/* Seletor de adição de colaboradores via busca assíncrona */}
-      <div className="space-y-1.5 text-left">
+      {/* Busca direta de novos colaboradores via API */}
+      <div ref={containerRef} className="space-y-1.5 text-left relative">
         <span className="block text-[10px] font-bold text-neutral-500 uppercase">Adicionar Colaborador à Agenda</span>
-        <SearchableSelect
-          options={searchOptions}
-          value=""
-          onChange={(val) => {
-            if (val) {
-              const found = searchResults.find(c => String(c.id) === val);
-              if (found) {
-                onAddColaborador(found);
-                // Reseta a busca local após adicionar
-                setSearchOptions([]);
+        <div className="relative">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+          <input
+            type="text"
+            value={directSearchQuery}
+            onChange={(e) => {
+              const val = e.target.value;
+              setDirectSearchQuery(val);
+              setShowResults(true);
+              handleSearch(val);
+            }}
+            onFocus={() => setShowResults(true)}
+            placeholder="Pesquisar por nome ou RE..."
+            className="w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950/50 py-2.5 pl-10 pr-10 text-sm font-medium outline-none focus:border-neutral-900 dark:focus:border-neutral-300 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 transition-colors"
+          />
+          {loadingSearch && (
+            <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400 animate-spin" />
+          )}
+          {!loadingSearch && directSearchQuery && (
+            <button
+              type="button"
+              onClick={() => {
+                setDirectSearchQuery('');
                 setSearchResults([]);
-              }
-            }
-          }}
-          onSearchChange={handleSearch}
-          loading={loadingSearch}
-          placeholder="Pesquisar para adicionar..."
-          searchPlaceholder="Digite nome ou RE..."
-          emptyMessage="Digite pelo menos 2 caracteres"
-        />
+                setShowResults(false);
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-850 cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Painel de Resultados Flutuante */}
+        {showResults && directSearchQuery.trim().length >= 2 && (
+          <div className="absolute left-0 mt-1.5 w-full z-50 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-lg p-2 max-h-60 overflow-y-auto space-y-0.5">
+            {loadingSearch && searchResults.length === 0 ? (
+              <div className="px-3 py-4 text-xs text-neutral-400 text-center flex items-center justify-center gap-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>Buscando...</span>
+              </div>
+            ) : filteredSearchResults.length === 0 ? (
+              <div className="px-3 py-4 text-xs text-neutral-400 text-center">
+                Nenhum colaborador encontrado ou já adicionado.
+              </div>
+            ) : (
+              filteredSearchResults.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => {
+                    onAddColaborador(c);
+                    setDirectSearchQuery('');
+                    setSearchResults([]);
+                    setShowResults(false);
+                  }}
+                  className="w-full text-left flex flex-col px-3 py-2 rounded-lg text-xs cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white transition-colors"
+                >
+                  <span className="font-bold text-neutral-800 dark:text-neutral-200">{c.nome}</span>
+                  <span className="text-[10px] text-neutral-400 font-mono mt-0.5">RE: {c.re} | {c.cargo}</span>
+                </button>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       {/* Input de busca local na barra lateral */}
