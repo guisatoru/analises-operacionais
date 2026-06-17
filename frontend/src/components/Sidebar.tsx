@@ -262,6 +262,19 @@ export default function Sidebar({ username = 'Usuário', onLogout, role, onOpenP
               <SidebarMenuItem>
                 <SidebarMenuButton 
                   asChild 
+                  isActive={location.pathname === '/headcount'}
+                  title={!open ? "Headcount" : undefined}
+                >
+                  <Link to="/headcount">
+                    <Users className="h-5 w-5 shrink-0" />
+                    {open && <span className="truncate">Headcount</span>}
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  asChild 
                   isActive={location.pathname === '/diarias'}
                   title={!open ? "Diárias" : undefined}
                 >

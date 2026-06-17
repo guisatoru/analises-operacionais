@@ -95,6 +95,12 @@ export default function Dashboard() {
       icon: TrendingUp,
     },
     {
+      title: 'Auditoria de Headcount',
+      description: 'Monitore e compare o quadro planejado de funcionários (escopo) com o headcount real alocado na Gestão de Pessoas.',
+      path: '/headcount',
+      icon: Users,
+    },
+    {
       title: 'Painel de Diárias',
       description: 'Acompanhe o desempenho, custos e conciliação de diárias operacionais nas filiais.',
       path: '/diarias',

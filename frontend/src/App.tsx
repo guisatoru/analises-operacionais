@@ -18,6 +18,7 @@ import RelatorioPremios from './pages/RelatorioPremios';
 import Usuarios from './pages/Usuarios';
 import Agenda from './pages/Agenda';
 import HistoricoAgenda from './pages/HistoricoAgenda';
+import Headcount from './pages/Headcount';
 import { Toaster } from './components/ui/sonner';
 
 
@@ -115,6 +116,7 @@ function App() {
           <Route path="/agenda/historico" element={<HistoricoAgenda />} />
           <Route path="/escopos" element={<Escopos />} />
           <Route path="/comparativo" element={<Comparativo />} />
+          <Route path="/headcount" element={<Headcount />} />
           <Route path="/diarias" element={<Diarias />} />
           <Route path="/premios" element={<Premios />} />
           <Route path="/colaboradores" element={<Colaboradores />} />

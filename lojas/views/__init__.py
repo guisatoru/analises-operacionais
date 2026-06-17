@@ -33,6 +33,7 @@ from .comparativo import comparativo_loja
 from .folha_duplicadas import folha_duplicadas_list
 from .diarias import diarias_list_api, diarias_filtro_opcoes_api
 from .premios import premios_list_api, premios_filtro_opcoes_api
+from .headcount import headcount_analise_api, headcount_loja_colaboradores_api
 
 __all__ = [
     "api_item_escopo_delete",
@@ -43,6 +44,8 @@ __all__ = [
     "escopo_create",
     "escopo_delete",
     "escopo_list",
+    "headcount_analise_api",
+    "headcount_loja_colaboradores_api",
     "parse_int_param",
     "replicar_do_mes_anterior_se_existir",
     "store_create",

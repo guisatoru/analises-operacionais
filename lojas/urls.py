@@ -32,6 +32,10 @@ urlpatterns = [
     path("folhas/importar/", configuracoes.folha_import_async, name="importar_folha"),
     path("folhas/duplicadas/", views.folha_duplicadas_list, name="lista_folha_duplicadas"),
     
+    # ========== HEADCOUNT ==========
+    path("lojas/headcount/", views.headcount_analise_api, name="lojas_headcount_analise"),
+    path("lojas/headcount/<int:loja_id>/colaboradores/", views.headcount_loja_colaboradores_api, name="headcount_loja_colaboradores"),
+    
     # ========== DIÁRIAS (BI & Importador) ==========
     path("diarias/importar/", configuracoes.diaria_import_async, name="importar_diarias"),
     path("diarias/", views.diarias_list_api, name="lista_diarias"),

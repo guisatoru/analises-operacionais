@@ -1,3 +1,179 @@
+from datetime import date
+from django.contrib.auth.models import User
 from django.test import TestCase
+from rest_framework.test import APIClient
+from rest_framework import status
 
-# Create your tests here.
+from lojas.models import Loja
+from colaboradores.models import Colaborador
+
+
+class HeadcountViewsTests(TestCase):
+    """
+    Por que existe: Esta classe testa a lógica de cálculo de headcount consolidado por loja
+    e a listagem nominal de colaboradores correspondente, incluindo a regra especial
+    que permite contar o status FÉRIAS apenas para clientes do grupo ATACADÃO.
+    Trabalha com lojas ativas, sem dependência de data e com paginação ativada.
+    """
+
+    def setUp(self):
+        # Cria um usuário de teste e configura o cliente da API
+        self.user = User.objects.create_user(username="testanalista", password="password123")
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+        # Cria lojas ativas (uma Atacadão, uma normal) com o quadro planejado no cadastro
+        self.loja_atacadao = Loja.objects.create(
+            nome_referencia="ATACADÃO SÃO PAULO",
+            cliente="ATACADÃO",
+            centro_de_custo="123456789012",
+            quadro="3",
+            uf="SP",
+            status="ATIVA",
+        )
+        self.loja_carrefour = Loja.objects.create(
+            nome_referencia="CARREFOUR CAMPINAS",
+            cliente="CARREFOUR",
+            centro_de_custo="123456789013",
+            quadro="2",
+            uf="SP",
+            status="ATIVA",
+        )
+        # Cria uma loja inativa para validar que ela é excluída do relatório
+        self.loja_inativa = Loja.objects.create(
+            nome_referencia="LOJA INATIVA DE TESTE",
+            cliente="TESTE",
+            centro_de_custo="123456789014",
+            quadro="5",
+            uf="SP",
+            status="INATIVA",
+        )
+
+        # Cria colaboradores na Gestão de Pessoas para o Atacadão (Deveria contar 3: Ativo, Aviso, Férias)
+        Colaborador.objects.create(
+            re="1001",
+            nome="Jose Ativo Atacadao",
+            loja_gestao=self.loja_atacadao,
+            data_admissao=date(2026, 1, 1),
+            status="A",
+            status_gestao="ATIVO",
+            cargo="OPERADOR",
+        )
+        Colaborador.objects.create(
+            re="1002",
+            nome="Maria Aviso Atacadao",
+            loja_gestao=self.loja_atacadao,
+            data_admissao=date(2026, 1, 1),
+            status="A",
+            status_gestao="AVISO PREVIO",
+            cargo="OPERADOR",
+        )
+        Colaborador.objects.create(
+            re="1003",
+            nome="Joao Ferias Atacadao",
+            loja_gestao=self.loja_atacadao,
+            data_admissao=date(2026, 1, 1),
+            status="A",
+            status_gestao="EM FÉRIAS",
+            cargo="OPERADOR",
+        )
+        Colaborador.objects.create(
+            re="1004",
+            nome="Pedro Demitido Atacadao",
+            loja_gestao=self.loja_atacadao,
+            data_admissao=date(2026, 1, 1),
+            status="D",
+            status_gestao="DEMITIDO",
+            cargo="OPERADOR",
+        )
+
+        # Cria colaboradores na Gestão de Pessoas para o Carrefour (Deveria contar 2: Ativo, Aviso. Férias deve ignorar)
+        Colaborador.objects.create(
+            re="2001",
+            nome="Ana Ativo Carrefour",
+            loja_gestao=self.loja_carrefour,
+            data_admissao=date(2026, 1, 1),
+            status="A",
+            status_gestao="ATIVO",
+            cargo="AUXILIAR",
+        )
+        Colaborador.objects.create(
+            re="2002",
+            nome="Lucas Aviso Carrefour",
+            loja_gestao=self.loja_carrefour,
+            data_admissao=date(2026, 1, 1),
+            status="A",
+            status_gestao="AVISO",
+            cargo="AUXILIAR",
+        )
+        Colaborador.objects.create(
+            re="2003",
+            nome="Rita Ferias Carrefour",
+            loja_gestao=self.loja_carrefour,
+            data_admissao=date(2026, 1, 1),
+            status="A",
+            status_gestao="FÉRIAS",
+            cargo="AUXILIAR",
+        )
+
+    def test_headcount_analise_consolidado(self):
+        # Faz a chamada para a API consolidada (sem filtros de data)
+        response = self.client.get("/lojas/headcount/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Como a API agora é paginada, os dados estarão estruturados sob a chave results
+        results_data = response.data["results"]
+        resultados = results_data["resultados"]
+        
+        # Devem ser listadas apenas as 2 lojas ATIVAS
+        self.assertEqual(len(resultados), 2)
+        self.assertNotIn("LOJA INATIVA DE TESTE", [r["nome_referencia"] for r in resultados])
+
+        # Valida dados do Atacadão (Planejado: 3, Real: 3, Desvio: 0)
+        atacadao_data = next(
+            r for r in resultados if r["nome_referencia"] == "ATACADÃO SÃO PAULO"
+        )
+        self.assertEqual(atacadao_data["quadro_planejado"], 3)
+        self.assertEqual(atacadao_data["headcount_real"], 3)
+        self.assertEqual(atacadao_data["desvio"], 0)
+        self.assertTrue(atacadao_data["is_atacadao"])
+
+        # Valida dados do Carrefour (Planejado: 2, Real: 2, Desvio: 0)
+        carrefour_data = next(
+            r for r in resultados if r["nome_referencia"] == "CARREFOUR CAMPINAS"
+        )
+        self.assertEqual(carrefour_data["quadro_planejado"], 2)
+        self.assertEqual(carrefour_data["headcount_real"], 2)  # Rita (férias) não conta
+        self.assertEqual(carrefour_data["desvio"], 0)
+        self.assertFalse(carrefour_data["is_atacadao"])
+
+        # Valida KPIs globais
+        kpis = results_data["kpis"]
+        self.assertEqual(kpis["total_planejado"], 5)  # 3 (Atacadão) + 2 (Carrefour)
+        self.assertEqual(kpis["total_real"], 5)       # 3 (Atacadão) + 2 (Carrefour)
+        self.assertEqual(kpis["desvio_geral"], 0)
+        self.assertEqual(kpis["total_lojas"], 2)
+
+    def test_headcount_loja_colaboradores_detail(self):
+        # Valida listagem nominal do Atacadão (deve trazer os 3 válidos)
+        url_atacadao = f"/lojas/headcount/{self.loja_atacadao.id}/colaboradores/"
+        response_atacadao = self.client.get(url_atacadao)
+        self.assertEqual(response_atacadao.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response_atacadao.data), 3)
+
+        nomes_atacadao = [c["nome"] for c in response_atacadao.data]
+        self.assertIn("Jose Ativo Atacadao", nomes_atacadao)
+        self.assertIn("Maria Aviso Atacadao", nomes_atacadao)
+        self.assertIn("Joao Ferias Atacadao", nomes_atacadao)
+        self.assertNotIn("Pedro Demitido Atacadao", nomes_atacadao)
+
+        # Valida listagem nominal do Carrefour (deve trazer os 2 válidos)
+        url_carrefour = f"/lojas/headcount/{self.loja_carrefour.id}/colaboradores/"
+        response_carrefour = self.client.get(url_carrefour)
+        self.assertEqual(response_carrefour.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response_carrefour.data), 2)
+
+        nomes_carrefour = [c["nome"] for c in response_carrefour.data]
+        self.assertIn("Ana Ativo Carrefour", nomes_carrefour)
+        self.assertIn("Lucas Aviso Carrefour", nomes_carrefour)
+        self.assertNotIn("Rita Ferias Carrefour", nomes_carrefour)
