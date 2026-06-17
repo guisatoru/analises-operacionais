@@ -401,7 +401,7 @@ export function AgendaActionModal({
               </div>
             </div>
 
-            {/* Configurações do Roteiro (WhatsApp / Detalhes) */}
+            {/* Configurações do Roteiro (WhatsApp e Google Maps) */}
             {localForm.lojaId && (
               <div className="space-y-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-950/20 p-5 text-left">
                 <div className="flex items-center gap-2 mb-1">
@@ -409,7 +409,8 @@ export function AgendaActionModal({
                   <span className="text-xs font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wider">Cronograma e Horários</span>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-2 items-start">
+                  {/* Turno */}
                   <div className="space-y-1.5">
                     <span className="block text-[10px] font-bold text-neutral-500 uppercase">Turno</span>
                     <div className="flex gap-2">
@@ -428,37 +429,41 @@ export function AgendaActionModal({
                         </button>
                       ))}
                     </div>
-                    {/* Botão de Carta de Apresentação */}
-                    <div className="pt-2">
-                      <button
-                        type="button"
-                        onClick={handleGenerateLetter}
-                        className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800 py-2.5 text-xs font-bold text-neutral-700 dark:text-neutral-300 transition cursor-pointer shadow-xs"
-                      >
-                        <FileText className="h-4 w-4 shrink-0 text-neutral-500" />
-                        Gerar Carta de Apresentação
-                      </button>
-                    </div>
                   </div>
 
+                  {/* Entrada */}
                   <div className="space-y-1.5">
                     <span className="block text-[10px] font-bold text-neutral-500 uppercase">Entrada</span>
                     <input 
                       type="text" 
                       value={localForm.horaEntrada}
                       onChange={(e) => setLocalForm(prev => ({ ...prev, horaEntrada: maskTime(e.target.value) }))}
-                      className="w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-3 py-2 text-xs font-bold text-neutral-600 dark:text-neutral-300 outline-none"
+                      className="w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-4 py-2.5 text-sm font-semibold outline-none text-neutral-900 dark:text-neutral-100 focus:border-neutral-900 dark:focus:border-neutral-300"
                       placeholder="Ex: 07:00H"
                     />
                   </div>
 
-                  <div className="space-y-1.5 md:col-start-2">
+                  {/* Botão de Carta de Apresentação */}
+                  <div className="space-y-1.5">
+                    <span className="hidden md:block text-[10px] font-bold text-transparent select-none uppercase">&nbsp;</span>
+                    <button
+                      type="button"
+                      onClick={handleGenerateLetter}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-850 py-2.5 text-xs font-bold text-neutral-700 dark:text-neutral-300 transition cursor-pointer shadow-xs"
+                    >
+                      <FileText className="h-4 w-4 shrink-0 text-neutral-500" />
+                      Gerar Carta de Apresentação
+                    </button>
+                  </div>
+
+                  {/* Saída */}
+                  <div className="space-y-1.5">
                     <span className="block text-[10px] font-bold text-neutral-500 uppercase">Saída</span>
                     <input 
                       type="text" 
                       value={localForm.horaSaida}
                       onChange={(e) => setLocalForm(prev => ({ ...prev, horaSaida: maskTime(e.target.value) }))}
-                      className="w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-3 py-2 text-xs font-bold text-neutral-600 dark:text-neutral-300 outline-none"
+                      className="w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-4 py-2.5 text-sm font-semibold outline-none text-neutral-900 dark:text-neutral-100 focus:border-neutral-900 dark:focus:border-neutral-300"
                       placeholder="Ex: 16:00H"
                     />
                   </div>
