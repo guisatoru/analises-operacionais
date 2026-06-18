@@ -78,7 +78,11 @@ export function AgendaActionModal({
         .catch(err => console.error('Erro ao buscar usuário logado:', err));
     }
   }, [isOpen]);
-
+  /**
+   * Gera e abre a carta de apresentação em uma nova janela para impressão.
+   * O título do documento HTML é configurado como "[Nome do Colaborador] - [Nome da Loja]"
+   * para que, ao salvar como PDF, o navegador sugira este nome de arquivo por padrão.
+   */
   const handleGenerateLetter = () => {
     const sortedDates = [...selectedDateRange].sort();
     const formatDateStr = (dStr: string) => {
@@ -103,7 +107,7 @@ export function AgendaActionModal({
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Carta de Apresentação - ${selectedColaborador.nome}</title>
+        <title>${selectedColaborador.nome} - ${localForm.lojaTexto || 'Sem Loja'}</title>
         <meta charset="utf-8">
         <style>
           @page {
