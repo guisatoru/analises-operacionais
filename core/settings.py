@@ -158,12 +158,11 @@ REST_FRAMEWORK = {
 # Quando usamos credentials (cookies de sessão), não podemos usar wildcard '*'. Devemos especificar as origens.
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://localhost:5174",
+    "http://10.1.1.20:5000",
 ]
 
 # Origens confiáveis para proteção CSRF do Django, necessária para requisições POST/PUT/DELETE
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:5173",
-    "http://localhost:5174",
+
+    "http://10.1.1.20:5000",
 ]
