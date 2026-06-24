@@ -292,6 +292,24 @@ def premios_list_api(request):
         } for item in dist_loja
     ]
 
+    # 9. Distribuição por Tipo de Prêmio (verb_name)
+    # Por que existe: Consolida os valores totais gastos e a quantidade para cada tipo de prêmio para apresentar no painel do BI do frontend.
+    dist_tipo_premio = (
+        queryset.values("verb_name")
+        .annotate(
+            quantidade=Count("id"),
+            total=Sum("reward_value", filter=Q(status__in=["PAGO", "APROVADO"]))
+        )
+        .order_by("-total")
+    )
+    dados_grafico_tipo_premio = [
+        {
+            "tipo": item["verb_name"] if item["verb_name"] else "N/A",
+            "quantidade": item["quantidade"],
+            "total": float(item["total"] or 0)
+        } for item in dist_tipo_premio
+    ]
+
     # Paginação dos resultados da tabela detalhada
     paginator = PremioPaginacao()
     page = paginator.paginate_queryset(queryset, request)
@@ -310,7 +328,8 @@ def premios_list_api(request):
             "roteiro": dados_grafico_roteiro,
             "uf": dados_grafico_uf,
             "coordenador": dados_grafico_coordenador,
-            "lojas": dados_grafico_loja
+            "lojas": dados_grafico_loja,
+            "tipo_premio": dados_grafico_tipo_premio
         },
         "resumo_manual": dados_resumo_manual,
         "resultados": serializer.data

@@ -51,7 +51,9 @@ export default function Premios() {
     roteiro: [] as { roteiro: string; quantidade: number; total: number }[],
     uf: [] as { uf: string; quantidade: number; total: number }[],
     coordenador: [] as { coordenador: string; quantidade: number; total: number }[],
-    lojas: [] as { loja: string; quantidade: number; total: number }[]
+    lojas: [] as { loja: string; quantidade: number; total: number }[],
+    // Por que existe: Guarda a distribuição agregada de valor gasto e quantidade por tipo de prêmio (verb_name).
+    tipo_premio: [] as { tipo: string; quantidade: number; total: number }[]
   });
 
   // Estados dos filtros
@@ -101,7 +103,7 @@ export default function Premios() {
           const results = response.data.results || {};
           setPremios(results.resultados || []);
           setKpis(results.kpis || { valor_total: 0, quantidade_total: 0, preco_medio: 0 });
-          setGraficos(results.graficos || { mensal: [], status: [], order_type: [], roteiro: [], uf: [], coordenador: [], lojas: [] });
+          setGraficos(results.graficos || { mensal: [], status: [], order_type: [], roteiro: [], uf: [], coordenador: [], lojas: [], tipo_premio: [] });
           
           const count = response.data.count || 0;
           setTotalPages(Math.ceil(count / 20) || 1);
@@ -604,6 +606,52 @@ export default function Premios() {
                 </ResponsiveContainer>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Gráfico Distribuição por Tipo de Prêmio */}
+        {/* Por que existe: Exibe visualmente o gasto acumulado agrupado pelo tipo de prêmio (verb_name), permitindo auditoria visual rápida dos maiores centros de custo de premiação e filtragem ao clicar nas barras. */}
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-xs shadow-sm">
+          <h3 className="font-bold text-xs uppercase tracking-wider text-neutral-800 dark:text-neutral-200 mb-4">
+            Distribuição de Gasto por Tipo de Prêmio (R$)
+          </h3>
+          <div className="h-64">
+            {loadingData ? (
+              <div className="h-full flex items-center justify-center text-xs text-neutral-400">
+                Carregando tipos de prêmios...
+              </div>
+            ) : !graficos.tipo_premio || graficos.tipo_premio.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-xs text-neutral-400 italic">
+                Nenhum prêmio registrado para o período
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={graficos.tipo_premio} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+                  <XAxis dataKey="tipo" stroke="#888888" fontSize={9} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#888888" fontSize={9} tickLine={false} axisLine={false} tickFormatter={(v) => `R$ ${v}`} />
+                  <Tooltip
+                    contentStyle={{ background: '#171717', border: 'none', borderRadius: '8px', fontSize: '11px', color: '#fff' }}
+                    formatter={(value: any) => [formatarReal(Number(value)), 'Gasto Total']}
+                  />
+                  <Bar 
+                    dataKey="total" 
+                    fill="#8b5cf6" 
+                    radius={[4, 4, 0, 0]}
+                    style={{ cursor: 'pointer' }}
+                    onClick={(data: any) => {
+                      if (data && data.tipo) {
+                        setFiltroVerbName(prev => prev === data.tipo ? '' : data.tipo);
+                        setCurrentPage(1);
+                      }
+                    }}
+                  >
+                    {graficos.tipo_premio.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={CORES_PIE[index % CORES_PIE.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
