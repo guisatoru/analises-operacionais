@@ -14,7 +14,7 @@ export default defineConfig({
   // Por que existe: Define que o servidor local do frontend rodará na porta 5000
   // e aceitará conexões externas na rede (host: true) para permitir acesso de outros computadores.
   server: {
-    host: true,
+    host: '0.0.0.0',
     port: 5000,
   },
 })
