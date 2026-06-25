@@ -224,6 +224,20 @@ export default function Sidebar({ username = 'Usuário', onLogout, role, onOpenP
                   </SidebarMenuSub>
                 )}
               </SidebarMenuItem>
+
+              {/* Presenças */}
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  asChild 
+                  isActive={location.pathname === '/presencas'}
+                  title={!open ? "Presenças" : undefined}
+                >
+                  <Link to="/presencas">
+                    <CalendarCheck className="h-5 w-5 shrink-0" />
+                    {open && <span className="truncate">Presenças</span>}
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

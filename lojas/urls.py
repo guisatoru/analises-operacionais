@@ -45,6 +45,8 @@ urlpatterns = [
     path("premios/importar/", configuracoes.premio_import_async, name="importar_premios"),
     path("premios/", views.premios_list_api, name="lista_premios"),
     path("premios/filtro-opcoes/", views.premios_filtro_opcoes_api, name="premios_filtro_opcoes"),
+    # ========== PRESENÇAS ==========
+    path("lojas/api/presencas/importar/", views.importar_presencas_api, name="importar_presencas_api"),
     
     # ========== NOVAS URLs (usando configuracoes) ==========
     path("importacoes/", configuracoes.importacoes, name="importacoes"),

@@ -34,6 +34,7 @@ from .folha_duplicadas import folha_duplicadas_list
 from .diarias import diarias_list_api, diarias_filtro_opcoes_api
 from .premios import premios_list_api, premios_filtro_opcoes_api
 from .headcount import headcount_analise_api, headcount_loja_colaboradores_api
+from .presencas import importar_presencas_api
 
 __all__ = [
     "api_item_escopo_delete",
@@ -65,6 +66,7 @@ __all__ = [
     "diarias_filtro_opcoes_api",
     "premios_list_api",
     "premios_filtro_opcoes_api",
+    "importar_presencas_api",
 ]
 
 

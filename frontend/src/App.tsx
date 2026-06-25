@@ -10,6 +10,7 @@ import Lojas from './pages/Lojas';
 import Colaboradores from './pages/Colaboradores';
 import Terminos from './pages/Terminos';
 import Importacoes from './pages/Importacoes';
+import Presencas from './pages/Presencas';
 import Escopos from './pages/Escopos';
 import Comparativo from './pages/Comparativo';
 import Diarias from './pages/Diarias';
@@ -122,6 +123,7 @@ function App() {
           <Route path="/colaboradores" element={<Colaboradores />} />
           <Route path="/terminos" element={<Terminos />} />
           <Route path="/importacoes" element={<Importacoes />} />
+          <Route path="/presencas" element={<Presencas />} />
           <Route 
             path="/usuarios" 
             element={
