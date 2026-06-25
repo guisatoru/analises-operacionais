@@ -11,6 +11,27 @@ from decouple import Csv, config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+import socket
+
+def obter_ip_rede_local():
+    """
+    Descobre o IP da rede local do servidor atual.
+    
+    Por que existe: Permite que outros computadores na rede local se conectem
+    ao backend dinamicamente sem termos que fixar IPs estáticos que podem mudar.
+    """
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+    except Exception:
+        ip = "127.0.0.1"
+    finally:
+        s.close()
+    return ip
+
+IP_REDE_LOCAL = obter_ip_rede_local()
+
 # core/settings.py
 
 STATIC_URL = "/static/"
@@ -24,7 +45,7 @@ DEBUG = config("DEBUG", default=False, cast=bool)
 DEFAULT_ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
-    "10.1.1.53",
+    IP_REDE_LOCAL,
 ]
 
 ALLOWED_HOSTS = DEFAULT_ALLOWED_HOSTS + config(
@@ -156,13 +177,18 @@ REST_FRAMEWORK = {
 
 # Permite requisições de origens cruzadas (CORS) para viabilizar a comunicação com o React no frontend.
 # Quando usamos credentials (cookies de sessão), não podemos usar wildcard '*'. Devemos especificar as origens.
+# Por que existe: Libera o acesso do frontend React ao backend Django na rede local.
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
-    "http://10.1.1.20:5000",
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+    f"http://{IP_REDE_LOCAL}:5000",
 ]
 
 # Origens confiáveis para proteção CSRF do Django, necessária para requisições POST/PUT/DELETE
+# Por que existe: Protege contra ataques CSRF de forma segura ao registrar os endereços permitidos do frontend.
 CSRF_TRUSTED_ORIGINS = [
-
-    "http://10.1.1.20:5000",
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+    f"http://{IP_REDE_LOCAL}:5000",
 ]
