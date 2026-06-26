@@ -15,10 +15,8 @@ const api = axios.create({
   xsrfHeaderName: 'X-CSRFToken',    // Header HTTP que o Django espera para o token CSRF
 });
 
-// Por que existe: Loga informações detalhadas sobre a requisição enviada
-// para ajudar a rastrear se o IP ou porta de destino estão corretos.
+// Por que existe: Intercepta a requisição antes de ser enviada para tratar possíveis erros de configuração.
 api.interceptors.request.use((config) => {
-  console.log(`[API Request] Enviando requisição para: ${config.baseURL}${config.url}`);
   return config;
 }, (error) => {
   console.error('[API Request Error]', error);
