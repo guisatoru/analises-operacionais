@@ -61,6 +61,49 @@ interface TerminosTableProps {
 }
 
 /**
+ * Renderiza o status de controle de término como uma bolinha colorida com tooltip nativo.
+ * 
+ * Por que existe: Economiza espaço na coluna de Ação substituindo badges de texto
+ * longos por bolinhas coloridas discretas com tooltip informativo.
+ */
+function renderStatusControleDot(status: string | null) {
+  const formatted = (status || '').trim().toUpperCase();
+  if (!formatted) return null;
+
+  let colorClass = 'bg-neutral-400 dark:bg-neutral-500';
+  let displayText = status;
+
+  if (formatted.includes('PENDENTE')) {
+    colorClass = 'bg-amber-500';
+    displayText = 'Pendente';
+  } else if (
+    formatted.includes('EFETIVADO') ||
+    formatted.includes('MANTER') ||
+    formatted.includes('MANTIDO')
+  ) {
+    colorClass = 'bg-green-500';
+    displayText = 'Efetivado';
+  } else if (
+    formatted.includes('DISPENSADO') ||
+    formatted.includes('TÉRMINO') ||
+    formatted.includes('TERMINO')
+  ) {
+    colorClass = 'bg-red-500';
+    displayText = 'Dispensado';
+  } else if (formatted.includes('PRORROGADO')) {
+    colorClass = 'bg-blue-500';
+    displayText = 'Prorrogado';
+  }
+
+  return (
+    <span
+      className={`inline-block w-3.5 h-3.5 rounded-full ${colorClass} cursor-help shadow-xs`}
+      title={displayText}
+    />
+  );
+}
+
+/**
  * Tabela de listagem dos Términos de Experiência.
  * 
  * Por que existe: Centraliza a renderização da lista de frentistas que estão 
@@ -84,43 +127,43 @@ export default function TerminosTable({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-100 text-xs font-bold text-neutral-700 uppercase tracking-wider">
-              <th className="py-4 px-6">RE / Colaborador</th>
-              <th className="py-4 px-6">Loja Física (TOTVS)</th>
-              <th className="py-4 px-6">Coordenador</th>
-              <th className="py-4 px-6">Status Gestão</th>
-              <th className="py-4 px-6 text-center">Faltas / Atestados</th>
-              <th className="py-4 px-6">Término 1º Per. (30d)</th>
-              <th className="py-4 px-6">Término 2º Per. (60d)</th>
-              <th className="py-4 px-6 text-right">Ação</th>
+              <th className="py-3 px-4">RE / Colaborador</th>
+              <th className="py-3 px-4">Loja (TOTVS)</th>
+              <th className="py-3 px-4">Coordenador</th>
+              <th className="py-3 px-4">Status Gestão</th>
+              <th className="py-3 px-4 text-center">Faltas / Atestados</th>
+              <th className="py-3 px-4">1º Per. (30d)</th>
+              <th className="py-3 px-4">2º Per. (60d)</th>
+              <th className="py-3 px-4 text-right sticky right-0 bg-neutral-100 dark:bg-neutral-800 z-20 border-l border-b border-neutral-200 dark:border-neutral-800">Ação</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border text-sm">
             {loading ? (
               Array.from({ length: 5 }).map((_, idx) => (
                 <tr key={idx} className="animate-pulse">
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-4">
                     <Skeleton className="h-5 w-40 mb-1" />
                     <Skeleton className="h-3 w-16" />
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-4">
                     <Skeleton className="h-5 w-32" />
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-4">
                     <Skeleton className="h-5 w-24" />
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-4">
                     <Skeleton className="h-5 w-20" />
                   </td>
-                  <td className="py-4 px-6 text-center">
+                  <td className="py-3 px-4 text-center">
                     <Skeleton className="h-8 w-16 inline-block" />
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-4">
                     <Skeleton className="h-5 w-24" />
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-4">
                     <Skeleton className="h-5 w-24" />
                   </td>
-                  <td className="py-4 px-6 text-right">
+                  <td className="py-3 px-4 text-right sticky right-0 bg-white dark:bg-neutral-900 z-10 border-l border-neutral-200 dark:border-neutral-800">
                     <Skeleton className="h-8 w-20 ml-auto" />
                   </td>
                 </tr>
@@ -135,9 +178,9 @@ export default function TerminosTable({
               terminos.map((item) => (
                 <tr
                   key={item.colaborador.id}
-                  className="hover:bg-neutral-50 dark:bg-neutral-850 transition-colors"
+                  className="group hover:bg-neutral-50 dark:bg-neutral-850 transition-colors"
                 >
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-4">
                     <div className="font-semibold text-neutral-900 dark:text-neutral-100">
                       {item.colaborador.nome}
                     </div>
@@ -145,7 +188,7 @@ export default function TerminosTable({
                       RE: {item.colaborador.re}
                     </div>
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-4">
                     <div className="font-medium text-neutral-800 dark:text-neutral-200">
                       {item.colaborador.loja_nome || 'Centro Custo sem Loja'}
                     </div>
@@ -155,13 +198,13 @@ export default function TerminosTable({
                       </div>
                     )}
                   </td>
-                  <td className="py-4 px-6 text-neutral-700">
+                  <td className="py-3 px-4 text-neutral-700 dark:text-neutral-300">
                     {item.colaborador.loja_coordenador || '-'}
                   </td>
-                  <td className="py-4 px-6 text-neutral-700">
+                  <td className="py-3 px-4 text-neutral-700 dark:text-neutral-300">
                     {item.colaborador.status_gestao || '-'}
                   </td>
-                  <td className="py-4 px-6 text-center whitespace-nowrap">
+                  <td className="py-3 px-4 text-center whitespace-nowrap">
                     <span
                       className={`inline-flex items-center justify-center font-mono font-bold w-8 h-8 rounded-lg text-xs mr-2 ${
                         Number(item.faltas) > 0
@@ -181,7 +224,7 @@ export default function TerminosTable({
                       {item.atestados}
                     </span>
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-4">
                     <div
                       className={`p-2 rounded text-xs font-mono inline-block ${
                         item.state.etapaAtual === 1
@@ -197,7 +240,7 @@ export default function TerminosTable({
                       {formatDate(item.colaborador.termino_1)}
                     </div>
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-4">
                     <div
                       className={`p-2 rounded text-xs font-mono inline-block ${
                         item.state.etapaAtual === 2
@@ -213,13 +256,21 @@ export default function TerminosTable({
                       {formatDate(item.colaborador.termino_2)}
                     </div>
                   </td>
-                  <td className="py-4 px-6 text-right">
+                  <td className="py-3 px-4 text-right sticky right-0 bg-white dark:bg-neutral-900 group-hover:bg-neutral-50 dark:group-hover:bg-neutral-850 z-10 border-l border-neutral-200 dark:border-neutral-800 transition-colors">
                     <div className="flex items-center justify-end gap-2">
                       {item.state.statusControle &&
-                        getStatusBadge(item.state.statusControle)}
+                        renderStatusControleDot(item.state.statusControle)}
                       <button
                         onClick={() => onOpenAcao(item)}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold border rounded-md transition-all ${
+                        title={
+                          item.state.statusControle &&
+                          !item.state.statusControle
+                            .toUpperCase()
+                            .includes('PENDENTE')
+                            ? 'Alterar Decisão'
+                            : 'Registrar Decisão'
+                        }
+                        className={`inline-flex items-center justify-center p-1.5 border rounded-md transition-all ${
                           item.state.statusControle &&
                           !item.state.statusControle
                             .toUpperCase()
@@ -228,20 +279,7 @@ export default function TerminosTable({
                             : 'bg-primary/10 hover:bg-primary/20 text-primary border-primary/20'
                         }`}
                       >
-                        {item.state.statusControle &&
-                        !item.state.statusControle
-                          .toUpperCase()
-                          .includes('PENDENTE') ? (
-                          <>
-                            <Edit className="h-3.5 w-3.5" />
-                            Alterar
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="h-3.5 w-3.5" />
-                            Decidir
-                          </>
-                        )}
+                        <Edit className="h-4 w-4" />
                       </button>
                     </div>
                   </td>
