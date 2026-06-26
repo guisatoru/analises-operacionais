@@ -11,7 +11,7 @@ interface DetalhesColaboradorModalProps {
 /**
  * Modal de visualização detalhada da Ficha do Colaborador.
  * 
- * Por que existe: Permite auditar todos os dados individuais do frentista/auxiliar,
+ * Por que existe: Permite auditar todos os dados individuais do auxiliar,
  * comparando as bases do TOTVS vs Planilha de Gestão vs GeoVictoria, e
  * monitorando datas de experiência em um pop-up isolado.
  */

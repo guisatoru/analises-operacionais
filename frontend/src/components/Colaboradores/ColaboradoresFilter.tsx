@@ -289,7 +289,7 @@ export default function ColaboradoresFilter({
             </label>
             <input
               type="text"
-              placeholder="Ex: Frentista..."
+              placeholder="Ex: Auxiliar..."
               value={cargoFiltro}
               onChange={(e) => setCargoFiltro(e.target.value)}
               className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"

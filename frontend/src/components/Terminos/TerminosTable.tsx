@@ -106,7 +106,7 @@ function renderStatusControleDot(status: string | null) {
 /**
  * Tabela de listagem dos Términos de Experiência.
  * 
- * Por que existe: Centraliza a renderização da lista de frentistas que estão 
+ * Por que existe: Centraliza a renderização da lista de auxiliares que estão 
  * em período de experiência. Mostra a contagem de faltas/atestados, datas limite do 
  * primeiro e segundo períodos (com destaque visual se estiver pendente ou finalizado),
  * e a paginação da listagem.

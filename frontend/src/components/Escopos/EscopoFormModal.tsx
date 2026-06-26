@@ -21,7 +21,7 @@ interface EscopoFormModalProps {
  * Modal de Cadastro de Novo Escopo Mensal.
  * 
  * Por que existe: Fornece um formulário em popup para planejar a quantidade de 
- * frentistas/auxiliares e seus turnos para uma determinada loja e mês de competência.
+ * Auxiliares e seus turnos para uma determinada loja e mês de competência.
  * Gerencia a adição/remoção dinâmica de postos de trabalho e envia os dados consolidados.
  */
 export default function EscopoFormModal({

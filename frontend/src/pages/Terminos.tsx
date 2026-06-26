@@ -23,7 +23,7 @@ interface SyncProgressResponse {
  * Página de Controle de Términos de Experiência.
  * 
  * Por que existe: Permite que a equipe de gestão de pessoas monitore a proximidade 
- * do encerramento dos contratos de experiência dos novos frentistas (Fase 1 de 45 dias 
+ * do encerramento dos contratos de experiência dos novos auxiliares (Fase 1 de 45 dias 
  * e Fase 2 de 90 dias). Facilita o registro rápido das decisões de RH delegando a exibição
  * da listagem, barra de filtros inteligentes e formulário de decisão para subcomponentes dedicados.
  */
@@ -238,7 +238,7 @@ export default function Terminos() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-50">Términos de Experiência</h1>
-          <p className="text-sm text-neutral-500">Acompanhamento de vencimentos contratuais de frentistas e auxiliares</p>
+          <p className="text-sm text-neutral-500">Acompanhamento de vencimentos contratuais</p>
         </div>
         <button
           onClick={handleExportExcel}
