@@ -2,6 +2,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from usuarios.permissions import IsAdministrador
 from django.db.models import Q
 from django.db import transaction
 from django.shortcuts import get_object_or_404
@@ -11,7 +12,7 @@ from lojas.models import Loja
 from .serializers import AgendamentoSerializer, ColaboradorSerializer, ColaboradorLightSerializer
 
 @api_view(["GET", "POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdministrador])
 def agendamento_list_create(request):
     """
     Lista agendamentos ou salva agendamentos em lote (upsert).
@@ -88,7 +89,7 @@ def agendamento_list_create(request):
 
 
 @api_view(["DELETE"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdministrador])
 def agendamento_delete(request, pk):
     """
     Exclui um agendamento individual.
@@ -101,7 +102,7 @@ def agendamento_delete(request, pk):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdministrador])
 def colaborador_ativos_completo(request):
     """
     Retorna todos os colaboradores ativos filtrados por busca (Nome ou RE).
@@ -131,7 +132,7 @@ def colaborador_ativos_completo(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdministrador])
 def historico_limpeza_vidros(request):
     """
     Calcula e retorna a lista de todas as lojas e há quantos dias foi a sua última limpeza de vidros.

@@ -3,6 +3,7 @@ from operator import or_
 from functools import reduce
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from usuarios.permissions import IsAdministrador
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 
@@ -15,7 +16,7 @@ class PremioPaginacao(PageNumberPagination):
     max_page_size = 100
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdministrador])
 def premios_list_api(request):
     """
     Retorna a listagem detalhada de prêmios com suporte a filtros e paginação,
@@ -348,7 +349,7 @@ def premios_list_api(request):
     })
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdministrador])
 def premios_filtro_opcoes_api(request):
     """
     Retorna as opções de preenchimento para os filtros de prêmios.

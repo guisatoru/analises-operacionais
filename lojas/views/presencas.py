@@ -6,6 +6,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from usuarios.permissions import IsGestaoOrAdministrador
 from unidecode import unidecode
 from ..models import Loja
 
@@ -74,7 +75,7 @@ def group_punches_into_presences(punches):
     return presences
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def importar_presencas_api(request):
     """
     Por que existe: Esta view processa o upload da planilha do GeoVictoria enviada pelo frontend.

@@ -3,6 +3,7 @@ from django.db.models import Q
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from usuarios.permissions import IsGestaoOrAdministrador
 
 from lojas.models import Loja
 from lojas.serializers import LojaSerializer
@@ -15,7 +16,7 @@ from .view_utils import funcao_esta_divergente
 from rest_framework.pagination import PageNumberPagination
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def colaborador_list(request):
     """
     Retorna a lista paginada e filtrada de colaboradores ativos no formato JSON.
@@ -36,7 +37,7 @@ def colaborador_list(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def demitido_list(request):
     """
     Retorna a lista paginada e filtrada de colaboradores demitidos no formato JSON.
@@ -60,7 +61,7 @@ def demitido_list(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def status_gestao_opcoes(request):
     """
     Esta view existe para retornar ao frontend todas as opções distintas de status de gestão
@@ -383,7 +384,7 @@ def _filtro_status_divergente_demitido():
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def colaborador_filtro_opcoes(request):
     """
     Retorna as opções de busca para os seletores (RE, Nome, Loja, Coordenador, Status) de forma reativa.

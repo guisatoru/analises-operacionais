@@ -7,6 +7,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from usuarios.permissions import IsAdministrador, IsGestaoOrAdministrador
 
 from colaboradores.services.colaborador_importacao import importar_colaboradores_de_texto
 from colaboradores.services.gestao_importacao import importar_gestao_pessoas
@@ -16,7 +17,7 @@ from lojas.services.premio_importacao import importar_premios_de_excel
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def importacoes(request):
     """
     Retorna os metadados da Central de Importações, informando que o serviço está ativo.
@@ -34,7 +35,7 @@ def importacoes(request):
     })
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def colaborador_import_async(request):
     """
     Inicia a importação assíncrona do arquivo SRA (TOTVS) via upload multipart/form-data.
@@ -62,7 +63,7 @@ def colaborador_import_async(request):
     )
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def gestao_import_async(request):
     """
     Inicia a importação assíncrona da planilha de Gestão de Pessoas (Excel).
@@ -86,7 +87,7 @@ def gestao_import_async(request):
     )
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdministrador])
 def folha_import_async(request):
     """
     Inicia a importação assíncrona do arquivo SRD (Folha TOTVS) via upload.
@@ -114,7 +115,7 @@ def folha_import_async(request):
     )
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdministrador])
 def diaria_import_async(request):
     """
     Inicia a importação assíncrona do arquivo CSV de Diárias via upload.
@@ -146,7 +147,7 @@ def diaria_import_async(request):
     )
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdministrador])
 def premio_import_async(request):
     """
     Inicia a importação assíncrona do arquivo Excel de Prêmios Pagos via upload.
@@ -385,7 +386,7 @@ def _montar_mensagem_premio(resultado):
     return mensagem, "success"
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def import_progress(request, import_id):
     """
     Retorna o status/progresso atual da importação do arquivo.
@@ -396,7 +397,7 @@ def import_progress(request, import_id):
     return Response(status_data)
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def import_status_api(request, import_id):
     """
     Retorna o status atual da importação para compatibilidade com rotas.

@@ -1,6 +1,7 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from usuarios.permissions import IsAdministrador
 
 from lojas.models import MESES_CHOICES, Loja
 from lojas.serializers import LojaSerializer
@@ -21,7 +22,7 @@ def _nome_mes(mes: int) -> str:
     return str(mes)
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdministrador])
 def comparativo_loja(request):
     """
     Retorna o comparativo entre os custos orçados (escopo) e reais (folha) da loja selecionada

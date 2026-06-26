@@ -12,6 +12,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from usuarios.permissions import IsGestaoOrAdministrador
 
 from lojas.models import Loja
 
@@ -24,7 +25,7 @@ from .view_utils import derive_termino_state
 from rest_framework.pagination import PageNumberPagination
 
 @api_view(["GET", "POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def terminos_list(request):
     """
     Lista colaboradores próximos das datas de término de experiência (GET)
@@ -97,7 +98,7 @@ def terminos_list(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def exportar_terminos_excel(request):
     """
     Exporta os términos filtrados para Excel.
@@ -178,7 +179,7 @@ def exportar_terminos_excel(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def colaborador_geovictoria_summary(request, colaborador_id):
     """
     Retorna faltas e atestados da GeoVictoria via chamada de API.

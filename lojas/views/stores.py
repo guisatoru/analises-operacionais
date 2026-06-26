@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from usuarios.permissions import IsGestaoOrAdministrador
 from rest_framework.pagination import PageNumberPagination
 from unidecode import unidecode
 
@@ -11,7 +12,7 @@ from ..models import Loja, STATUS_CHOICES, obter_ou_criar_config_insalubridade_l
 from ..serializers import LojaSerializer, CoordenadorSerializer, SupervisorSerializer
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def store_list(request):
     """
     Retorna a lista paginada e filtrada de lojas.
@@ -133,7 +134,7 @@ def store_list(request):
     return Response(serializer.data)
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def store_detail(request, pk):
     """
     Retorna os detalhes JSON de uma loja específica identificada pela chave primária (PK).
@@ -144,7 +145,7 @@ def store_detail(request, pk):
     return Response({"loja": serializer.data})
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def store_create(request):
     """
     Cadastra uma nova loja no banco de dados a partir de dados JSON enviados pelo frontend.
@@ -166,7 +167,7 @@ def store_create(request):
     }, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(["PUT", "PATCH"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def store_update(request, pk):
     """
     Atualiza as informações de uma loja existente identificada pela chave primária (PK).
@@ -187,7 +188,7 @@ def store_update(request, pk):
     }, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(["POST", "DELETE"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def store_delete(request, pk):
     """
     Exclui uma loja específica identificada por PK.
@@ -203,7 +204,7 @@ def store_delete(request, pk):
 
 
 @api_view(["GET", "POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def coordenador_list_create(request):
     """
     Lista todos os coordenadores cadastrados (GET) ou cria um novo coordenador (POST)
@@ -225,7 +226,7 @@ def coordenador_list_create(request):
 
 
 @api_view(["GET", "POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def supervisor_list_create(request):
     """
     Lista todos os supervisores cadastrados (GET) ou cria um novo supervisor (POST)
@@ -247,7 +248,7 @@ def supervisor_list_create(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def store_filtro_opcoes(request):
     """
     Retorna as opções de filtro para lojas (nome de referência, cliente, centro de custo, status, supervisor, coordenador e código).
@@ -415,7 +416,7 @@ def store_filtro_opcoes(request):
 
 
 @api_view(["GET", "PUT", "PATCH", "DELETE"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def coordenador_detail_update_delete(request, pk):
     """
     Retorna, atualiza ou exclui um coordenador específico.
@@ -442,7 +443,7 @@ def coordenador_detail_update_delete(request, pk):
 
 
 @api_view(["GET", "PUT", "PATCH", "DELETE"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def supervisor_detail_update_delete(request, pk):
     """
     Retorna, atualiza ou exclui um supervisor específico.

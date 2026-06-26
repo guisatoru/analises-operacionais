@@ -4,12 +4,13 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
+from usuarios.permissions import IsAdministrador
 
 from lojas.models import LinhaFolhaDuplicada
 from lojas.serializers import LinhaFolhaDuplicadaSerializer
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdministrador])
 def folha_duplicadas_list(request):
     """
     Retorna a lista paginada de linhas duplicadas de folha de pagamento.

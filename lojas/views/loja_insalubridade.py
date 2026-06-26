@@ -3,12 +3,13 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from usuarios.permissions import IsGestaoOrAdministrador
 
 from ..models import Loja, obter_ou_criar_config_insalubridade_loja
 from ..serializers import ConfiguracaoInsalubridadeLojaSerializer
 
 @api_view(["GET", "POST", "PUT", "PATCH"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def loja_config_insalubridade(request, pk):
     """
     Recupera ou atualiza a configuração de insalubridade para uma loja específica.

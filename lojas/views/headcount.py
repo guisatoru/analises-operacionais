@@ -4,6 +4,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
+from usuarios.permissions import IsGestaoOrAdministrador
 from unidecode import unidecode
 
 from ..models import Loja
@@ -18,7 +19,7 @@ class HeadcountPaginacao(PageNumberPagination):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def headcount_analise_api(request):
     """
     Por que existe: Esta view calcula o headcount planejado vs. real das lojas físicas ativas.
@@ -120,7 +121,7 @@ def headcount_analise_api(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def headcount_loja_colaboradores_api(request, loja_id):
     """
     Por que existe: Retorna nominalmente a lista de colaboradores associados à loja que

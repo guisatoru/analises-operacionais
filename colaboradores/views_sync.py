@@ -7,6 +7,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from usuarios.permissions import IsGestaoOrAdministrador
 
 from .services.geovictoria_lojas_sync import (
     get_progresso_sync_lojas,
@@ -31,7 +32,7 @@ from .views_terminos import (
 )
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def sync_lojas_geovictoria(request):
     """
     Sincroniza a loja GeoVictoria em segundo plano apenas para os colaboradores ativos filtrados.
@@ -61,7 +62,7 @@ def sync_lojas_geovictoria(request):
     })
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def sync_lojas_geovictoria_progress(request):
     """
     Retorna o progresso atual da sincronização de lojas da GeoVictoria.
@@ -72,7 +73,7 @@ def sync_lojas_geovictoria_progress(request):
     return Response(progresso)
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def exportar_pendencias_lojas_geovictoria(request, tipo):
     """
     Exporta a lista de pendências da última sincronização como arquivo CSV.
@@ -134,7 +135,7 @@ def exportar_pendencias_lojas_geovictoria(request, tipo):
     return response
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def sync_geovictoria(request):
     """
     Sincroniza as faltas e atestados da GeoVictoria dos colaboradores da listagem de termos em background.
@@ -196,7 +197,7 @@ def sync_geovictoria(request):
     })
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def sync_geovictoria_progress(request):
     """
     Retorna o progresso atual da sincronização de faltas e atestados da GeoVictoria.

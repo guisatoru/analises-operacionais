@@ -9,6 +9,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from unidecode import unidecode
+from usuarios.permissions import IsAdministrador
 
 from ..models import (
     MESES_CHOICES,
@@ -28,7 +29,7 @@ ESCOPOS_POR_PAGINA = 10
 from rest_framework.pagination import PageNumberPagination
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdministrador])
 def escopo_list(request):
     """
     Lista e filtra os escopos mensais em formato JSON com paginação nativa do DRF.
@@ -96,7 +97,7 @@ def escopo_list(request):
     return Response(serializer.data)
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdministrador])
 def api_item_escopo_save(request):
     """
     Cria ou atualiza um item de escopo mensal via payload JSON.
@@ -154,7 +155,7 @@ def api_item_escopo_save(request):
     })
 
 @api_view(["POST", "DELETE"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdministrador])
 def api_item_escopo_delete(request, pk):
     """
     Exclui um item de escopo do escopo mensal e recalcula o total financeiro resultante.
@@ -178,7 +179,7 @@ def api_item_escopo_delete(request, pk):
     })
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdministrador])
 def escopo_create(request):
     """
     Cria um escopo mensal completo com itens associados usando controle transacional.
@@ -229,7 +230,7 @@ def escopo_create(request):
         }, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(["POST", "DELETE"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdministrador])
 def escopo_delete(request, pk):
     """
     Remove um escopo mensal e todos os seus itens em cascata.
@@ -245,7 +246,7 @@ def escopo_delete(request, pk):
     })
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdministrador])
 def escopo_duplicar_proximo_mes(request):
     """
     Duplica em lote todos os escopos ativos do último mês registrado para a competência subsequente.
@@ -257,7 +258,7 @@ def escopo_duplicar_proximo_mes(request):
     })
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdministrador])
 def cargo_list(request):
     """
     Esta view existe para expor a listagem de todos os cargos do banco de dados em formato JSON.

@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from usuarios.permissions import IsAdministrador
 from rest_framework.pagination import PageNumberPagination
 
 from lojas.models import Diaria, Loja, Coordenador
@@ -17,7 +18,7 @@ class DiariaPaginacao(PageNumberPagination):
     max_page_size = 100
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdministrador])
 def diarias_list_api(request):
     """
     Retorna as diárias cadastradas no banco com suporte a filtros, paginação
@@ -293,7 +294,7 @@ def diarias_list_api(request):
     })
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdministrador])
 def diarias_filtro_opcoes_api(request):
     """
     Retorna as listas de valores unicos existentes para preenchimento
