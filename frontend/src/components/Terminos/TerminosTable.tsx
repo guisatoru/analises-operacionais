@@ -127,14 +127,14 @@ export default function TerminosTable({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-100 text-xs font-bold text-neutral-700 uppercase tracking-wider">
-              <th className="py-3 px-4">RE / Colaborador</th>
-              <th className="py-3 px-4">Loja (TOTVS)</th>
-              <th className="py-3 px-4">Coordenador</th>
-              <th className="py-3 px-4">Status Gestão</th>
-              <th className="py-3 px-4 text-center">Faltas / Atestados</th>
-              <th className="py-3 px-4">1º Per. (30d)</th>
-              <th className="py-3 px-4">2º Per. (60d)</th>
-              <th className="py-3 px-4 text-right sticky right-0 bg-neutral-100 dark:bg-neutral-800 z-20 border-l border-b border-neutral-200 dark:border-neutral-800">Ação</th>
+              <th className="py-3 px-4 align-middle">RE / Colaborador</th>
+              <th className="py-3 px-4 align-middle">Loja (TOTVS)</th>
+              <th className="py-3 px-4 align-middle">Coordenador</th>
+              <th className="py-3 px-4 align-middle">Status Gestão</th>
+              <th className="py-3 px-4 text-center align-middle">Faltas / Atestados</th>
+              <th className="py-3 px-4 align-middle">1º Per. (30d)</th>
+              <th className="py-3 px-4 align-middle">2º Per. (60d)</th>
+              <th className="py-3 px-4 text-right sticky right-0 bg-neutral-100 dark:bg-neutral-800 z-20 border-b border-neutral-200 dark:border-neutral-800 align-middle">Ação</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border text-sm">
@@ -163,7 +163,7 @@ export default function TerminosTable({
                   <td className="py-3 px-4">
                     <Skeleton className="h-5 w-24" />
                   </td>
-                  <td className="py-3 px-4 text-right sticky right-0 bg-white dark:bg-neutral-900 z-10 border-l border-neutral-200 dark:border-neutral-800">
+                  <td className="py-3 px-4 text-right sticky right-0 bg-white dark:bg-neutral-900 z-10">
                     <Skeleton className="h-8 w-20 ml-auto" />
                   </td>
                 </tr>
@@ -256,7 +256,7 @@ export default function TerminosTable({
                       {formatDate(item.colaborador.termino_2)}
                     </div>
                   </td>
-                  <td className="py-3 px-4 text-right sticky right-0 bg-white dark:bg-neutral-900 group-hover:bg-neutral-50 dark:group-hover:bg-neutral-850 z-10 border-l border-neutral-200 dark:border-neutral-800 transition-colors">
+                  <td className="py-3 px-4 text-right sticky right-0 bg-white dark:bg-neutral-900 group-hover:bg-neutral-50 dark:group-hover:bg-neutral-850 z-10 transition-colors">
                     <div className="flex items-center justify-end gap-2">
                       {item.state.statusControle &&
                         renderStatusControleDot(item.state.statusControle)}
