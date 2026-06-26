@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { 
   Users, 
   FileSpreadsheet, 
@@ -28,6 +29,7 @@ interface ImportStatus {
  * e delegando o layout dos cards para o componente UploadCard.
  */
 export default function Importacoes() {
+  const { role } = useOutletContext<{ role?: string }>();
   // Estados para armazenar cada tipo de arquivo selecionado
   const [sraFile, setSraFile] = useState<File | null>(null);
   const [gestaoFile, setGestaoFile] = useState<File | null>(null);
@@ -174,56 +176,60 @@ export default function Importacoes() {
           onUpload={() => handleUpload('gestao', gestaoFile)}
         />
 
-        {/* Card Folha de Pagamento SRD */}
-        <UploadCard
-          title="Folha de Pagamento (SRD)"
-          description="Carga das verbas e pagamentos de proventos. Formato aceito: CSV de export da folha."
-          icon={
-            <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
-              <FileText className="h-6 w-6" />
-            </div>
-          }
-          accept=".csv"
-          file={folhaFile}
-          setFile={setFolhaFile}
-          loading={loading}
-          buttonText="Importar Folha SRD"
-          onUpload={() => handleUpload('folha', folhaFile)}
-        />
+        {role !== 'Gestão' && (
+          <>
+            {/* Card Folha de Pagamento SRD */}
+            <UploadCard
+              title="Folha de Pagamento (SRD)"
+              description="Carga das verbas e pagamentos de proventos. Formato aceito: CSV de export da folha."
+              icon={
+                <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
+                  <FileText className="h-6 w-6" />
+                </div>
+              }
+              accept=".csv"
+              file={folhaFile}
+              setFile={setFolhaFile}
+              loading={loading}
+              buttonText="Importar Folha SRD"
+              onUpload={() => handleUpload('folha', folhaFile)}
+            />
 
-        {/* Card Diárias Operacionais */}
-        <UploadCard
-          title="Diárias Operacionais"
-          description="Carga das diárias e custos das filiais. Formato aceito: CSV delimitado por ponto e vírgula."
-          icon={
-            <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500">
-              <FileSpreadsheet className="h-6 w-6" />
-            </div>
-          }
-          accept=".csv"
-          file={diariaFile}
-          setFile={setDiariaFile}
-          loading={loading}
-          buttonText="Importar Diárias"
-          onUpload={() => handleUpload('diaria', diariaFile)}
-        />
+            {/* Card Diárias Operacionais */}
+            <UploadCard
+              title="Diárias Operacionais"
+              description="Carga das diárias e custos das filiais. Formato aceito: CSV delimitado por ponto e vírgula."
+              icon={
+                <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500">
+                  <FileSpreadsheet className="h-6 w-6" />
+                </div>
+              }
+              accept=".csv"
+              file={diariaFile}
+              setFile={setDiariaFile}
+              loading={loading}
+              buttonText="Importar Diárias"
+              onUpload={() => handleUpload('diaria', diariaFile)}
+            />
 
-        {/* Card Prêmios Pagos */}
-        <UploadCard
-          title="Prêmios Pagos"
-          description="Carga da planilha de prêmios e campanhas operacionais. Formato aceito: Excel (.xlsx / .xlsm)."
-          icon={
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600">
-              <Coins className="h-6 w-6" />
-            </div>
-          }
-          accept=".xlsx,.xlsm,.xls"
-          file={premioFile}
-          setFile={setPremioFile}
-          loading={loading}
-          buttonText="Importar Prêmios"
-          onUpload={() => handleUpload('premio', premioFile)}
-        />
+            {/* Card Prêmios Pagos */}
+            <UploadCard
+              title="Prêmios Pagos"
+              description="Carga da planilha de prêmios e campanhas operacionais. Formato aceito: Excel (.xlsx / .xlsm)."
+              icon={
+                <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600">
+                  <Coins className="h-6 w-6" />
+                </div>
+              }
+              accept=".xlsx,.xlsm,.xls"
+              file={premioFile}
+              setFile={setPremioFile}
+              loading={loading}
+              buttonText="Importar Prêmios"
+              onUpload={() => handleUpload('premio', premioFile)}
+            />
+          </>
+        )}
 
       </div>
 

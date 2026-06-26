@@ -40,6 +40,7 @@ export default function UsuarioFormModal({
     email: '',
     password: '',
     is_active: true,
+    role: 'administrador',
   });
 
   // Estados locais de controle de envio e erro
@@ -49,6 +50,10 @@ export default function UsuarioFormModal({
   // Inicializa os campos quando o modal abre (para criação ou edição)
   useEffect(() => {
     if (usuario) {
+      let mappedRole = 'administrador';
+      if (usuario.role === 'Gestão') {
+        mappedRole = 'gestao';
+      }
       setFormData({
         username: usuario.username,
         first_name: usuario.first_name || '',
@@ -56,6 +61,7 @@ export default function UsuarioFormModal({
         email: usuario.email || '',
         password: '', // Senha inicia vazia para edição
         is_active: usuario.is_active,
+        role: mappedRole,
       });
     } else {
       setFormData({
@@ -65,6 +71,7 @@ export default function UsuarioFormModal({
         email: '',
         password: '',
         is_active: true,
+        role: 'administrador',
       });
     }
     setErrorMsg(null);
@@ -99,6 +106,7 @@ export default function UsuarioFormModal({
       last_name: formData.last_name.trim(),
       email: formData.email.trim(),
       is_active: formData.is_active,
+      role: formData.role,
     };
 
     if (formData.password.trim()) {
@@ -149,7 +157,7 @@ export default function UsuarioFormModal({
         {/* Header do Modal */}
         <div className="flex items-center justify-between p-6 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850">
           <h3 className="font-bold text-lg text-neutral-900 dark:text-neutral-100">
-            {usuario ? 'Editar Usuário' : 'Cadastrar Novo Administrador'}
+            {usuario ? 'Editar Usuário' : 'Cadastrar Novo Usuário'}
           </h3>
           <button
             onClick={onClose}
@@ -221,6 +229,26 @@ export default function UsuarioFormModal({
                 placeholder="Ex: joao@empresa.com"
               />
             </InputGroup>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1.5">
+              Papel (Role)
+            </label>
+            <select
+              value={formData.role}
+              onChange={(e) => handleChange('role', e.target.value)}
+              disabled={usuario !== null && usuario.username === currentUsername}
+              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white disabled:opacity-50"
+            >
+              <option value="administrador">Administrador</option>
+              <option value="gestao">Gestão</option>
+            </select>
+            {usuario !== null && usuario.username === currentUsername && (
+              <p className="text-[10px] text-neutral-400 mt-1">
+                Você não pode alterar o seu próprio papel de acesso.
+              </p>
+            )}
           </div>
 
           <div>

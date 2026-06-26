@@ -145,6 +145,48 @@ def usuario_update(request, pk):
             "error": "Você não pode desativar o seu próprio usuário administrador."
         }, status=status.HTTP_400_BAD_REQUEST)
 
+    role = request.data.get("role")
+    if role is not None:
+        if not is_admin:
+            return Response({
+                "success": False,
+                "error": "Você não tem permissão para alterar o papel de acesso."
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        role_str = str(role).lower()
+        if role_str not in ["administrador", "gestao", "sem role"]:
+            return Response({
+                "success": False,
+                "error": "Papel de acesso inválido."
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        if usuario == request.user and role_str != "administrador":
+            return Response({
+                "success": False,
+                "error": "Você não pode rebaixar o seu próprio papel de administrador."
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        from django.contrib.auth.models import Group
+        from usuarios.constants import GESTAO_ROLE, ADMINISTRADOR_ROLE
+        
+        administrador_group, _ = Group.objects.get_or_create(name=ADMINISTRADOR_ROLE)
+        gestao_group, _ = Group.objects.get_or_create(name=GESTAO_ROLE)
+        
+        usuario.groups.remove(administrador_group)
+        usuario.groups.remove(gestao_group)
+        
+        if role_str == "administrador":
+            usuario.groups.add(administrador_group)
+            usuario.is_superuser = True
+            usuario.is_staff = True
+        elif role_str == "gestao":
+            usuario.groups.add(gestao_group)
+            usuario.is_superuser = False
+            usuario.is_staff = False
+        else: # Sem role
+            usuario.is_superuser = False
+            usuario.is_staff = False
+
     username = request.data.get("username")
     first_name = request.data.get("first_name")
     last_name = request.data.get("last_name")

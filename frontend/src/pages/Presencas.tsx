@@ -10,7 +10,6 @@ import {
   Building, 
   Users, 
   Calendar,
-  X,
   ChevronDown,
   ChevronUp
 } from 'lucide-react';

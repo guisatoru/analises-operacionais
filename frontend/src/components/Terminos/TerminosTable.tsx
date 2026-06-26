@@ -70,7 +70,7 @@ function renderStatusControleDot(status: string | null) {
   if (!formatted) return null;
 
   let colorClass = 'bg-neutral-400 dark:bg-neutral-500';
-  let displayText = status;
+  let displayText = status || '';
 
   if (formatted.includes('PENDENTE')) {
     colorClass = 'bg-amber-500';

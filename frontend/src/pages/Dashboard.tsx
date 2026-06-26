@@ -128,6 +128,22 @@ export default function Dashboard() {
     ] : []),
   ];
 
+  // Filtra os atalhos exibidos na página inicial se a role for Gestão
+  const allowedPathsForGestao = [
+    '/lojas',
+    '/colaboradores',
+    '/terminos',
+    '/headcount',
+    '/importacoes'
+  ];
+
+  const filteredCards = cards.filter(card => {
+    if (userRole === 'Gestão') {
+      return allowedPathsForGestao.includes(card.path);
+    }
+    return true;
+  });
+
   return (
     <div className="space-y-8 max-w-6xl">
       {/* Bloco de Boas-vindas Premium */}
@@ -177,7 +193,7 @@ export default function Dashboard() {
           Acesso Rápido aos Recursos
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {cards.map((card) => {
+          {filteredCards.map((card) => {
             const Icon = card.icon;
             return (
               <Link

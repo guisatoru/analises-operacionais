@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User, Group
 from rest_framework import serializers
-from .constants import ADMINISTRADOR_ROLE
+from .constants import ADMINISTRADOR_ROLE, GESTAO_ROLE
 
 class UsuarioSerializer(serializers.ModelSerializer):
     """
@@ -17,10 +17,12 @@ class UsuarioSerializer(serializers.ModelSerializer):
     def get_role(self, obj):
         """
         Calcula o papel do usuário para exibição no frontend,
-        centralizando a regra se ele é Administrador ou não tem papel associado.
+        centralizando a regra se ele é Administrador, Gestão ou não tem papel associado.
         """
         if obj.is_superuser or obj.groups.filter(name=ADMINISTRADOR_ROLE).exists():
             return "Administrador"
+        if obj.groups.filter(name=GESTAO_ROLE).exists():
+            return "Gestão"
         return "Sem role"
 
     def to_representation(self, instance):
@@ -36,12 +38,12 @@ class UsuarioSerializer(serializers.ModelSerializer):
 
 class UsuarioCreateSerializer(serializers.ModelSerializer):
     """
-    Este serializer existe para validar e persistir a criação de novos usuários administradores via API.
+    Este serializer existe para validar e persistir a criação de novos usuários administradores ou gestores via API.
     Ele garante que a senha seja salva de forma segura (hasheada) e que o usuário seja criado com as
-    permissões e grupos corretos para acesso administrativo ao sistema.
+    permissões e grupos corretos para o respectivo papel de acesso ao sistema.
     """
     role = serializers.ChoiceField(
-        choices=((ADMINISTRADOR_ROLE, "Administrador"),),
+        choices=((ADMINISTRADOR_ROLE, "Administrador"), (GESTAO_ROLE, "Gestão")),
         default=ADMINISTRADOR_ROLE,
         required=False
     )
@@ -54,20 +56,26 @@ class UsuarioCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """
         Sobrescreve o método de criação padrão para aplicar a lógica de hashing de senha do Django,
-        configurar os flags de superusuário e vincular o usuário recém-criado ao grupo administrador.
+        configurar os flags de superusuário e vincular o usuário ao grupo correto (Administrador ou Gestão).
         """
-        validated_data.pop("role", None)
+        role = validated_data.pop("role", ADMINISTRADOR_ROLE)
         password = validated_data.pop("password")
         
         user = User(**validated_data)
         user.set_password(password)
         user.is_active = True
-        user.is_staff = True
-        user.is_superuser = True
+        
+        if role == ADMINISTRADOR_ROLE:
+            user.is_staff = True
+            user.is_superuser = True
+        else:
+            user.is_staff = False
+            user.is_superuser = False
+            
         user.save()
         
-        administrador_group, _ = Group.objects.get_or_create(
-            name=ADMINISTRADOR_ROLE,
+        group, _ = Group.objects.get_or_create(
+            name=role,
         )
-        user.groups.add(administrador_group)
+        user.groups.add(group)
         return user

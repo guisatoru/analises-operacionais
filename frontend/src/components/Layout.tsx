@@ -120,7 +120,7 @@ export default function Layout({ isAuthenticated, username, onLogout, role }: La
 
         {/* Local onde a rota ativa será renderizada */}
         <div className="p-6 md:p-8 flex-1 overflow-y-auto">
-          <Outlet />
+          <Outlet context={{ role }} />
         </div>
       </SidebarInset>
 

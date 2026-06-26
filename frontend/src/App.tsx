@@ -113,13 +113,31 @@ function App() {
         >
           <Route path="/" element={<Dashboard />} />
           <Route path="/lojas" element={<Lojas />} />
-          <Route path="/agenda" element={<Agenda />} />
-          <Route path="/agenda/historico" element={<HistoricoAgenda />} />
-          <Route path="/escopos" element={<Escopos />} />
-          <Route path="/comparativo" element={<Comparativo />} />
+          <Route 
+            path="/agenda" 
+            element={role === 'Gestão' ? <Navigate to="/lojas" replace /> : <Agenda />} 
+          />
+          <Route 
+            path="/agenda/historico" 
+            element={role === 'Gestão' ? <Navigate to="/lojas" replace /> : <HistoricoAgenda />} 
+          />
+          <Route 
+            path="/escopos" 
+            element={role === 'Gestão' ? <Navigate to="/lojas" replace /> : <Escopos />} 
+          />
+          <Route 
+            path="/comparativo" 
+            element={role === 'Gestão' ? <Navigate to="/lojas" replace /> : <Comparativo />} 
+          />
           <Route path="/headcount" element={<Headcount />} />
-          <Route path="/diarias" element={<Diarias />} />
-          <Route path="/premios" element={<Premios />} />
+          <Route 
+            path="/diarias" 
+            element={role === 'Gestão' ? <Navigate to="/lojas" replace /> : <Diarias />} 
+          />
+          <Route 
+            path="/premios" 
+            element={role === 'Gestão' ? <Navigate to="/lojas" replace /> : <Premios />} 
+          />
           <Route path="/colaboradores" element={<Colaboradores />} />
           <Route path="/terminos" element={<Terminos />} />
           <Route path="/importacoes" element={<Importacoes />} />
@@ -142,7 +160,11 @@ function App() {
           path="/premios/relatorio" 
           element={
             isAuthenticated ? (
-              <RelatorioPremios />
+              role === 'Gestão' ? (
+                <Navigate to="/lojas" replace />
+              ) : (
+                <RelatorioPremios />
+              )
             ) : (
               <Navigate to="/login" replace />
             )

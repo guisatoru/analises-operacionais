@@ -134,50 +134,52 @@ export default function Sidebar({ username = 'Usuário', onLogout, role, onOpenP
               </SidebarMenuItem>
 
               {/* Apoio com Submenu Colapsável */}
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  onClick={() => setApoioSubOpen(!apoioSubOpen)}
-                  isActive={location.pathname === '/agenda' || location.pathname === '/agenda/historico'}
-                  title={!open ? "Apoio" : undefined}
-                >
-                  <CalendarCheck className="h-5 w-5 shrink-0" />
-                  {open && (
-                    <>
-                      <span className="truncate flex-1 text-left">Apoio</span>
-                      {apoioSubOpen ? (
-                        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-neutral-400" />
-                      ) : (
-                        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-neutral-400" />
-                      )}
-                    </>
-                  )}
-                </SidebarMenuButton>
+              {role !== 'Gestão' && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    onClick={() => setApoioSubOpen(!apoioSubOpen)}
+                    isActive={location.pathname === '/agenda' || location.pathname === '/agenda/historico'}
+                    title={!open ? "Apoio" : undefined}
+                  >
+                    <CalendarCheck className="h-5 w-5 shrink-0" />
+                    {open && (
+                      <>
+                        <span className="truncate flex-1 text-left">Apoio</span>
+                        {apoioSubOpen ? (
+                          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-neutral-400" />
+                        ) : (
+                          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-neutral-400" />
+                        )}
+                      </>
+                    )}
+                  </SidebarMenuButton>
 
-                {open && apoioSubOpen && (
-                  <SidebarMenuSub>
-                    <SidebarMenuSubItem>
-                      <SidebarMenuButton 
-                        asChild 
-                        isActive={location.pathname === '/agenda'}
-                      >
-                        <Link to="/agenda">
-                          <span className="truncate">Agenda</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuSubItem>
-                    <SidebarMenuSubItem>
-                      <SidebarMenuButton 
-                        asChild 
-                        isActive={location.pathname === '/agenda/historico'}
-                      >
-                        <Link to="/agenda/historico">
-                          <span className="truncate">Histórico de Limpeza</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuSubItem>
-                  </SidebarMenuSub>
-                )}
-              </SidebarMenuItem>
+                  {open && apoioSubOpen && (
+                    <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuButton 
+                          asChild 
+                          isActive={location.pathname === '/agenda'}
+                        >
+                          <Link to="/agenda">
+                            <span className="truncate">Agenda</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuButton 
+                          asChild 
+                          isActive={location.pathname === '/agenda/historico'}
+                        >
+                          <Link to="/agenda/historico">
+                            <span className="truncate">Histórico de Limpeza</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  )}
+                </SidebarMenuItem>
+              )}
 
               {/* Colaboradores com Submenu Colapsável */}
               <SidebarMenuItem>
@@ -247,31 +249,35 @@ export default function Sidebar({ username = 'Usuário', onLogout, role, onOpenP
           <SidebarGroupLabel>Planejamento & BI</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  asChild 
-                  isActive={location.pathname === '/escopos'}
-                  title={!open ? "Escopos" : undefined}
-                >
-                  <Link to="/escopos">
-                    <Layers className="h-5 w-5 shrink-0" />
-                    {open && <span className="truncate">Escopos</span>}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {role !== 'Gestão' && (
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={location.pathname === '/escopos'}
+                      title={!open ? "Escopos" : undefined}
+                    >
+                      <Link to="/escopos">
+                        <Layers className="h-5 w-5 shrink-0" />
+                        {open && <span className="truncate">Escopos</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
 
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  asChild 
-                  isActive={location.pathname === '/comparativo'}
-                  title={!open ? "Raio-X" : undefined}
-                >
-                  <Link to="/comparativo">
-                    <TrendingUp className="h-5 w-5 shrink-0" />
-                    {open && <span className="truncate">Raio-X</span>}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={location.pathname === '/comparativo'}
+                      title={!open ? "Raio-X" : undefined}
+                    >
+                      <Link to="/comparativo">
+                        <TrendingUp className="h-5 w-5 shrink-0" />
+                        {open && <span className="truncate">Raio-X</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </>
+              )}
 
               <SidebarMenuItem>
                 <SidebarMenuButton 
@@ -286,31 +292,35 @@ export default function Sidebar({ username = 'Usuário', onLogout, role, onOpenP
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  asChild 
-                  isActive={location.pathname === '/diarias'}
-                  title={!open ? "Diárias" : undefined}
-                >
-                  <Link to="/diarias">
-                    <CalendarCheck className="h-5 w-5 shrink-0" />
-                    {open && <span className="truncate">Diárias</span>}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {role !== 'Gestão' && (
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={location.pathname === '/diarias'}
+                      title={!open ? "Diárias" : undefined}
+                    >
+                      <Link to="/diarias">
+                        <CalendarCheck className="h-5 w-5 shrink-0" />
+                        {open && <span className="truncate">Diárias</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
 
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  asChild 
-                  isActive={location.pathname === '/premios'}
-                  title={!open ? "Prêmios" : undefined}
-                >
-                  <Link to="/premios">
-                    <Coins className="h-5 w-5 shrink-0" />
-                    {open && <span className="truncate">Prêmios</span>}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={location.pathname === '/premios'}
+                      title={!open ? "Prêmios" : undefined}
+                    >
+                      <Link to="/premios">
+                        <Coins className="h-5 w-5 shrink-0" />
+                        {open && <span className="truncate">Prêmios</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
