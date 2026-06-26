@@ -211,33 +211,57 @@ export function formatWhatsAppMessage(
   }).join('\n');
 
   let mapsLink = '';
+  let endereco = '';
 
   if (selectedStores.length === 1) {
     const storeName = selectedStores[0];
     const lojaFound = lojasMap.get(normalizeHeader(storeName));
 
-    if (lojaFound?.rua) {
-      const rua = lojaFound.rua || '';
-      const cidade = lojaFound.municipio || '';
-      const searchName = lojaFound.cliente || storeName;
-      const query = encodeURIComponent(`${searchName} ${rua} ${cidade}`).replace(/%20/g, '+');
-      mapsLink = `https://www.google.com/maps/search/?api=1&query=${query}`;
+    if (lojaFound) {
+      if (lojaFound.rua) {
+        const rua = lojaFound.rua || '';
+        const cidade = lojaFound.municipio || '';
+        const searchName = lojaFound.cliente || storeName;
+        const query = encodeURIComponent(`${searchName} ${rua} ${cidade}`).replace(/%20/g, '+');
+        mapsLink = `https://www.google.com/maps/search/?api=1&query=${query}`;
+      }
+
+      // Por que existe: Formata o endereço completo da loja de maneira amigável 
+      // para ser incluído diretamente no corpo da mensagem de roteiro do WhatsApp.
+      const partes: string[] = [];
+      if (lojaFound.rua) partes.push(lojaFound.rua);
+      if (lojaFound.bairro) partes.push(lojaFound.bairro);
+      if (lojaFound.municipio) {
+        partes.push(lojaFound.uf ? `${lojaFound.municipio} - ${lojaFound.uf}` : lojaFound.municipio);
+      } else if (lojaFound.uf) {
+        partes.push(lojaFound.uf);
+      }
+      endereco = partes.join(' - ');
     }
   }
 
   const funcaoDestino = drawerForm.funcao || firstDayAgend?.funcao || colaborador.cargo || 'Apoio';
 
+  const messageLines = [
+    '🧼 *INFORMAÇÃO DE ROTEIRO*',
+    '---------------------------',
+    `👤 *Colaborador:* ${colaborador.nome}`,
+    `🏢 *Função:* ${funcaoDestino}`,
+  ];
+
+  if (endereco) {
+    messageLines.push(`📍 *Endereço:* ${endereco}`);
+  }
+
+  messageLines.push(
+    '',
+    '📅 *CRONOGRAMA:*',
+    cronograma,
+    ''
+  );
+
   return {
-    message: [
-      '🧼 *INFORMAÇÃO DE ROTEIRO*',
-      '---------------------------',
-      `👤 *Colaborador:* ${colaborador.nome}`,
-      `🏢 *Função:* ${funcaoDestino}`,
-      '',
-      '📅 *CRONOGRAMA:*',
-      cronograma,
-      '',
-    ].join('\n'),
+    message: messageLines.join('\n'),
     mapsLink,
   };
 }

@@ -32,6 +32,54 @@ interface AgendaActionModalProps {
 }
 
 /**
+ * Copia um texto para a área de transferência (Clipboard) do usuário.
+ * 
+ * Por que existe: navigator.clipboard pode não estar disponível em contextos HTTP comuns (não seguros).
+ * Esta função provê um mecanismo de fallback criando uma caixa de texto oculta temporariamente para realizar a cópia.
+ */
+const copyTextToClipboard = async (text: string): Promise<void> => {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch (err) {
+      console.warn("Falha ao usar a API moderna de clipboard, usando fallback...", err);
+    }
+  }
+
+  const textArea = document.createElement("textarea");
+  textArea.value = text;
+  
+  // Impede que o elemento seja visível e atrapalhe o layout
+  textArea.style.position = "fixed";
+  textArea.style.top = "0";
+  textArea.style.left = "0";
+  textArea.style.width = "2em";
+  textArea.style.height = "2em";
+  textArea.style.padding = "0";
+  textArea.style.border = "none";
+  textArea.style.outline = "none";
+  textArea.style.boxShadow = "none";
+  textArea.style.background = "transparent";
+
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+
+  try {
+    const successful = document.execCommand('copy');
+    if (!successful) {
+      throw new Error("execCommand retornou falso");
+    }
+  } catch (err) {
+    console.error("Erro no fallback do clipboard:", err);
+    throw err;
+  } finally {
+    document.body.removeChild(textArea);
+  }
+};
+
+/**
  * Modal para criação e edição de agendamentos.
  * 
  * Por que existe: Gerencia a atribuição de lojas e horários aos colaboradores de apoio,
@@ -225,8 +273,8 @@ export function AgendaActionModal({
 
   if (!isOpen) return null;
 
-  const handleCopyAndOpenMaps = () => {
-    const { message, mapsLink } = formatWhatsAppMessage(
+  const handleCopyAndOpenMaps = async () => {
+    const { message } = formatWhatsAppMessage(
       selectedColaborador,
       selectedDateRange,
       {
@@ -237,10 +285,14 @@ export function AgendaActionModal({
       agendamentos,
       lojasMap
     );
-    navigator.clipboard.writeText(message);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    if (mapsLink) window.open(mapsLink, '_blank');
+    
+    try {
+      await copyTextToClipboard(message);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Falha ao copiar texto:", err);
+    }
   };
 
   const handleInternalSubmit = (e: React.FormEvent) => {
@@ -483,7 +535,7 @@ export function AgendaActionModal({
                   }`}
                 >
                   {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  {copied ? 'Copiado para WhatsApp!' : 'Copiar Roteiro e Abrir Google Maps'}
+                  {copied ? 'Roteiro Copiado!' : 'Copiar Roteiro para WhatsApp'}
                 </button>
               </div>
             )}
