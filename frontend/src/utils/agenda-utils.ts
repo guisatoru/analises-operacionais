@@ -250,7 +250,7 @@ export function formatWhatsAppMessage(
   ];
 
   if (endereco) {
-    messageLines.push(`📍 *Endereço:* ${endereco}`);
+    messageLines.push(`\n📍 *Endereço:* ${endereco}`);
   }
 
   messageLines.push(

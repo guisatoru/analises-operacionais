@@ -25,6 +25,8 @@ interface CoordenadorData {
   coordenador: string;
   quantidade: number;
   total: number;
+  total_sistema?: number;
+  total_manual?: number;
 }
 
 interface PeriodResult {
@@ -149,10 +151,10 @@ export default function RelatorioPremios() {
   const todosCoordenadoresSet = new Set<string>();
   resultadosPeriodos.forEach(res => {
     res.coordenadores.forEach(c => {
-      // Mapeia N/A para SUPERVISAO conforme solicitado pelo usuário
-      const nome = c.coordenador === 'N/A' ? 'SUPERVISAO' : c.coordenador;
-      if (nome) {
-        todosCoordenadoresSet.add(nome);
+      // Por que existe: Ignora registros de 'N/A' (antiga Supervisão) e 'SUPERVISAO'
+      // pois os prêmios agora já foram todos distribuídos entre os coordenadores.
+      if (c.coordenador && c.coordenador !== 'N/A' && c.coordenador !== 'SUPERVISAO') {
+        todosCoordenadoresSet.add(c.coordenador);
       }
     });
   });
@@ -161,21 +163,25 @@ export default function RelatorioPremios() {
   // 2. Mapeamento de dados financeiros dos coordenadores por período
   const dadosCoordenadoresTabela = listaCoordenadores.map(nome => {
     const valoresPorPeriodo = resultadosPeriodos.map(res => {
-      // Procura pelo nome original ('N/A' se for 'SUPERVISAO') no retorno do backend
-      const nomeOriginal = nome === 'SUPERVISAO' ? 'N/A' : nome;
-      const coordInfo = res.coordenadores.find(c => c.coordenador === nome || c.coordenador === nomeOriginal);
+      const coordInfo = res.coordenadores.find(c => c.coordenador === nome);
       return {
         period: res.period,
-        total: coordInfo ? coordInfo.total : 0
+        total: coordInfo ? coordInfo.total : 0,
+        totalSistema: coordInfo ? (coordInfo.total_sistema || 0) : 0,
+        totalManual: coordInfo ? (coordInfo.total_manual || 0) : 0
       };
     });
 
     const totalGeral = valoresPorPeriodo.reduce((acc, curr) => acc + curr.total, 0);
+    const totalSistemaGeral = valoresPorPeriodo.reduce((acc, curr) => acc + curr.totalSistema, 0);
+    const totalManualGeral = valoresPorPeriodo.reduce((acc, curr) => acc + curr.totalManual, 0);
 
     return {
       nome,
       valoresPorPeriodo,
-      totalGeral
+      totalGeral,
+      totalSistemaGeral,
+      totalManualGeral
     };
   });
 
@@ -363,12 +369,24 @@ export default function RelatorioPremios() {
                       <td className="py-3 font-semibold">{coord.nome}</td>
                       {coord.valoresPorPeriodo.map((v, i) => (
                         <td key={i} className="py-3 text-right font-mono">
-                          {v.total > 0 ? formatarReal(v.total) : 'R$ 0,00'}
+                          <div className="font-semibold text-neutral-900 dark:text-white print:text-black">
+                            {v.total > 0 ? formatarReal(v.total) : 'R$ 0,00'}
+                          </div>
+                          {v.total > 0 && (
+                            <div className="text-[9px] text-neutral-400 dark:text-neutral-500 print:text-neutral-500 font-normal">
+                              Sis: {formatarReal(v.totalSistema)} | Man: {formatarReal(v.totalManual)}
+                            </div>
+                          )}
                         </td>
                       ))}
                       {resultadosPeriodos.length > 1 && (
                         <td className="py-3 text-right font-mono font-bold text-neutral-900 dark:text-white print:text-black">
-                          {formatarReal(coord.totalGeral)}
+                          <div className="font-bold">{formatarReal(coord.totalGeral)}</div>
+                          {coord.totalGeral > 0 && (
+                            <div className="text-[9px] text-neutral-400 dark:text-neutral-500 print:text-neutral-500 font-normal">
+                              Sis: {formatarReal(coord.totalSistemaGeral)} | Man: {formatarReal(coord.totalManualGeral)}
+                            </div>
+                          )}
                         </td>
                       )}
                     </tr>

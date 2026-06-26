@@ -258,11 +258,21 @@ def premios_list_api(request):
     ]
 
     # 7. Distribuição por Coordenador
+    # Por que existe: Segmenta o valor total de prêmios pagos/aprovados de cada coordenador
+    # em valores originados de pedidos automáticos do SISTEMA e pedidos lançados de forma MANUAL.
     dist_coord = (
         queryset.values("coordenador__nome")
         .annotate(
             quantidade=Count("id"),
-            total=Sum("reward_value", filter=Q(status__in=["PAGO", "APROVADO"]))
+            total=Sum("reward_value", filter=Q(status__in=["PAGO", "APROVADO"])),
+            total_sistema=Sum(
+                "reward_value",
+                filter=Q(status__in=["PAGO", "APROVADO"], order_type="SISTEMA")
+            ),
+            total_manual=Sum(
+                "reward_value",
+                filter=Q(status__in=["PAGO", "APROVADO"], order_type="MANUAL")
+            )
         )
         .order_by("-total")
     )
@@ -270,7 +280,9 @@ def premios_list_api(request):
         {
             "coordenador": item["coordenador__nome"] if item["coordenador__nome"] else "N/A",
             "quantidade": item["quantidade"],
-            "total": float(item["total"] or 0)
+            "total": float(item["total"] or 0),
+            "total_sistema": float(item["total_sistema"] or 0),
+            "total_manual": float(item["total_manual"] or 0)
         } for item in dist_coord
     ]
 
