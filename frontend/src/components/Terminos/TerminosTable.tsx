@@ -1,4 +1,4 @@
-import { Sparkles, Edit } from 'lucide-react';
+import { Edit } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import {
   Pagination,
@@ -8,7 +8,6 @@ import {
   PaginationPrevious,
 } from '../ui/pagination';
 import { formatDate } from '../../utils/formatters';
-import { getStatusBadge } from '../../utils/badges';
 
 export interface ColaboradorTermino {
   id: string;
