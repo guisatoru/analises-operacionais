@@ -150,7 +150,12 @@ def _aplicar_filtros_colaboradores(colaboradores_qs, filtros):
             vals = [r for r in re_list if r != "null"]
             q_obj = Q()
             if vals:
-                q_obj = Q(re__in=vals)
+                # Modificado para busca parcial com icontains de forma simples e legível.
+                # Como RE agora é um input de texto simples, permitimos ao usuário digitar partes do código.
+                q_vals = Q()
+                for val in vals:
+                    q_vals = q_vals | Q(re__icontains=val)
+                q_obj = q_vals
             if has_null:
                 q_obj = q_obj | Q(re__isnull=True) | Q(re="")
             colaboradores_qs = colaboradores_qs.filter(q_obj)
@@ -162,7 +167,12 @@ def _aplicar_filtros_colaboradores(colaboradores_qs, filtros):
             vals = [n for n in nome_list if n != "null"]
             q_obj = Q()
             if vals:
-                q_obj = Q(nome__in=vals)
+                # Modificado para busca parcial com icontains de forma simples e legível.
+                # Como Nome agora é um input de texto simples, permitimos ao usuário digitar partes do nome.
+                q_vals = Q()
+                for val in vals:
+                    q_vals = q_vals | Q(nome__icontains=val)
+                q_obj = q_vals
             if has_null:
                 q_obj = q_obj | Q(nome__isnull=True) | Q(nome="")
             colaboradores_qs = colaboradores_qs.filter(q_obj)
@@ -256,7 +266,12 @@ def _aplicar_filtros_demitidos(colaboradores_qs, filtros):
             vals = [r for r in re_list if r != "null"]
             q_obj = Q()
             if vals:
-                q_obj = Q(re__in=vals)
+                # Modificado para busca parcial com icontains de forma simples e legível.
+                # Como RE agora é um input de texto simples, permitimos ao usuário digitar partes do código.
+                q_vals = Q()
+                for val in vals:
+                    q_vals = q_vals | Q(re__icontains=val)
+                q_obj = q_vals
             if has_null:
                 q_obj = q_obj | Q(re__isnull=True) | Q(re="")
             colaboradores_qs = colaboradores_qs.filter(q_obj)
@@ -268,7 +283,12 @@ def _aplicar_filtros_demitidos(colaboradores_qs, filtros):
             vals = [n for n in nome_list if n != "null"]
             q_obj = Q()
             if vals:
-                q_obj = Q(nome__in=vals)
+                # Modificado para busca parcial com icontains de forma simples e legível.
+                # Como Nome agora é um input de texto simples, permitimos ao usuário digitar partes do nome.
+                q_vals = Q()
+                for val in vals:
+                    q_vals = q_vals | Q(nome__icontains=val)
+                q_obj = q_vals
             if has_null:
                 q_obj = q_obj | Q(nome__isnull=True) | Q(nome="")
             colaboradores_qs = colaboradores_qs.filter(q_obj)
@@ -418,37 +438,10 @@ def colaborador_filtro_opcoes(request):
         re_val = request.GET.get("re", "")
         nome_val = request.GET.get("nome", "")
 
-        # 1. Opções de RE (ignora a seleção de RE)
-        qs_re = _buscar_colaboradores_com_termino()
-        qs_re = _filtrar_terminos_queryset(
-            qs_re,
-            search_query="",
-            coordenador_query=coordenador_val,
-            status_gestao_query=status_gestao_val,
-            nome_query=nome_val,
-        )
-        proc_re = _processar_colaboradores_termino(qs_re, today, data_filtro, data_fim)
-        res_set = set(item["colaborador"].re.strip() for item in proc_re if item["colaborador"].re)
-        res_list = sorted(list(res_set))
-        has_null_re = any(not item["colaborador"].re for item in proc_re)
-        if has_null_re:
-            res_list.append("null")
-
-        # 2. Opções de Nome (ignora a seleção de Nome)
-        qs_nome = _buscar_colaboradores_com_termino()
-        qs_nome = _filtrar_terminos_queryset(
-            qs_nome,
-            search_query="",
-            coordenador_query=coordenador_val,
-            status_gestao_query=status_gestao_val,
-            re_query=re_val,
-        )
-        proc_nome = _processar_colaboradores_termino(qs_nome, today, data_filtro, data_fim)
-        nomes_set = set(item["colaborador"].nome.strip().upper() for item in proc_nome if item["colaborador"].nome)
-        nomes_list = sorted(list(nomes_set))
-        has_null_nome = any(not item["colaborador"].nome for item in proc_nome)
-        if has_null_nome:
-            nomes_list.append("null")
+        # Modificado: Para economizar recursos de rede e CPU, RE e Nome agora são inputs
+        # normais de texto e não necessitam que pré-carreguemos 14.000 opções do banco.
+        res_list = []
+        nomes_list = []
 
         # 3. Opções de Coordenador (ignora a seleção de Coordenador)
         qs_coord = _buscar_colaboradores_com_termino()
@@ -499,27 +492,10 @@ def colaborador_filtro_opcoes(request):
     elif is_demitido:
         filtros_base = _ler_filtros_demitidos(request.GET)
 
-        # 1. Opções de RE
-        filtros_re = filtros_base.copy()
-        filtros_re["re"] = ""
-        qs_re = Colaborador.objects.filter(status="D").exclude(cargo="AUXILIAR ADMINISTRAT").select_related("loja")
-        qs_re = _aplicar_filtros_demitidos(qs_re, filtros_re)
-        res_set = set(qs_re.values_list("re", flat=True).distinct())
-        res_list = sorted(list(r.strip() for r in res_set if r and r.strip()))
-        has_null_re = qs_re.filter(Q(re__isnull=True) | Q(re="")).exists()
-        if has_null_re:
-            res_list.append("null")
-
-        # 2. Opções de Nome
-        filtros_nome = filtros_base.copy()
-        filtros_nome["nome"] = ""
-        qs_nome = Colaborador.objects.filter(status="D").exclude(cargo="AUXILIAR ADMINISTRAT").select_related("loja")
-        qs_nome = _aplicar_filtros_demitidos(qs_nome, filtros_nome)
-        nomes_set = set(qs_nome.values_list("nome", flat=True).distinct())
-        nomes_list = sorted(list(n.strip().upper() for n in nomes_set if n and n.strip()))
-        has_null_nome = qs_nome.filter(Q(nome__isnull=True) | Q(nome="")).exists()
-        if has_null_nome:
-            nomes_list.append("null")
+        # Modificado: Para economizar recursos de rede e CPU, RE e Nome agora são inputs
+        # normais de texto e não necessitam que pré-carreguemos 14.000 opções do banco.
+        res_list = []
+        nomes_list = []
 
         # 3. Opções de Loja
         filtros_loja = filtros_base.copy()
@@ -549,27 +525,10 @@ def colaborador_filtro_opcoes(request):
     else:  # ativos
         filtros_base = _ler_filtros_colaboradores(request.GET)
 
-        # 1. Opções de RE
-        filtros_re = filtros_base.copy()
-        filtros_re["re"] = ""
-        qs_re = _buscar_colaboradores_ativos()
-        qs_re = _aplicar_filtros_colaboradores(qs_re, filtros_re)
-        res_set = set(qs_re.values_list("re", flat=True).distinct())
-        res_list = sorted(list(r.strip() for r in res_set if r and r.strip()))
-        has_null_re = qs_re.filter(Q(re__isnull=True) | Q(re="")).exists()
-        if has_null_re:
-            res_list.append("null")
-
-        # 2. Opções de Nome
-        filtros_nome = filtros_base.copy()
-        filtros_nome["nome"] = ""
-        qs_nome = _buscar_colaboradores_ativos()
-        qs_nome = _aplicar_filtros_colaboradores(qs_nome, filtros_nome)
-        nomes_set = set(qs_nome.values_list("nome", flat=True).distinct())
-        nomes_list = sorted(list(n.strip().upper() for n in nomes_set if n and n.strip()))
-        has_null_nome = qs_nome.filter(Q(nome__isnull=True) | Q(nome="")).exists()
-        if has_null_nome:
-            nomes_list.append("null")
+        # Modificado: Para economizar recursos de rede e CPU, RE e Nome agora são inputs
+        # normais de texto e não necessitam que pré-carreguemos 14.000 opções do banco.
+        res_list = []
+        nomes_list = []
 
         # 3. Opções de Loja
         filtros_loja = filtros_base.copy()

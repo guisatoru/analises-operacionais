@@ -236,14 +236,11 @@ def _filtrar_terminos_queryset(
     Suporta a filtragem por registros sem informação (nulo/vazio) quando o valor "null" é recebido.
     """
     if search_query:
-        search_query_norm = unidecode(search_query).lower()
-        ids_validos = []
-        for colab in colaboradores_qs:
-            nome_norm = unidecode(colab.nome).lower()
-            re_norm = unidecode(colab.re or "").lower()
-            if search_query_norm in nome_norm or search_query_norm in re_norm:
-                ids_validos.append(colab.id)
-        colaboradores_qs = colaboradores_qs.filter(id__in=ids_validos)
+        # Modificado: Realiza a busca direto no banco de dados para evitar carregar milhares
+        # de colaboradores na memória do Python e rodar loops demorados.
+        colaboradores_qs = colaboradores_qs.filter(
+            Q(nome__icontains=search_query) | Q(re__icontains=search_query)
+        )
 
     if re_query:
         re_list = [r.strip() for r in re_query.split(",") if r.strip()]
@@ -252,7 +249,11 @@ def _filtrar_terminos_queryset(
             vals = [r for r in re_list if r != "null"]
             q_obj = Q()
             if vals:
-                q_obj = Q(re__in=vals)
+                # Modificado: Busca parcial usando icontains, pois RE agora é um input de texto simples no frontend.
+                q_vals = Q()
+                for val in vals:
+                    q_vals = q_vals | Q(re__icontains=val)
+                q_obj = q_vals
             if has_null:
                 q_obj = q_obj | Q(re__isnull=True) | Q(re="")
             colaboradores_qs = colaboradores_qs.filter(q_obj)
@@ -264,7 +265,11 @@ def _filtrar_terminos_queryset(
             vals = [n for n in nome_list if n != "null"]
             q_obj = Q()
             if vals:
-                q_obj = Q(nome__in=vals)
+                # Modificado: Busca parcial usando icontains, pois Nome agora é um input de texto simples no frontend.
+                q_vals = Q()
+                for val in vals:
+                    q_vals = q_vals | Q(nome__icontains=val)
+                q_obj = q_vals
             if has_null:
                 q_obj = q_obj | Q(nome__isnull=True) | Q(nome="")
             colaboradores_qs = colaboradores_qs.filter(q_obj)

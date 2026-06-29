@@ -52,13 +52,12 @@ export default function TerminosFilter({
   onClear,
 }: TerminosFilterProps) {
   // Opções dinâmicas carregadas da API
-  const [colabReOpcoes, setColabReOpcoes] = useState<{ value: string; label: string }[]>([]);
-  const [colabNomeOpcoes, setColabNomeOpcoes] = useState<{ value: string; label: string }[]>([]);
   const [coordenadoresOpcoes, setCoordenadoresOpcoes] = useState<string[]>([]);
   const [statusGestaoOpcoes, setStatusGestaoOpcoes] = useState<string[]>([]);
   const [loadingOpcoes, setLoadingOpcoes] = useState(false);
 
   // Efeito para carregar as opções disponíveis de acordo com os filtros selecionados (filtro cruzado reativo)
+  // Nota: removemos reFiltro e nomeFiltro das dependências para evitar chamadas de API a cada letra digitada.
   useEffect(() => {
     const fetchFiltroOpcoes = async () => {
       setLoadingOpcoes(true);
@@ -70,14 +69,10 @@ export default function TerminosFilter({
             status_gestao: statusGestao || undefined,
             data_filtro: dataFiltro || undefined,
             data_fim: dataFim || undefined,
-            re: reFiltro || undefined,
-            nome: nomeFiltro || undefined,
           },
         });
 
         if (response.data) {
-          setColabReOpcoes(response.data.res || []);
-          setColabNomeOpcoes(response.data.nomes || []);
           setCoordenadoresOpcoes(response.data.coordenadores || []);
           setStatusGestaoOpcoes(response.data.status_gestao || []);
         }
@@ -89,7 +84,7 @@ export default function TerminosFilter({
     };
 
     fetchFiltroOpcoes();
-  }, [coordenador, statusGestao, dataFiltro, dataFim, reFiltro, nomeFiltro]);
+  }, [coordenador, statusGestao, dataFiltro, dataFim]);
 
   return (
     <form
@@ -102,13 +97,12 @@ export default function TerminosFilter({
           <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
             Matrícula (RE)
           </label>
-          <SearchableSelect
-            options={[{ value: '', label: 'Todas as Matrículas' }, ...colabReOpcoes]}
+          <input
+            type="text"
+            placeholder="Ex: 10023, 10024..."
             value={reFiltro}
-            onChange={setReFiltro}
-            placeholder="Todas as Matrículas"
-            multiple={true}
-            loading={loadingOpcoes}
+            onChange={(e) => setReFiltro(e.target.value)}
+            className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
           />
         </div>
 
@@ -117,16 +111,12 @@ export default function TerminosFilter({
           <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
             Nome do Colaborador
           </label>
-          <SearchableSelect
-            options={[
-              { value: '', label: 'Todos os Colaboradores' },
-              ...colabNomeOpcoes,
-            ]}
+          <input
+            type="text"
+            placeholder="Pesquisar por nome..."
             value={nomeFiltro}
-            onChange={setNomeFiltro}
-            placeholder="Todos os Colaboradores"
-            multiple={true}
-            loading={loadingOpcoes}
+            onChange={(e) => setNomeFiltro(e.target.value)}
+            className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
           />
         </div>
 

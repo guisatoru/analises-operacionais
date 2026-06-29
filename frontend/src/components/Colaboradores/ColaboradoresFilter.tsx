@@ -73,11 +73,10 @@ export default function ColaboradoresFilter({
   // Cache de opções dinâmicas obtidas da API
   const [lojasOpcoes, setLojasOpcoes] = useState<LojaRef[]>([]);
   const [statusGestaoOpcoes, setStatusGestaoOpcoes] = useState<string[]>([]);
-  const [colabReOpcoes, setColabReOpcoes] = useState<{ value: string; label: string }[]>([]);
-  const [colabNomeOpcoes, setColabNomeOpcoes] = useState<{ value: string; label: string }[]>([]);
   const [loadingOpcoes, setLoadingOpcoes] = useState(false);
 
   // Efeito reativo para recalcular e atualizar as opções válidas dos filtros (excel-like)
+  // Nota: removemos reBusca e nomeBusca das dependências para evitar chamadas de API a cada letra digitada.
   useEffect(() => {
     const fetchFiltroOpcoes = async () => {
       setLoadingOpcoes(true);
@@ -93,14 +92,10 @@ export default function ColaboradoresFilter({
             funcao_divergente: activeTab === 'ativos' ? funcaoDivergenteQuery || undefined : undefined,
             divergente: activeTab === 'ativos' ? divergenteQuery || undefined : undefined,
             so_totvs: activeTab === 'ativos' ? soTotvsQuery || undefined : undefined,
-            re: reBusca || undefined,
-            nome: nomeBusca || undefined,
           },
         });
 
         if (response.data) {
-          setColabReOpcoes(response.data.res || []);
-          setColabNomeOpcoes(response.data.nomes || []);
           setLojasOpcoes(response.data.lojas || []);
           setStatusGestaoOpcoes(response.data.status_gestao || []);
         }
@@ -122,8 +117,6 @@ export default function ColaboradoresFilter({
     funcaoDivergenteQuery,
     divergenteQuery,
     soTotvsQuery,
-    reBusca,
-    nomeBusca,
   ]);
 
   // Auxiliar para ligar/desligar um chip de auditoria rápido
@@ -256,13 +249,12 @@ export default function ColaboradoresFilter({
             <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Matrícula (RE)
             </label>
-            <SearchableSelect
-              options={[{ value: '', label: 'Todas as Matrículas' }, ...colabReOpcoes]}
+            <input
+              type="text"
+              placeholder="Ex: 10023, 10024..."
               value={reBusca}
-              onChange={setReBusca}
-              placeholder="Todas as Matrículas"
-              multiple={true}
-              loading={loadingOpcoes}
+              onChange={(e) => setReBusca(e.target.value)}
+              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
             />
           </div>
 
@@ -270,16 +262,12 @@ export default function ColaboradoresFilter({
             <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Nome do Colaborador
             </label>
-            <SearchableSelect
-              options={[
-                { value: '', label: 'Todos os Colaboradores' },
-                ...colabNomeOpcoes,
-              ]}
+            <input
+              type="text"
+              placeholder="Pesquisar por nome..."
               value={nomeBusca}
-              onChange={setNomeBusca}
-              placeholder="Todos os Colaboradores"
-              multiple={true}
-              loading={loadingOpcoes}
+              onChange={(e) => setNomeBusca(e.target.value)}
+              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
             />
           </div>
 

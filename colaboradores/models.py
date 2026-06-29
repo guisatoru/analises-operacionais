@@ -8,7 +8,7 @@ class Colaborador(models.Model):
     """
 
     re = models.CharField("RE", max_length=20, unique=True)
-    nome = models.CharField("Nome", max_length=255)
+    nome = models.CharField("Nome", max_length=255, db_index=True)
     loja = models.ForeignKey(
         Loja,
         on_delete=models.SET_NULL,
@@ -20,14 +20,14 @@ class Colaborador(models.Model):
     centro_custo = models.CharField("Centro de Custo", max_length=50)
     data_admissao = models.DateField("Data de Admissão")
     data_demissao = models.DateField("Data de Demissão", null=True, blank=True)
-    status = models.CharField("Status", max_length=100)
-    cargo = models.CharField("Cargo", max_length=150)
+    status = models.CharField("Status", max_length=100, db_index=True)
+    cargo = models.CharField("Cargo", max_length=150, db_index=True)
     cpf = models.CharField("CPF", max_length=14, null=True, blank=True)
     faltas_geovictoria = models.IntegerField("Faltas GeoVictoria", default=0)
     atestados_geovictoria = models.IntegerField("Atestados GeoVictoria", default=0)
     geovictoria_atualizado_em = models.DateField("GeoVictoria atualizado em", null=True, blank=True)
-    termino_1 = models.DateField("Término 1", null=True, blank=True)
-    termino_2 = models.DateField("Término 2", null=True, blank=True)
+    termino_1 = models.DateField("Término 1", null=True, blank=True, db_index=True)
+    termino_2 = models.DateField("Término 2", null=True, blank=True, db_index=True)
 
     # Campos vindos da planilha de Gestão de Pessoas
     funcao_gestao = models.CharField("Função (Gestão)", max_length=255, null=True, blank=True)
@@ -48,7 +48,7 @@ class Colaborador(models.Model):
         related_name="colaboradores_loja_geo",
         verbose_name="Loja (GeoVictoria)",
     )
-    status_gestao = models.CharField("Status (Gestão)", max_length=255, null=True, blank=True)
+    status_gestao = models.CharField("Status (Gestão)", max_length=255, null=True, blank=True, db_index=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
