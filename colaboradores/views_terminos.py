@@ -47,6 +47,20 @@ def terminos_list(request):
                 observacao=observacao,
                 respondido_por=request.user.username if request.user.is_authenticated else "Usuário",
             )
+            
+            # Registrar a ação no log de auditoria do Django Admin
+            if request.user.is_authenticated:
+                from django.contrib.admin.models import LogEntry, ADDITION
+                from django.contrib.contenttypes.models import ContentType
+                LogEntry.objects.log_action(
+                    user_id=request.user.id,
+                    content_type_id=ContentType.objects.get_for_model(controle).pk,
+                    object_id=controle.pk,
+                    object_repr=str(controle),
+                    action_flag=ADDITION,
+                    change_message=f"Registrou decisão '{acao}' na etapa {etapa} para o colaborador {colaborador.nome}."
+                )
+
             return Response(ControleTerminoSerializer(controle).data, status=status.HTTP_201_CREATED)
         return Response({
             "error": "Ação e etapa são obrigatórias para registro."

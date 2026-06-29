@@ -55,6 +55,19 @@ def colaborador_import_async(request):
             "error": "Não foi possível ler o arquivo. Certifique-se de que é um CSV em UTF-8."
         }, status=status.HTTP_400_BAD_REQUEST)
 
+    if request.user.is_authenticated:
+        from django.contrib.admin.models import LogEntry, CHANGE
+        from django.contrib.contenttypes.models import ContentType
+        from colaboradores.models import Colaborador
+        LogEntry.objects.log_action(
+            user_id=request.user.id,
+            content_type_id=ContentType.objects.get_for_model(Colaborador).pk,
+            object_id=0,
+            object_repr="Importação SRA (TOTVS)",
+            action_flag=CHANGE,
+            change_message=f"Iniciou a importação do arquivo SRA: {arquivo.name}"
+        )
+
     return _iniciar_importacao_async(
         tipo_importacao="sra",
         payload={"conteudo": conteudo},
@@ -78,6 +91,19 @@ def gestao_import_async(request):
             "success": False,
             "error": "Envie uma planilha Excel válida (.xlsx, .xlsm, .xls)."
         }, status=status.HTTP_400_BAD_REQUEST)
+
+    if request.user.is_authenticated:
+        from django.contrib.admin.models import LogEntry, CHANGE
+        from django.contrib.contenttypes.models import ContentType
+        from colaboradores.models import Colaborador
+        LogEntry.objects.log_action(
+            user_id=request.user.id,
+            content_type_id=ContentType.objects.get_for_model(Colaborador).pk,
+            object_id=0,
+            object_repr="Importação de Gestão de Pessoas",
+            action_flag=CHANGE,
+            change_message=f"Iniciou a importação da planilha de Gestão de Pessoas: {arquivo.name}"
+        )
 
     return _iniciar_importacao_async(
         tipo_importacao="gestao",
@@ -106,6 +132,19 @@ def folha_import_async(request):
             "success": False,
             "error": "Não foi possível ler o arquivo. Salve o CSV em UTF-8 e tente de novo."
         }, status=status.HTTP_400_BAD_REQUEST)
+
+    if request.user.is_authenticated:
+        from django.contrib.admin.models import LogEntry, CHANGE
+        from django.contrib.contenttypes.models import ContentType
+        from lojas.models import LinhaFolha
+        LogEntry.objects.log_action(
+            user_id=request.user.id,
+            content_type_id=ContentType.objects.get_for_model(LinhaFolha).pk,
+            object_id=0,
+            object_repr="Importação SRD (Folha TOTVS)",
+            action_flag=CHANGE,
+            change_message=f"Iniciou a importação do arquivo SRD: {arquivo.name}"
+        )
 
     return _iniciar_importacao_async(
         tipo_importacao="folha",
@@ -139,6 +178,19 @@ def diaria_import_async(request):
                 "error": "Não foi possível ler o arquivo. Salve o CSV em UTF-8 e tente de novo."
             }, status=status.HTTP_400_BAD_REQUEST)
 
+    if request.user.is_authenticated:
+        from django.contrib.admin.models import LogEntry, CHANGE
+        from django.contrib.contenttypes.models import ContentType
+        from lojas.models import Diaria
+        LogEntry.objects.log_action(
+            user_id=request.user.id,
+            content_type_id=ContentType.objects.get_for_model(Diaria).pk,
+            object_id=0,
+            object_repr="Importação de Diárias",
+            action_flag=CHANGE,
+            change_message=f"Iniciou a importação do arquivo de diárias: {arquivo.name}"
+        )
+
     return _iniciar_importacao_async(
         tipo_importacao="diaria",
         payload={"conteudo": conteudo, "nome": arquivo.name or "diarias.csv"},
@@ -162,6 +214,19 @@ def premio_import_async(request):
             "success": False,
             "error": "Envie uma planilha Excel válida (.xlsx, .xlsm, .xls)."
         }, status=status.HTTP_400_BAD_REQUEST)
+
+    if request.user.is_authenticated:
+        from django.contrib.admin.models import LogEntry, CHANGE
+        from django.contrib.contenttypes.models import ContentType
+        from lojas.models import Premio
+        LogEntry.objects.log_action(
+            user_id=request.user.id,
+            content_type_id=ContentType.objects.get_for_model(Premio).pk,
+            object_id=0,
+            object_repr="Importação de Prêmios",
+            action_flag=CHANGE,
+            change_message=f"Iniciou a importação da planilha de prêmios: {arquivo.name}"
+        )
 
     return _iniciar_importacao_async(
         tipo_importacao="premio",

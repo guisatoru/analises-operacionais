@@ -55,6 +55,20 @@ def sync_lojas_geovictoria(request):
     )
     thread.start()
 
+    # Registrar log de auditoria no Django Admin
+    if request.user.is_authenticated:
+        from django.contrib.admin.models import LogEntry, CHANGE
+        from django.contrib.contenttypes.models import ContentType
+        from .models import Colaborador
+        LogEntry.objects.log_action(
+            user_id=request.user.id,
+            content_type_id=ContentType.objects.get_for_model(Colaborador).pk,
+            object_id=0,
+            object_repr="Sincronização de Lojas GeoVictoria",
+            action_flag=CHANGE,
+            change_message=f"Iniciou a sincronização de lojas da GeoVictoria para {len(colaboradores)} colaboradores ativos."
+        )
+
     return Response({
         "status": "started",
         "message": f"Sincronizando loja GeoVictoria de {len(colaboradores)} colaboradores...",
@@ -189,6 +203,20 @@ def sync_geovictoria(request):
         daemon=True,
     )
     thread.start()
+
+    # Registrar log de auditoria no Django Admin
+    if request.user.is_authenticated:
+        from django.contrib.admin.models import LogEntry, CHANGE
+        from django.contrib.contenttypes.models import ContentType
+        from .models import Colaborador
+        LogEntry.objects.log_action(
+            user_id=request.user.id,
+            content_type_id=ContentType.objects.get_for_model(Colaborador).pk,
+            object_id=0,
+            object_repr="Sincronização de Faltas/Atestados GeoVictoria",
+            action_flag=CHANGE,
+            change_message=f"Iniciou a sincronização de faltas e atestados da GeoVictoria para {len(cpfs_para_sincronizar)} colaboradores."
+        )
 
     return Response({
         "status": "started",

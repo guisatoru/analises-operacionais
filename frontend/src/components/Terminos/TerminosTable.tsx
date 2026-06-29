@@ -65,40 +65,63 @@ interface TerminosTableProps {
  * Por que existe: Economiza espaço na coluna de Ação substituindo badges de texto
  * longos por bolinhas coloridas discretas com tooltip informativo.
  */
-function renderStatusControleDot(status: string | null) {
-  const formatted = (status || '').trim().toUpperCase();
-  if (!formatted) return null;
+/**
+ * Renderiza os status das decisões de término como duas bolinhas coloridas (uma para cada etapa) com tooltips em português.
+ * 
+ * Por que existe: Permite ao usuário identificar rapidamente em qual etapa o colaborador está,
+ * se já foi tomada alguma decisão na 1ª etapa e qual é a situação de ambas.
+ */
+function renderDecisionDots(item: TerminoItem) {
+  const decision1 = item.history.find((h) => h.etapa === 1);
+  const decision2 = item.history.find((h) => h.etapa === 2);
 
-  let colorClass = 'bg-neutral-400 dark:bg-neutral-500';
-  let displayText = status || '';
+  // 1ª Decisão (30 dias)
+  let colorClass1 = 'bg-amber-500';
+  let title1 = '1ª Decisão: Pendente (Etapa 1)';
+  if (decision1) {
+    if (decision1.acao === 'manter') {
+      colorClass1 = 'bg-green-500';
+      title1 = '1ª Decisão: Efetivado / Mantido';
+    } else if (decision1.acao === 'termino') {
+      colorClass1 = 'bg-red-500';
+      title1 = '1ª Decisão: Dispensado / Término';
+    } else if (decision1.acao === 'prorrogado') {
+      colorClass1 = 'bg-blue-500';
+      title1 = '1ª Decisão: Prorrogado';
+    }
+  }
 
-  if (formatted.includes('PENDENTE')) {
-    colorClass = 'bg-amber-500';
-    displayText = 'Pendente';
-  } else if (
-    formatted.includes('EFETIVADO') ||
-    formatted.includes('MANTER') ||
-    formatted.includes('MANTIDO')
-  ) {
-    colorClass = 'bg-green-500';
-    displayText = 'Efetivado';
-  } else if (
-    formatted.includes('DISPENSADO') ||
-    formatted.includes('TÉRMINO') ||
-    formatted.includes('TERMINO')
-  ) {
-    colorClass = 'bg-red-500';
-    displayText = 'Dispensado';
-  } else if (formatted.includes('PRORROGADO')) {
-    colorClass = 'bg-blue-500';
-    displayText = 'Prorrogado';
+  // 2ª Decisão (60 dias)
+  let colorClass2 = 'bg-neutral-300 dark:bg-neutral-700';
+  let title2 = '2ª Decisão: Não aplicável';
+  if (decision2) {
+    if (decision2.acao === 'manter') {
+      colorClass2 = 'bg-green-500';
+      title2 = '2ª Decisão: Efetivado / Mantido';
+    } else if (decision2.acao === 'termino') {
+      colorClass2 = 'bg-red-500';
+      title2 = '2ª Decisão: Dispensado / Término';
+    }
+  } else if (decision1 && decision1.acao === 'prorrogado') {
+    colorClass2 = 'bg-amber-500';
+    title2 = '2ª Decisão: Pendente (Etapa 2)';
+  } else if (!decision1 && item.state.etapaAtual === 2) {
+    // Caso o primeiro prazo tenha expirado sem decisão registrada
+    colorClass2 = 'bg-amber-500';
+    title2 = '2ª Decisão: Pendente (Etapa 2)';
   }
 
   return (
-    <span
-      className={`inline-block w-3.5 h-3.5 rounded-full ${colorClass} cursor-help shadow-xs`}
-      title={displayText}
-    />
+    <div className="flex items-center gap-1.5 mr-1.5">
+      <span
+        className={`inline-block w-3.5 h-3.5 rounded-full ${colorClass1} cursor-help shadow-xs`}
+        title={title1}
+      />
+      <span
+        className={`inline-block w-3.5 h-3.5 rounded-full ${colorClass2} cursor-help shadow-xs`}
+        title={title2}
+      />
+    </div>
   );
 }
 
@@ -257,8 +280,7 @@ export default function TerminosTable({
                   </td>
                   <td className="py-3 px-4 text-right sticky right-0 bg-white dark:bg-neutral-900 group-hover:bg-neutral-50 dark:group-hover:bg-neutral-850 z-10 transition-colors">
                     <div className="flex items-center justify-end gap-2">
-                      {item.state.statusControle &&
-                        renderStatusControleDot(item.state.statusControle)}
+                      {renderDecisionDots(item)}
                       <button
                         onClick={() => onOpenAcao(item)}
                         title={

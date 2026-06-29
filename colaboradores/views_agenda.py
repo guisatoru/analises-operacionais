@@ -75,6 +75,27 @@ def agendamento_list_create(request):
                 if serializer.is_valid():
                     agendamento = serializer.save()
                     saved_agendamentos.append(serializer.data)
+
+                    # Registrar log de auditoria no Django Admin
+                    if request.user.is_authenticated:
+                        from django.contrib.admin.models import LogEntry, ADDITION, CHANGE
+                        from django.contrib.contenttypes.models import ContentType
+                        action_flag = CHANGE if existing else ADDITION
+                        msg = (
+                            f"Atualizou agendamento de {agendamento.colaborador.nome} em {agendamento.data} "
+                            f"(Status: {agendamento.get_status_display()}, Turno: {agendamento.turno})"
+                            if existing
+                            else f"Criou agendamento de {agendamento.colaborador.nome} em {agendamento.data} "
+                                 f"(Status: {agendamento.get_status_display()}, Turno: {agendamento.turno})"
+                        )
+                        LogEntry.objects.log_action(
+                            user_id=request.user.id,
+                            content_type_id=ContentType.objects.get_for_model(agendamento).pk,
+                            object_id=agendamento.pk,
+                            object_repr=str(agendamento),
+                            action_flag=action_flag,
+                            change_message=msg,
+                        )
                 else:
                     errors.append(serializer.errors)
 
@@ -97,6 +118,22 @@ def agendamento_delete(request, pk):
     Por que existe: Permite ao gestor limpar ou remover um roteiro específico de um colaborador.
     """
     agendamento = get_object_or_404(Agendamento, pk=pk)
+    agendamento_repr = str(agendamento)
+    agendamento_id = agendamento.pk
+    
+    # Registrar log de auditoria no Django Admin antes de excluir
+    if request.user.is_authenticated:
+        from django.contrib.admin.models import LogEntry, DELETION
+        from django.contrib.contenttypes.models import ContentType
+        LogEntry.objects.log_action(
+            user_id=request.user.id,
+            content_type_id=ContentType.objects.get_for_model(agendamento).pk,
+            object_id=agendamento_id,
+            object_repr=agendamento_repr,
+            action_flag=DELETION,
+            change_message=f"Excluiu agendamento: {agendamento_repr}"
+        )
+
     agendamento.delete()
     return Response(status=status.HTTP_244_NO_CONTENT if hasattr(status, 'HTTP_244_NO_CONTENT') else status.HTTP_204_NO_CONTENT)
 
