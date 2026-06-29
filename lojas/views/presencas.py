@@ -2,6 +2,7 @@ import openpyxl
 from openpyxl import load_workbook
 from datetime import datetime
 from collections import defaultdict
+import re
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -18,188 +19,221 @@ def normalizar_nome(valor):
         return ""
     return unidecode(str(valor)).strip().upper()
 
-def limpar_rut(valor):
+def clean_re(valor):
     """
-    Limpa o RUT/RE do colaborador removendo o sufixo decimal se houver.
+    Por que existe: Extrai apenas os dígitos numéricos do RE do colaborador para
+    garantir que possamos cruzar o mesmo código independentemente de prefixos ou zeros à esquerda.
     """
     if valor is None:
         return ""
-    s = str(valor).strip()
-    if s.endswith(".0"):
-        s = s[:-2]
-    return s
+    digits = "".join(re.findall(r"\d+", str(valor)))
+    return str(int(digits)) if digits else ""
 
-def group_punches_into_presences(punches):
+def parse_date_str(valor):
     """
-    Agrupa batidas de ponto consecutivas em turnos de trabalho (presenças).
-    Junta marcações se o intervalo entre saída e nova entrada for <= 3 horas (pausa almoço).
-    Define limite de 16 horas para o turno e resolve faltas de marcação de saída.
+    Por que existe: Extrai a data e retorna um objeto datetime para que possamos
+    calcular a diferença de dias de forma correta e encontrar a loja mais próxima temporalmente.
     """
-    if not punches:
-        return []
-    
-    presences = []
-    current_presence = []
-    
-    for punch in punches:
-        fecha, tipo, grupo = punch
-        
-        if not current_presence:
-            current_presence = [punch]
-        else:
-            last_punch = current_presence[-1]
-            last_fecha, last_tipo, last_grupo = last_punch
-            
-            gap = (fecha - last_fecha).total_seconds() / 3600.0 # diferença em horas
-            duration_from_start = (fecha - current_presence[0][0]).total_seconds() / 3600.0
-            
-            is_new_shift = False
-            if gap > 12.0:
-                is_new_shift = True
-            elif duration_from_start > 16.0:
-                is_new_shift = True
-            elif tipo == "Ingreso" and last_tipo == "Salida" and gap > 3.0:
-                is_new_shift = True
-            elif tipo == "Ingreso" and last_tipo == "Ingreso" and gap > 4.0:
-                is_new_shift = True
-                
-            if is_new_shift:
-                presences.append(current_presence)
-                current_presence = [punch]
-            else:
-                current_presence.append(punch)
-                
-    if current_presence:
-        presences.append(current_presence)
-        
-    return presences
+    if valor is None:
+        return None
+    s = str(valor).strip()
+    match = re.search(r"(\d{2})-(\d{2})-(\d{4})", s)
+    if match:
+        d, m, y = match.groups()
+        try:
+            return datetime(int(y), int(m), int(d))
+        except Exception:
+            return None
+    return None
+
+def tem_valor(valor):
+    """
+    Por que existe: Identifica se uma célula possui dados válidos de batida (não nulo e não texto 'None'/'Null').
+    """
+    if valor is None:
+        return False
+    s = str(valor).strip()
+    if s == "" or s.lower() == "none" or s.lower() == "null":
+        return False
+    return True
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def importar_presencas_api(request):
     """
-    Por que existe: Esta view processa o upload da planilha do GeoVictoria enviada pelo frontend.
-    Ela calcula a quantidade de turnos de trabalho (presenças) consolidados por grupo (loja),
-    cruza esses grupos com o banco de dados (priorizando nome_geovictoria) e retorna os resultados
-    consolidados e a lista de grupos sem correspondência no banco de dados.
+    Por que existe: Esta view processa o upload de duas planilhas (Punch Report e Controle de Ponto).
+    Ela calcula a quantidade de presenças (com base em ter ao menos batida de Entrada)
+    e folgas (contendo Folga/DOMINGO/Descanso/Feriado) por colaborador e dia.
+    Para cada evento, a loja associada é buscada no Punch Report como a loja mais próxima temporalmente do dia analisado.
+    No final, cruza com as lojas do banco de dados para gerar o consolidado de presenças e folgas por loja.
     """
-    arquivo = request.FILES.get("file")
-    if not arquivo:
-        return Response({"error": "Nenhum arquivo enviado."}, status=status.HTTP_400_BAD_REQUEST)
+    punch_file = request.FILES.get("punch_file")
+    controle_file = request.FILES.get("controle_file")
+    
+    if not punch_file or not controle_file:
+        return Response(
+            {"error": "Ambos os arquivos (Punch Report e Controle de Ponto) são obrigatórios."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
         
     try:
-        # Carrega o workbook em modo de leitura rápida por streaming
-        wb = load_workbook(filename=arquivo, read_only=True)
-        if "Con Marcas" not in wb.sheetnames:
-            return Response({"error": "Planilha não contém a aba 'Con Marcas'."}, status=status.HTTP_400_BAD_REQUEST)
-            
-        sheet = wb["Con Marcas"]
+        # 1. Carrega a planilha de Controle de Ponto
+        wb_ctrl = load_workbook(filename=controle_file, read_only=True)
+        sheet_ctrl = wb_ctrl.active
         
-        punches_by_employee = defaultdict(list)
+        controle_data = defaultdict(dict) # { re: { date_obj: (has_presence, is_folga) } }
         
         row_count = 0
-        for row in sheet.iter_rows(values_only=True):
+        for row in sheet_ctrl.iter_rows(values_only=True):
             row_count += 1
-            if row_count <= 3: # Linhas 0, 1, 2 são cabeçalhos e linhas auxiliares
+            if row_count <= 2: # Pula cabeçalhos (linhas 1 e 2)
                 continue
                 
-            # Formato esperado: Apellidos(0), Nombre(1), Rut(2), Grupo Usuario(3), Fecha(4), Tipo(5), Método(6), Creado(7), Planificado(8), Marcación(9)
-            if len(row) < 10:
+            if len(row) < 20: # Garante que a linha possui colunas suficientes (até T / 19)
                 continue
                 
-            rut = row[2]
-            nombre = row[1]
-            apellidos = row[0]
-            fecha_str = row[4]
-            tipo = row[5]
-            grupo = row[9]
+            sobrenomes = row[0]   # Coluna A
+            data_raw = row[4]     # Coluna E
+            permissao = row[5]    # Coluna F
+            entrou = row[7]       # Coluna H
+            saiu = row[19]        # Coluna T
             
-            if not fecha_str or not tipo:
+            re_val = clean_re(sobrenomes)
+            dt = parse_date_str(data_raw)
+            
+            if not re_val or not dt:
                 continue
                 
-            emp_id = limpar_rut(rut)
-            if not emp_id:
-                emp_id = f"{str(nombre or '')} {str(apellidos or '')}".strip()
-                
-            if not emp_id:
-                continue
-                
-            try:
-                # Trata data e adiciona a lista de batidas do colaborador
-                fecha_dt = datetime.strptime(fecha_str.strip(), "%d-%m-%Y %H:%M:%S")
-                punches_by_employee[emp_id].append((fecha_dt, tipo, grupo))
-            except Exception:
-                pass
-                
-        # Construir mapa de lojas no banco de dados para busca rápida por nome
-        # Prioridades de correspondência: nome_geovictoria > nome_referencia > nome_gestao > nome_totvs
-        mapa_lojas = {}
+            # Regra de presença: Entrada (H) e Saída (T)
+            has_presence = tem_valor(entrou) and tem_valor(saiu)
+            
+            # Regra de Folga: contiver Folga, DOMINGO, Descanso ou Feriado (ignora caixa alta/baixa)
+            is_folga = False
+            if permissao:
+                p_lower = str(permissao).strip().lower()
+                if any(w in p_lower for w in ["folga", "domingo", "descanso", "feriado"]):
+                    is_folga = True
+                    
+            controle_data[re_val][dt] = (has_presence, is_folga)
+            
+        # 2. Carrega a planilha de Punch Report
+        wb_punch = load_workbook(filename=punch_file, read_only=True)
+        if "Con Marcas" not in wb_punch.sheetnames:
+            return Response(
+                {"error": "A planilha de Punch Report não contém a aba 'Con Marcas'."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        sheet_punch = wb_punch["Con Marcas"]
         
-        # 4. nome_totvs
+        punches_by_employee = defaultdict(list) # { re: [ (date_obj, marcacion) ] }
+        
+        row_count = 0
+        for row in sheet_punch.iter_rows(values_only=True):
+            row_count += 1
+            if row_count <= 3: # Pula cabeçalhos (linhas 1, 2 e 3)
+                continue
+                
+            if len(row) < 10: # Garante que tem a coluna Marcación (J / 9)
+                continue
+                
+            apellidos = row[0]    # Coluna A
+            fecha = row[4]        # Coluna E
+            marcacion = row[9]    # Coluna J
+            
+            re_val = clean_re(apellidos)
+            dt = parse_date_str(fecha)
+            
+            if not re_val or not dt:
+                continue
+                
+            punches_by_employee[re_val].append((dt, marcacion))
+            
+        # Ordena cronologicamente os punches de cada funcionário
+        for re_val in punches_by_employee:
+            punches_by_employee[re_val].sort(key=lambda x: x[0])
+            
+        # Função para achar a loja correta daquele momento
+        def obter_loja_do_momento(re_colaborador, data_evento):
+            emp_punches = punches_by_employee.get(re_colaborador)
+            if not emp_punches:
+                return "Grupo Não Informado"
+                
+            closest_store = None
+            min_diff = None
+            for p_dt, store in emp_punches:
+                diff = abs((p_dt - data_evento).total_seconds())
+                if min_diff is None or diff < min_diff:
+                    min_diff = diff
+                    closest_store = store
+            return closest_store if closest_store else "Grupo Não Informado"
+            
+        # 3. Mapeamento das Lojas do banco de dados para busca rápida
+        mapa_lojas = {}
+        # nome_totvs
         for l in Loja.objects.exclude(nome_totvs=""):
             n = normalizar_nome(l.nome_totvs)
             if n:
                 mapa_lojas[n] = l
-                
-        # 3. nome_gestao
+        # nome_gestao
         for l in Loja.objects.exclude(nome_gestao=""):
             n = normalizar_nome(l.nome_gestao)
             if n:
                 mapa_lojas[n] = l
-                
-        # 2. nome_referencia
+        # nome_referencia
         for l in Loja.objects.all():
             n = normalizar_nome(l.nome_referencia)
             if n:
                 mapa_lojas[n] = l
-                
-        # 1. nome_geovictoria
+        # nome_geovictoria
         for l in Loja.objects.exclude(nome_geovictoria=""):
             n = normalizar_nome(l.nome_geovictoria)
             if n:
                 mapa_lojas[n] = l
-
-        # Contagem de presenças e funcionários únicos por grupo de loja
-        presencas_por_grupo = defaultdict(int)
-        funcionarios_unicos_por_grupo = defaultdict(set)
+                
+        # 4. Processamento cruzado por loja
+        # { loja: { 'presencas': int, 'folgas': int, 'colaboradores': set } }
+        lojas_stats = defaultdict(lambda: {
+            "presencas": 0,
+            "folgas": 0,
+            "colaboradores": set()
+        })
         
-        for emp_id, punches in punches_by_employee.items():
-            # Ordena batidas cronologicamente
-            punches.sort(key=lambda x: x[0])
-            
-            # Agrupa batidas em turnos de trabalho (presenças)
-            turnos = group_punches_into_presences(punches)
-            
-            for turno in turnos:
-                # Identifica o grupo associado ao turno (primeiro "Ingreso" com grupo informado)
-                grupo_turno = None
-                for punch in turno:
-                    if punch[1] == "Ingreso" and punch[2]:
-                        grupo_turno = punch[2]
-                        break
-                if not grupo_turno:
-                    grupo_turno = turno[0][2] # fallback pro primeiro grupo do turno
+        total_colaboradores_unicos = set()
+        
+        for re_val, dates_dict in controle_data.items():
+            for dt, (has_presence, is_folga) in dates_dict.items():
+                if not (has_presence or is_folga):
+                    continue
                     
-                grupo_limpo = str(grupo_turno or "").strip()
-                if not grupo_limpo:
-                    grupo_limpo = "Grupo Não Informado"
+                # Acha a loja no momento do evento
+                store_name = obter_loja_do_momento(re_val, dt)
+                store_name = str(store_name).strip() if store_name else "Grupo Não Informado"
+                
+                stats = lojas_stats[store_name]
+                stats["colaboradores"].add(re_val)
+                total_colaboradores_unicos.add(re_val)
+                
+                if has_presence:
+                    stats["presencas"] += 1
+                elif is_folga:
+                    stats["folgas"] += 1
                     
-                presencas_por_grupo[grupo_limpo] += 1
-                funcionarios_unicos_por_grupo[grupo_limpo].add(emp_id)
-
-        # Consolidar os dados finais por grupo de loja
+        # 5. Consolidação final dos resultados por loja
         linhas_relatorio = []
         total_presencas = 0
+        total_folgas = 0
         lojas_encontradas = 0
         lojas_nao_encontradas = 0
         grupos_nao_encontrados_set = set()
         
-        for grupo, count in presencas_por_grupo.items():
+        for grupo, stats in lojas_stats.items():
             grupo_norm = normalizar_nome(grupo)
             loja = mapa_lojas.get(grupo_norm)
             
-            unique_employees = len(funcionarios_unicos_por_grupo[grupo])
-            total_presencas += count
+            unique_employees = len(stats["colaboradores"])
+            total_presencas += stats["presencas"]
+            total_folgas += stats["folgas"]
             
             if loja:
                 lojas_encontradas += 1
@@ -217,28 +251,29 @@ def importar_presencas_api(request):
                 cc = ""
                 if grupo != "Grupo Não Informado":
                     grupos_nao_encontrados_set.add(grupo)
-            
+                    
             linhas_relatorio.append({
                 "grupo_planilha": grupo,
                 "loja_id": loja_id,
                 "loja_referencia": loja_ref,
                 "loja_geovictoria": loja_geo,
                 "centro_de_custo": cc,
-                "presencas": count,
+                "presencas": stats["presencas"],
+                "folgas": stats["folgas"],
                 "funcionarios_unicos": unique_employees,
                 "status": status_loja,
             })
             
-        # Ordena colocando as divergentes (não encontradas) no topo, depois por presenças decrescente
+        # Ordena as divergentes no topo, depois por presenças decrescente
         linhas_relatorio.sort(key=lambda x: (0 if x["status"] == "nao_encontrada" else 1, -x["presencas"]))
         
-        # Retorna resultado consolidado
         resultado = {
             "summary": {
                 "total_presencas": total_presencas,
+                "total_folgas": total_folgas,
                 "total_lojas_encontradas": lojas_encontradas,
                 "total_lojas_nao_encontradas": lojas_nao_encontradas,
-                "colaboradores_unicos": len(punches_by_employee),
+                "colaboradores_unicos": len(total_colaboradores_unicos),
             },
             "unmatched_groups": sorted(list(grupos_nao_encontrados_set)),
             "rows": linhas_relatorio
@@ -247,4 +282,4 @@ def importar_presencas_api(request):
         return Response(resultado, status=status.HTTP_200_OK)
         
     except Exception as e:
-        return Response({"error": f"Erro interno ao processar planilha: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"error": f"Erro interno ao processar planilhas: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

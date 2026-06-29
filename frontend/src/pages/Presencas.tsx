@@ -11,7 +11,8 @@ import {
   Users, 
   Calendar,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Coffee
 } from 'lucide-react';
 import api from '../api/client';
 import { toast } from 'sonner';
@@ -19,6 +20,7 @@ import { toast } from 'sonner';
 // Estruturas de dados retornadas pelo backend
 interface Summary {
   total_presencas: number;
+  total_folgas: number;
   total_lojas_encontradas: number;
   total_lojas_nao_encontradas: number;
   colaboradores_unicos: number;
@@ -31,6 +33,7 @@ interface RelatorioRow {
   loja_geovictoria: string;
   centro_de_custo: string;
   presencas: number;
+  folgas: number;
   funcionarios_unicos: number;
   status: 'encontrada' | 'nao_encontrada';
 }
@@ -50,7 +53,8 @@ interface RelatorioResponse {
  * Também aponta quais grupos do GeoVictoria não estão correspondidos com nenhuma loja do banco.
  */
 export default function Presencas() {
-  const [file, setFile] = useState<File | null>(null);
+  const [punchFile, setPunchFile] = useState<File | null>(null);
+  const [controleFile, setControleFile] = useState<File | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [results, setResults] = useState<RelatorioResponse | null>(null);
   
@@ -61,27 +65,21 @@ export default function Presencas() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 15;
 
-  // Gerencia a seleção do arquivo
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
-    }
-  };
-
-  // Envia a planilha para processamento no backend
+  // Envia as planilhas para processamento no backend
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) {
-      toast.error('Por favor, selecione um arquivo Excel primeiro.');
+    if (!punchFile || !controleFile) {
+      toast.error('Por favor, selecione ambas as planilhas primeiro.');
       return;
     }
 
     setLoading(true);
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('punch_file', punchFile);
+    formData.append('controle_file', controleFile);
 
     try {
-      toast.info('Processando planilha... Isso pode levar cerca de 15 a 30 segundos devido ao volume de dados.');
+      toast.info('Processando planilhas... Isso pode levar um momento devido ao volume de dados.');
       const response = await api.post<RelatorioResponse>('/lojas/api/presencas/importar/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -89,10 +87,10 @@ export default function Presencas() {
       });
       setResults(response.data);
       setCurrentPage(1);
-      toast.success('Planilha analisada com sucesso!');
+      toast.success('Planilhas analisadas com sucesso!');
     } catch (error: any) {
-      console.error('Erro ao processar planilha de presenças:', error);
-      const errMsg = error.response?.data?.error || 'Erro ao processar o arquivo no servidor.';
+      console.error('Erro ao processar planilhas de presenças:', error);
+      const errMsg = error.response?.data?.error || 'Erro ao processar os arquivos no servidor.';
       toast.error(errMsg);
     } finally {
       setLoading(false);
@@ -101,7 +99,8 @@ export default function Presencas() {
 
   // Limpa o estado para permitir uma nova importação
   const handleReset = () => {
-    setFile(null);
+    setPunchFile(null);
+    setControleFile(null);
     setResults(null);
     setSearch('');
     setStatusFilter('all');
@@ -138,7 +137,8 @@ export default function Presencas() {
       'Grupo da Planilha (GeoVictoria)',
       'Loja de Referencia (Banco)',
       'Centro de Custo',
-      'Total de Presencas (Turnos)',
+      'Presencas',
+      'Outras Folgas',
       'Colaboradores Unicos',
       'Status de Associacao'
     ];
@@ -152,6 +152,7 @@ export default function Presencas() {
         `"${row.loja_referencia.replace(/"/g, '""')}"`,
         `"${row.centro_de_custo}"`,
         row.presencas,
+        row.folgas,
         row.funcionarios_unicos,
         row.status === 'encontrada' ? 'Correspondida' : 'Divergente (Nao Encontrada)'
       ];
@@ -198,60 +199,104 @@ export default function Presencas() {
 
       {/* 1. Estado Inicial: Área de Upload */}
       {!results && (
-        <div className="max-w-2xl mx-auto mt-8">
+        <div className="max-w-4xl mx-auto mt-8">
           <form onSubmit={handleUpload} className="space-y-6">
-            <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-800 rounded-2xl p-10 text-center bg-white dark:bg-neutral-900 shadow-xs hover:border-primary/50 transition-colors relative">
-              <input
-                type="file"
-                accept=".xlsx"
-                onChange={handleFileChange}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                disabled={loading}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
-              <div className="flex flex-col items-center justify-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-primary/5 dark:bg-primary/10 flex items-center justify-center text-primary">
-                  <UploadCloud className="h-8 w-8" />
+              {/* Planilha 1: Punch Report */}
+              <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-800 rounded-2xl p-6 text-center bg-white dark:bg-neutral-900 shadow-xs hover:border-primary/50 transition-colors relative flex flex-col justify-center min-h-[220px]">
+                <input
+                  type="file"
+                  accept=".xlsx"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      setPunchFile(e.target.files[0]);
+                    }
+                  }}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  disabled={loading}
+                />
+                
+                <div className="flex flex-col items-center justify-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-primary/5 dark:bg-primary/10 flex items-center justify-center text-primary">
+                    <UploadCloud className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
+                      1. Relatório de Batidas (Punch Report)
+                    </h4>
+                    <p className="text-xs text-neutral-400 mt-1 truncate max-w-[300px]" title={punchFile ? punchFile.name : 'Selecione a planilha com a aba "Con Marcas"'}>
+                      {punchFile ? punchFile.name : 'Clique ou arraste para selecionar'}
+                    </p>
+                  </div>
+                  {punchFile && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-100 dark:bg-neutral-850 text-neutral-800 dark:text-neutral-200 border border-neutral-200 dark:border-neutral-750">
+                      <FileSpreadsheet className="h-3.5 w-3.5 text-green-600" />
+                      {(punchFile.size / (1024 * 1024)).toFixed(2)} MB
+                    </span>
+                  )}
                 </div>
-                <div>
-                  <p className="text-base font-semibold text-neutral-800 dark:text-neutral-200">
-                    {file ? file.name : 'Arraste ou clique para selecionar a planilha'}
-                  </p>
-                  <p className="text-xs text-neutral-400 mt-1">
-                    Formatos suportados: Planilha Excel (.xlsx) contendo a aba "Con Marcas"
-                  </p>
-                </div>
-                {file && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-100 dark:bg-neutral-850 text-neutral-800 dark:text-neutral-200 border border-neutral-200 dark:border-neutral-750">
-                    <FileSpreadsheet className="h-3.5 w-3.5 text-green-600" />
-                    {(file.size / (1024 * 1024)).toFixed(2)} MB
-                  </span>
-                )}
               </div>
+
+              {/* Planilha 2: Controle de Ponto */}
+              <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-800 rounded-2xl p-6 text-center bg-white dark:bg-neutral-900 shadow-xs hover:border-primary/50 transition-colors relative flex flex-col justify-center min-h-[220px]">
+                <input
+                  type="file"
+                  accept=".xlsx"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      setControleFile(e.target.files[0]);
+                    }
+                  }}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  disabled={loading}
+                />
+                
+                <div className="flex flex-col items-center justify-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-primary/5 dark:bg-primary/10 flex items-center justify-center text-primary">
+                    <UploadCloud className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
+                      2. Controle de Ponto (Espelho)
+                    </h4>
+                    <p className="text-xs text-neutral-400 mt-1 truncate max-w-[300px]" title={controleFile ? controleFile.name : 'Selecione o arquivo de Controle de Ponto'}>
+                      {controleFile ? controleFile.name : 'Clique ou arraste para selecionar'}
+                    </p>
+                  </div>
+                  {controleFile && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-100 dark:bg-neutral-850 text-neutral-800 dark:text-neutral-200 border border-neutral-200 dark:border-neutral-750">
+                      <FileSpreadsheet className="h-3.5 w-3.5 text-green-600" />
+                      {(controleFile.size / (1024 * 1024)).toFixed(2)} MB
+                    </span>
+                  )}
+                </div>
+              </div>
+
             </div>
 
             {/* Informações explicativas do agrupador de batidas */}
             <div className="bg-neutral-50 dark:bg-neutral-850/40 border border-neutral-200 dark:border-neutral-800 rounded-xl p-4 text-xs text-neutral-500 leading-relaxed space-y-2">
-              <p className="font-semibold text-neutral-700 dark:text-neutral-300">Como funciona o cálculo de presença?</p>
+              <p className="font-semibold text-neutral-700 dark:text-neutral-300">Como funciona a nova conciliação de presenças?</p>
               <ul className="list-disc pl-5 space-y-1">
-                <li>Agrupa as batidas de ponto ordenadas de cada colaborador por dia e turno.</li>
-                <li><strong>Intervalo de Almoço:</strong> Saídas e retornos de até 3 horas são combinados, evitando contagem duplicada.</li>
-                <li><strong>Trabalho Noturno (Madrugadas):</strong> Identifica e calcula corretamente turnos que cruzam a meia-noite.</li>
-                <li><strong>Auditabilidade:</strong> Aponta inconsistências de cadastro entre o GeoVictoria e as lojas do banco.</li>
+                <li>Consolida as presenças cruzando as informações de ambos os relatórios.</li>
+                <li><strong>Validação das Batidas:</strong> Apenas os dias que possuem marcação de <strong>Entrou (coluna H)</strong> e <strong>Saiu (coluna T)</strong> no Controle de Ponto são contados como presença.</li>
+                <li><strong>Alocação por Loja:</strong> A presença válida é associada ao grupo indicado na coluna <strong>Marcación (coluna J)</strong> do Punch Report (loja real onde o ponto foi batido).</li>
+                <li><strong>Cruzamento Automático:</strong> Os REs (números de matrícula) e datas são normalizados para garantir a correspondência correta entre as duas planilhas.</li>
               </ul>
             </div>
 
             <button
               type="submit"
-              disabled={loading || !file}
+              disabled={loading || !punchFile || !controleFile}
               className={`w-full py-3 px-4 rounded-xl text-sm font-semibold text-white bg-primary hover:bg-primary/95 shadow-md flex items-center justify-center gap-2 transition-all ${
-                (loading || !file) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-[1.01]'
+                (loading || !punchFile || !controleFile) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-[1.01]'
               }`}
             >
               {loading ? (
                 <>
                   <RefreshCw className="h-4 w-4 animate-spin" />
-                  Processando registros (cerca de 20s)...
+                  Processando registros...
                 </>
               ) : (
                 <>
@@ -269,8 +314,9 @@ export default function Presencas() {
         <div className="space-y-6 animate-in fade-in duration-300">
           
           {/* Grid de Indicadores Resumidos */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             
+            {/* Presenças */}
             <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 shadow-2xs flex items-center gap-4">
               <div className="w-12 h-12 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
                 <Calendar className="h-6 w-6" />
@@ -280,10 +326,25 @@ export default function Presencas() {
                 <h3 className="text-2xl font-bold text-neutral-800 dark:text-neutral-100 mt-1">
                   {results.summary.total_presencas.toLocaleString()}
                 </h3>
-                <p className="text-[10px] text-neutral-400 mt-0.5">Turnos de trabalho identificados</p>
+                <p className="text-[10px] text-neutral-400 mt-0.5">Dias com entrada</p>
               </div>
             </div>
 
+            {/* Folgas */}
+            <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 shadow-2xs flex items-center gap-4">
+              <div className="w-12 h-12 rounded-lg bg-violet-500/10 text-violet-500 flex items-center justify-center shrink-0">
+                <Coffee className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-violet-500/80 uppercase tracking-wider">Outras Folgas</p>
+                <h3 className="text-2xl font-bold text-violet-600 dark:text-violet-450 mt-1">
+                  {results.summary.total_folgas.toLocaleString()}
+                </h3>
+                <p className="text-[10px] text-neutral-400 mt-0.5">Folgas/Descansos/Feriados</p>
+              </div>
+            </div>
+
+            {/* Pessoas Ativas */}
             <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 shadow-2xs flex items-center gap-4">
               <div className="w-12 h-12 rounded-lg bg-green-500/10 text-green-500 flex items-center justify-center shrink-0">
                 <Users className="h-6 w-6" />
@@ -293,10 +354,11 @@ export default function Presencas() {
                 <h3 className="text-2xl font-bold text-neutral-800 dark:text-neutral-100 mt-1">
                   {results.summary.colaboradores_unicos.toLocaleString()}
                 </h3>
-                <p className="text-[10px] text-neutral-400 mt-0.5">Colaboradores com batida</p>
+                <p className="text-[10px] text-neutral-400 mt-0.5">Colaboradores ativos</p>
               </div>
             </div>
 
+            {/* Lojas Mapeadas */}
             <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 shadow-2xs flex items-center gap-4">
               <div className="w-12 h-12 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
                 <Building className="h-6 w-6" />
@@ -306,10 +368,11 @@ export default function Presencas() {
                 <h3 className="text-2xl font-bold text-neutral-800 dark:text-neutral-100 mt-1">
                   {results.summary.total_lojas_encontradas}
                 </h3>
-                <p className="text-[10px] text-neutral-400 mt-0.5">Grupos correspondidos no banco</p>
+                <p className="text-[10px] text-neutral-400 mt-0.5">Grupos no banco</p>
               </div>
             </div>
 
+            {/* Grupos Sem Loja */}
             <div className={`border rounded-xl p-5 shadow-2xs flex items-center gap-4 transition-colors ${
               results.summary.total_lojas_nao_encontradas > 0
                 ? 'bg-red-500/5 border-red-500/20 text-red-500 dark:border-red-500/30'
@@ -325,7 +388,7 @@ export default function Presencas() {
                 <h3 className="text-2xl font-bold text-neutral-800 dark:text-neutral-100 mt-1">
                   {results.summary.total_lojas_nao_encontradas}
                 </h3>
-                <p className="text-[10px] text-neutral-400 mt-0.5">Divergências pendentes no banco</p>
+                <p className="text-[10px] text-neutral-400 mt-0.5">Mapeamentos pendentes</p>
               </div>
             </div>
 
@@ -427,7 +490,8 @@ export default function Presencas() {
                     <th className="px-6 py-4.5">Grupo da Planilha (GeoVictoria)</th>
                     <th className="px-6 py-4.5">Loja Associada (Banco)</th>
                     <th className="px-6 py-4.5">CC</th>
-                    <th className="px-6 py-4.5 text-center">Total Presenças (Turnos)</th>
+                    <th className="px-6 py-4.5 text-center">Presenças</th>
+                    <th className="px-6 py-4.5 text-center">Outras Folgas</th>
                     <th className="px-6 py-4.5 text-center">Colaboradores Únicos</th>
                     <th className="px-6 py-4.5 text-center">Status</th>
                   </tr>
@@ -435,7 +499,7 @@ export default function Presencas() {
                 <tbody className="divide-y divide-neutral-200 dark:divide-neutral-850">
                   {paginatedRows.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-10 text-center text-neutral-500">
+                      <td colSpan={7} className="px-6 py-10 text-center text-neutral-500">
                         Nenhum registro encontrado para os filtros selecionados.
                       </td>
                     </tr>
@@ -453,6 +517,9 @@ export default function Presencas() {
                         </td>
                         <td className="px-6 py-4 text-center font-semibold text-neutral-950 dark:text-white">
                           {row.presencas.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 text-center text-violet-650 dark:text-violet-450 font-medium">
+                          {row.folgas.toLocaleString()}
                         </td>
                         <td className="px-6 py-4 text-center text-neutral-700 dark:text-neutral-300">
                           {row.funcionarios_unicos.toLocaleString()}
