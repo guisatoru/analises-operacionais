@@ -22,6 +22,8 @@ interface TerminosFilterProps {
   setDataFim: (val: string) => void;
   ordenacao: string;
   setOrdenacao: (val: string) => void;
+  etapaFiltro: string;
+  setEtapaFiltro: (val: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   onClear: () => void;
 }
@@ -48,6 +50,8 @@ export default function TerminosFilter({
   setDataFim,
   ordenacao,
   setOrdenacao,
+  etapaFiltro,
+  setEtapaFiltro,
   onSubmit,
   onClear,
 }: TerminosFilterProps) {
@@ -214,6 +218,22 @@ export default function TerminosFilter({
               />
             </PopoverContent>
           </Popover>
+        </div>
+
+        {/* Fase do Término */}
+        <div>
+          <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
+            Fase do Término
+          </label>
+          <select
+            value={etapaFiltro}
+            onChange={(e) => setEtapaFiltro(e.target.value)}
+            className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+          >
+            <option value="">Todos os Términos</option>
+            <option value="1">1º Término (30 dias)</option>
+            <option value="2">2º Término (60 dias)</option>
+          </select>
         </div>
 
         {/* Ordenação Principal */}

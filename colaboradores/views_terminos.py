@@ -75,6 +75,7 @@ def terminos_list(request):
     status_gestao_query = request.GET.get("status_gestao", "")
     re_query = request.GET.get("re", "")
     nome_query = request.GET.get("nome", "")
+    etapa_filtro = request.GET.get("etapa", "")
 
     # Esta chamada aplica filtros de busca, coordenador, status de gestão, matrícula (RE) e nome do colaborador.
     colaboradores_qs = _filtrar_terminos_queryset(
@@ -92,6 +93,7 @@ def terminos_list(request):
         today,
         data_filtro,
         data_fim,
+        etapa_filtro=etapa_filtro,
     )
 
     cache_info = _montar_cache_info_geovictoria(colaboradores_qs)
@@ -127,6 +129,7 @@ def exportar_terminos_excel(request):
     status_gestao_query = request.GET.get("status_gestao", "")
     re_query = request.GET.get("re", "")
     nome_query = request.GET.get("nome", "")
+    etapa_filtro = request.GET.get("etapa", "")
 
     # Filtra os colaboradores antes de gerar a planilha Excel com base nos filtros da tela.
     colaboradores_qs = _filtrar_terminos_queryset(
@@ -144,6 +147,7 @@ def exportar_terminos_excel(request):
         today,
         data_filtro,
         data_fim,
+        etapa_filtro=etapa_filtro,
     )
 
     if not processed_colaboradores:
@@ -315,15 +319,27 @@ def _filtrar_terminos_queryset(
     return colaboradores_qs
 
 
-def _processar_colaboradores_termino(colaboradores_qs, today, data_filtro, data_fim):
+def _processar_colaboradores_termino(colaboradores_qs, today, data_filtro, data_fim, etapa_filtro=None):
     """
     Calcula a fase de término e remove registros que não devem aparecer na tela.
+
+    Por que existe: Centraliza o cálculo da etapa atual do término do contrato de experiência
+    e permite filtrar os colaboradores pertencentes à primeira ou segunda etapa do período
+    de experiência antes da paginação e exportação.
     """
     processed_colaboradores = []
 
     for colaborador in colaboradores_qs:
         history = list(colaborador.controles_termino.all())
         state = derive_termino_state(colaborador, today, history)
+
+        # Filtra pela etapa do término (1º ou 2º período) caso tenha sido selecionada no filtro
+        if etapa_filtro:
+            try:
+                if state["etapaAtual"] != int(etapa_filtro):
+                    continue
+            except ValueError:
+                pass
 
         latest_first = next((controle for controle in history if controle.etapa == 1), None)
         latest_second = next((controle for controle in history if controle.etapa == 2), None)
