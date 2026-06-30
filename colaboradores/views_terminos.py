@@ -325,14 +325,24 @@ def _processar_colaboradores_termino(colaboradores_qs, today, data_filtro, data_
         history = list(colaborador.controles_termino.all())
         state = derive_termino_state(colaborador, today, history)
 
-        if (
-            colaborador.termino_1
-            and colaborador.termino_1 < today
-            and colaborador.termino_2
-            and colaborador.termino_2 < today
-            and not history
-        ):
-            continue
+        latest_first = next((controle for controle in history if controle.etapa == 1), None)
+        latest_second = next((controle for controle in history if controle.etapa == 2), None)
+
+        # Regra de descarte por decurso de prazo (mais de 10 dias de atraso sem decisão registrada para a etapa atual)
+        if state["etapaAtual"] == 1:
+            if (
+                colaborador.termino_1
+                and (today - colaborador.termino_1).days > 10
+                and not latest_first
+            ):
+                continue
+        elif state["etapaAtual"] == 2:
+            if (
+                colaborador.termino_2
+                and (today - colaborador.termino_2).days > 10
+                and not latest_second
+            ):
+                continue
 
         relevant_date = colaborador.termino_2 if state["etapaAtual"] == 2 else colaborador.termino_1
 

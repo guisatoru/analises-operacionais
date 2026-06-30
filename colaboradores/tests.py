@@ -211,4 +211,33 @@ class TerminoStateTests(TestCase):
         self.assertTrue(state["encerrado"])
         self.assertEqual(state["ultimaAcao"], "manter")
 
+    def test_state_second_term_passed_with_prorrogado_decision(self):
+        """
+        Valida que se o segundo prazo passou com decisão de prorrogação na etapa 1,
+        o estado assume a etapa 2 com status 'Atrasado'.
+        """
+        ControleTermino.objects.create(
+            colaborador=self.colaborador,
+            etapa=1,
+            acao="prorrogado",
+            observacao="Prorrogar.",
+        )
+        state = derive_termino_state(self.colaborador, date(2026, 4, 5))
+        self.assertEqual(state["etapaAtual"], 2)
+        self.assertEqual(state["statusControle"], "Atrasado")
+        self.assertFalse(state["encerrado"])
+        self.assertEqual(state["ultimaAcao"], "prorrogado")
+
+    def test_state_second_term_passed_without_decision(self):
+        """
+        Valida que se o segundo prazo passou sem qualquer decisão anterior,
+        o estado assume a etapa 2 com status 'Atrasado'.
+        """
+        state = derive_termino_state(self.colaborador, date(2026, 4, 5))
+        self.assertEqual(state["etapaAtual"], 2)
+        self.assertEqual(state["statusControle"], "Atrasado")
+        self.assertFalse(state["encerrado"])
+        self.assertIsNone(state["ultimaAcao"])
+
+
 # Create your tests here.

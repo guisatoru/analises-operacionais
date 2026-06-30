@@ -250,10 +250,12 @@ export default function TerminosTable({
                     <div
                       className={`p-2 rounded text-xs font-mono inline-block ${
                         item.state.etapaAtual === 1
-                          ? item.state.statusControle.includes('PENDENTE')
+                          ? item.state.statusControle.toUpperCase().includes('ATRASADO')
+                            ? 'bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-400'
+                            : item.state.statusControle.toUpperCase().includes('PENDENTE')
                             ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-400'
-                            : item.state.statusControle.includes('TÉRMINO') ||
-                              item.state.statusControle.includes('DISPENSADO')
+                            : item.state.statusControle.toUpperCase().includes('TÉRMINO') ||
+                              item.state.statusControle.toUpperCase().includes('DISPENSADO')
                             ? 'bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-400'
                             : 'bg-green-100 text-green-800 dark:bg-green-950/30 dark:text-green-400'
                           : 'text-neutral-500 bg-neutral-100 dark:bg-neutral-800'
@@ -266,10 +268,13 @@ export default function TerminosTable({
                     <div
                       className={`p-2 rounded text-xs font-mono inline-block ${
                         item.state.etapaAtual === 2
-                          ? item.state.statusControle.includes('PENDENTE')
+                          ? item.state.statusControle.toUpperCase().includes('ATRASADO')
+                            ? 'bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-400'
+                            : item.state.statusControle.toUpperCase().includes('PENDENTE') ||
+                              item.state.statusControle.toUpperCase().includes('PRORROGADO')
                             ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-400'
-                            : item.state.statusControle.includes('TÉRMINO') ||
-                              item.state.statusControle.includes('DISPENSADO')
+                            : item.state.statusControle.toUpperCase().includes('TÉRMINO') ||
+                              item.state.statusControle.toUpperCase().includes('DISPENSADO')
                             ? 'bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-400'
                             : 'bg-green-100 text-green-800 dark:bg-green-950/30 dark:text-green-400'
                           : 'text-neutral-500 bg-neutral-100 dark:bg-neutral-800'

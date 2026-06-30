@@ -74,6 +74,7 @@ def derive_termino_state(colaborador, reference_date, controles=None):
     latest_first = next((controle for controle in controles if controle.etapa == 1), None)
     latest_second = next((controle for controle in controles if controle.etapa == 2), None)
     first_term_passed = colaborador.termino_1 and colaborador.termino_1 < reference_date
+    second_term_passed = colaborador.termino_2 and colaborador.termino_2 < reference_date
 
     # 1. Se a última decisão da etapa 1 for término ou manter (Efetivado), o processo encerra na etapa 1.
     # Isto também garante que, se houver alteração retroativa da etapa 1, a etapa 2 seja ignorada.
@@ -115,7 +116,16 @@ def derive_termino_state(colaborador, reference_date, controles=None):
         }
 
     # 3. Se foi prorrogado na etapa 1, está na etapa 2 (mas ainda sem decisão para a etapa 2).
+    # Caso a data do segundo término tenha passado da data de referência, ele fica com status "Atrasado".
     if latest_first and latest_first.acao == "prorrogado":
+        if second_term_passed:
+            return {
+                "etapaAtual": 2,
+                "tipoTermino": "2º Término",
+                "statusControle": "Atrasado",
+                "encerrado": False,
+                "ultimaAcao": latest_first.acao,
+            }
         return {
             "etapaAtual": 2,
             "tipoTermino": "2º Término",
@@ -124,8 +134,17 @@ def derive_termino_state(colaborador, reference_date, controles=None):
             "ultimaAcao": latest_first.acao,
         }
 
-    # 4. Se a data do primeiro prazo passou e não houve decisão, assume que está pendente de 2º término.
+    # 4. Se a data do primeiro prazo passou e não houve decisão, assume que está na etapa 2.
+    # Caso a data do segundo término também já tenha passado, o status será "Atrasado".
     if first_term_passed:
+        if second_term_passed:
+            return {
+                "etapaAtual": 2,
+                "tipoTermino": "2º Término",
+                "statusControle": "Atrasado",
+                "encerrado": False,
+                "ultimaAcao": None,
+            }
         return {
             "etapaAtual": 2,
             "tipoTermino": "2º Término",
