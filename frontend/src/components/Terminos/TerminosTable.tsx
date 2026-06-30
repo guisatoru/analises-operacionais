@@ -146,17 +146,17 @@ export default function TerminosTable({
   return (
     <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
+        <table className="w-full text-left border-collapse table-fixed">
           <thead>
             <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-100 text-xs font-bold text-neutral-700 uppercase tracking-wider">
-              <th className="py-3 px-4 align-middle">RE / Colaborador</th>
-              <th className="py-3 px-4 align-middle">Loja (TOTVS)</th>
-              <th className="py-3 px-4 align-middle">Coordenador</th>
-              <th className="py-3 px-4 align-middle">Status Gestão</th>
-              <th className="py-3 px-4 text-center align-middle">Faltas / Atestados</th>
-              <th className="py-3 px-4 align-middle">1º Per. (30d)</th>
-              <th className="py-3 px-4 align-middle">2º Per. (60d)</th>
-              <th className="py-3 px-4 text-right sticky right-0 bg-neutral-100 dark:bg-neutral-800 z-20 border-b border-neutral-200 dark:border-neutral-800 align-middle">Ação</th>
+              <th className="py-3 px-4 align-middle w-[20%]">RE / Colaborador</th>
+              <th className="py-3 px-4 align-middle w-[15%]">Loja (TOTVS)</th>
+              <th className="py-3 px-4 align-middle w-[13%]">Coordenador</th>
+              <th className="py-3 px-4 align-middle w-[8%]">Status Gestão</th>
+              <th className="py-3 px-4 text-center align-middle w-[9%]">Faltas / Atestados</th>
+              <th className="py-3 px-4 align-middle w-[9%]">1º Per. (30d)</th>
+              <th className="py-3 px-4 align-middle w-[17%]">2º Per. (60d)</th>
+              <th className="py-3 px-4 text-right sticky right-0 bg-neutral-100 dark:bg-neutral-800 z-20 border-b border-neutral-200 dark:border-neutral-800 align-middle w-[9%]">Ação</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border text-sm">
@@ -164,11 +164,8 @@ export default function TerminosTable({
               Array.from({ length: 5 }).map((_, idx) => (
                 <tr key={idx} className="animate-pulse">
                   <td className="py-3 px-4">
-                    <Skeleton className="h-5 w-40 mb-1" />
-                    <Skeleton className="h-3 w-16" />
-                  </td>
-                  <td className="py-3 px-4">
-                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-5 w-28 mb-1" />
+                    <Skeleton className="h-3 w-12" />
                   </td>
                   <td className="py-3 px-4">
                     <Skeleton className="h-5 w-24" />
@@ -176,17 +173,26 @@ export default function TerminosTable({
                   <td className="py-3 px-4">
                     <Skeleton className="h-5 w-20" />
                   </td>
+                  <td className="py-3 px-4">
+                    <Skeleton className="h-5 w-16" />
+                  </td>
                   <td className="py-3 px-4 text-center">
-                    <Skeleton className="h-8 w-16 inline-block" />
+                    <Skeleton className="h-8 w-12 inline-block" />
                   </td>
                   <td className="py-3 px-4">
-                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-5 w-16" />
                   </td>
                   <td className="py-3 px-4">
-                    <Skeleton className="h-5 w-24" />
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-5 w-16" />
+                      <div className="flex gap-1">
+                        <Skeleton className="w-2 h-2 rounded-full" />
+                        <Skeleton className="w-2 h-2 rounded-full" />
+                      </div>
+                    </div>
                   </td>
                   <td className="py-3 px-4 text-right sticky right-0 bg-white dark:bg-neutral-900 z-10">
-                    <Skeleton className="h-8 w-20 ml-auto" />
+                    <Skeleton className="h-8 w-12 ml-auto" />
                   </td>
                 </tr>
               ))
