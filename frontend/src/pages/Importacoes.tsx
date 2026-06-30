@@ -7,7 +7,9 @@ import {
   CheckCircle2, 
   AlertCircle, 
   X,
-  Coins
+  Coins,
+  UploadCloud,
+  Loader2
 } from 'lucide-react';
 import api from '../api/client';
 import UploadCard from '../components/Importacoes/UploadCard';
@@ -35,7 +37,11 @@ export default function Importacoes() {
   const [gestaoFile, setGestaoFile] = useState<File | null>(null);
   const [folhaFile, setFolhaFile] = useState<File | null>(null);
   const [diariaFile, setDiariaFile] = useState<File | null>(null);
-  const [premioFile, setPremioFile] = useState<File | null>(null);
+  
+  // Novos estados para importação unificada de prêmios
+  const [premioSistemaFile, setPremioSistemaFile] = useState<File | null>(null);
+  const [premioManualFile, setPremioManualFile] = useState<File | null>(null);
+  const [premioPeriodo, setPremioPeriodo] = useState<string>('');
 
   // Estados de controle do processo de importação
   const [importStatus, setImportStatus] = useState<ImportStatus | null>(null);
@@ -60,7 +66,9 @@ export default function Importacoes() {
           setGestaoFile(null);
           setFolhaFile(null);
           setDiariaFile(null);
-          setPremioFile(null);
+          setPremioSistemaFile(null);
+          setPremioManualFile(null);
+          setPremioPeriodo('');
         } else if (data.status === 'error') {
           clearInterval(intervalId);
           setLoading(false);
@@ -76,7 +84,7 @@ export default function Importacoes() {
   };
 
   // Faz o envio (upload) do arquivo para a API correspondente
-  const handleUpload = async (tipo: 'sra' | 'gestao' | 'folha' | 'diaria' | 'premio', file: File | null) => {
+  const handleUpload = async (tipo: 'sra' | 'gestao' | 'folha' | 'diaria', file: File | null) => {
     if (!file) {
       alert('Selecione um arquivo primeiro.');
       return;
@@ -100,7 +108,6 @@ export default function Importacoes() {
     else if (tipo === 'gestao') endpoint = '/colaboradores/importar-gestao/';
     else if (tipo === 'folha') endpoint = '/folhas/importar/';
     else if (tipo === 'diaria') endpoint = '/diarias/importar/';
-    else if (tipo === 'premio') endpoint = '/premios/importar/';
 
     try {
       const response = await api.post(endpoint, formData, {
@@ -121,6 +128,54 @@ export default function Importacoes() {
       setLoading(false);
       setImportStatus(null);
       setErrorMsg(err.response?.data?.error || 'Erro ao fazer upload do arquivo.');
+    }
+  };
+
+  // Faz o envio da importação unificada de prêmios (dois arquivos + período)
+  const handleUploadPremioUnificado = async () => {
+    if (!premioSistemaFile || !premioManualFile) {
+      alert('Selecione os arquivos da Base do Sistema e Base Manual.');
+      return;
+    }
+    if (!premioPeriodo) {
+      alert('Selecione o período de referência.');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg(null);
+    setImportStatus({
+      status: 'processing',
+      progress: 0,
+      message: 'Enviando arquivos e período para o servidor...',
+      result: null,
+      titulo: 'Progresso da Importação Unificada de Prêmios'
+    });
+
+    const formData = new FormData();
+    formData.append('arquivo_sistema', premioSistemaFile);
+    formData.append('arquivo_manual', premioManualFile);
+    formData.append('periodo', premioPeriodo);
+
+    try {
+      const response = await api.post('/premios/importar/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.data && response.data.import_id) {
+        startPolling(response.data.import_id);
+      } else {
+        setLoading(false);
+        setErrorMsg('Servidor não retornou identificador de importação.');
+        setImportStatus(null);
+      }
+    } catch (err: any) {
+      console.error('Erro ao enviar arquivos de prêmio:', err);
+      setLoading(false);
+      setImportStatus(null);
+      setErrorMsg(err.response?.data?.error || 'Erro ao fazer upload da importação de prêmios.');
     }
   };
 
@@ -212,22 +267,87 @@ export default function Importacoes() {
               onUpload={() => handleUpload('diaria', diariaFile)}
             />
 
-            {/* Card Prêmios Pagos */}
-            <UploadCard
-              title="Prêmios Pagos"
-              description="Carga da planilha de prêmios e campanhas operacionais. Formato aceito: Excel (.xlsx / .xlsm)."
-              icon={
-                <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600">
+            {/* Card Prêmios Pagos (Unificação de Bases) */}
+            <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs p-6 shadow-sm flex flex-col justify-between space-y-4 xl:col-span-2 md:col-span-2 col-span-1 animate-fade-in">
+              <div className="space-y-2">
+                <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600 shrink-0">
                   <Coins className="h-6 w-6" />
                 </div>
-              }
-              accept=".xlsx,.xlsm,.xls"
-              file={premioFile}
-              setFile={setPremioFile}
-              loading={loading}
-              buttonText="Importar Prêmios"
-              onUpload={() => handleUpload('premio', premioFile)}
-            />
+                <h3 className="font-bold text-lg text-neutral-900 dark:text-neutral-100">Prêmios (Unificação de Bases)</h3>
+                <p className="text-xs text-neutral-400">
+                  Importa e unifica as bases de prêmios do Sistema e Manual para o período selecionado, substituindo os dados existentes no sistema.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                {/* Lado esquerdo: Seleção de arquivos */}
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1.5">
+                      Base do Sistema
+                    </label>
+                    <label className="flex items-center gap-3 border border-dashed border-neutral-200 dark:border-neutral-800 hover:border-neutral-450 rounded-xl p-3 cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-850 transition-colors">
+                      <UploadCloud className="h-4 w-4 text-neutral-400 shrink-0" />
+                      <span className="text-xs text-neutral-500 truncate max-w-full font-medium">
+                        {premioSistemaFile ? premioSistemaFile.name : "Selecionar arquivo (.xlsx)"}
+                      </span>
+                      <input
+                        type="file"
+                        accept=".xlsx,.xlsm,.xls"
+                        className="hidden"
+                        disabled={loading}
+                        onChange={(e) => setPremioSistemaFile(e.target.files?.[0] || null)}
+                      />
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1.5">
+                      Base Manual
+                    </label>
+                    <label className="flex items-center gap-3 border border-dashed border-neutral-200 dark:border-neutral-800 hover:border-neutral-450 rounded-xl p-3 cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-850 transition-colors">
+                      <UploadCloud className="h-4 w-4 text-neutral-400 shrink-0" />
+                      <span className="text-xs text-neutral-500 truncate max-w-full font-medium">
+                        {premioManualFile ? premioManualFile.name : "Selecionar arquivo (.xlsx)"}
+                      </span>
+                      <input
+                        type="file"
+                        accept=".xlsx,.xlsm,.xls"
+                        className="hidden"
+                        disabled={loading}
+                        onChange={(e) => setPremioManualFile(e.target.files?.[0] || null)}
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                {/* Lado direito: Período e Envio */}
+                <div className="space-y-3 flex flex-col justify-between">
+                  <div>
+                    <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1.5">
+                      Período de Referência
+                    </label>
+                    <input
+                      type="month"
+                      value={premioPeriodo}
+                      disabled={loading}
+                      onChange={(e) => setPremioPeriodo(e.target.value)}
+                      className="w-full text-xs bg-neutral-50 dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-xl p-3 text-neutral-700 dark:text-neutral-300 focus:outline-hidden focus:ring-1 focus:ring-primary focus:border-primary transition-all font-medium"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleUploadPremioUnificado}
+                    disabled={loading || !premioSistemaFile || !premioManualFile || !premioPeriodo}
+                    className="w-full py-3 bg-neutral-900 hover:bg-neutral-850 dark:bg-white dark:text-neutral-900 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer mt-1"
+                  >
+                    {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                    Importar e Unificar Prêmios
+                  </button>
+                </div>
+              </div>
+            </div>
           </>
         )}
 

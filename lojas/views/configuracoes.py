@@ -202,17 +202,38 @@ def diaria_import_async(request):
 @permission_classes([IsAuthenticated, IsAdministrador])
 def premio_import_async(request):
     """
-    Inicia a importação assíncrona do arquivo Excel de Prêmios Pagos via upload.
+    Inicia a importação assíncrona dos arquivos de Prêmios (Sistema e Manual) via upload.
+    Realiza a unificação das duas bases e substitui o período informado.
     """
-    arquivo = request.FILES.get("arquivo")
-    if not arquivo:
-        return Response({"success": False, "error": "Nenhum arquivo enviado."}, status=status.HTTP_400_BAD_REQUEST)
+    arquivo_sistema = request.FILES.get("arquivo_sistema")
+    arquivo_manual = request.FILES.get("arquivo_manual")
+    periodo = request.data.get("periodo") or request.POST.get("periodo")
 
-    nome = (arquivo.name or "").lower()
-    if not (nome.endswith(".xlsx") or nome.endswith(".xlsm") or nome.endswith(".xls")):
+    if not arquivo_sistema or not arquivo_manual:
+        return Response({
+            "success": False, 
+            "error": "Forneça ambos os arquivos: a Base do Sistema e a Base Manual."
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    if not periodo:
         return Response({
             "success": False,
-            "error": "Envie uma planilha Excel válida (.xlsx, .xlsm, .xls)."
+            "error": "Informe o período de referência (Mês/Ano) que deseja unificar e importar."
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    for arquivo, nome_campo in [(arquivo_sistema, "Base do Sistema"), (arquivo_manual, "Base Manual")]:
+        nome = (arquivo.name or "").lower()
+        if not (nome.endswith(".xlsx") or nome.endswith(".xlsm") or nome.endswith(".xls")):
+            return Response({
+                "success": False,
+                "error": f"O arquivo enviado como {nome_campo} deve ser uma planilha Excel válida (.xlsx, .xlsm, .xls)."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    periodo_limpo = str(periodo).strip().replace("-", "")
+    if len(periodo_limpo) != 6 or not periodo_limpo.isdigit():
+        return Response({
+            "success": False,
+            "error": "O período deve estar no formato YYYYMM ou YYYY-MM (ex.: 2026-02)."
         }, status=status.HTTP_400_BAD_REQUEST)
 
     if request.user.is_authenticated:
@@ -223,16 +244,24 @@ def premio_import_async(request):
             user_id=request.user.id,
             content_type_id=ContentType.objects.get_for_model(Premio).pk,
             object_id=0,
-            object_repr="Importação de Prêmios",
+            object_repr=f"Importação Unificada Prêmios — {periodo_limpo}",
             action_flag=CHANGE,
-            change_message=f"Iniciou a importação da planilha de prêmios: {arquivo.name}"
+            change_message=f"Iniciou a importação unificada de prêmios para o período {periodo_limpo}"
         )
+
+    payload = {
+        "conteudo_sistema": arquivo_sistema.read(),
+        "nome_sistema": arquivo_sistema.name,
+        "conteudo_manual": arquivo_manual.read(),
+        "nome_manual": arquivo_manual.name,
+        "periodo": periodo_limpo
+    }
 
     return _iniciar_importacao_async(
         tipo_importacao="premio",
-        payload={"conteudo": arquivo.read(), "nome": arquivo.name or "premios.xlsx"},
-        titulo="Progresso da Importação de Prêmios",
-        mensagem_inicial="Iniciando processamento da planilha de prêmios...",
+        payload=payload,
+        titulo=f"Progresso da Importação Unificada — {periodo_limpo}",
+        mensagem_inicial=f"Iniciando a unificação e processamento de prêmios do período {periodo_limpo}...",
     )
 
 def _iniciar_importacao_async(tipo_importacao, payload, titulo, mensagem_inicial):
@@ -322,10 +351,17 @@ def _processar_importacao_background(import_id, tipo_importacao):
             )
             mensagem, status_msg = _montar_mensagem_diaria(resultado)
         elif tipo_importacao == "premio":
-            arquivo_excel = BytesIO(payload["conteudo"])
-            arquivo_excel.name = payload.get("nome", "premios.xlsx")
-            resultado = importar_premios_de_excel(
-                arquivo_excel,
+            from lojas.services.premio_importacao import importar_premios_unificados
+            arquivo_sistema = BytesIO(payload["conteudo_sistema"])
+            arquivo_sistema.name = payload["nome_sistema"]
+            arquivo_manual = BytesIO(payload["conteudo_manual"])
+            arquivo_manual.name = payload["nome_manual"]
+            periodo = payload["periodo"]
+
+            resultado = importar_premios_unificados(
+                arquivo_sistema=arquivo_sistema,
+                arquivo_manual=arquivo_manual,
+                periodo=periodo,
                 progress_callback=atualizar_progresso,
             )
             mensagem, status_msg = _montar_mensagem_premio(resultado)
