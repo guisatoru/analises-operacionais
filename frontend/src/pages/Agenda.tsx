@@ -66,7 +66,7 @@ export default function Agenda() {
     setDragEnd
   } = useCalendarDrag((range) => {
     setSelectedDateRange(range);
-    openDayModal(range[0]);
+    openDayModal(range[0], range);
   });
 
   // Carrega lista de lojas na montagem da tela
@@ -89,20 +89,46 @@ export default function Agenda() {
     fetchBaseData();
   }, []);
 
-  // Recarrega os agendamentos do mês sempre que mudar de mês/ano
+  // Recarrega os agendamentos do mês e meses adjacentes sempre que mudar de mês/ano
   const fetchAgendamentos = useCallback(async () => {
     try {
       setLoadingAgendamentos(true);
+      
+      // Calcula mês anterior
+      let prevMonth = month - 1;
+      let prevYear = year;
+      if (prevMonth < 0) {
+        prevMonth = 11;
+        prevYear -= 1;
+      }
+
+      // Calcula mês seguinte
+      let nextMonth = month + 1;
+      let nextYear = year;
+      if (nextMonth > 11) {
+        nextMonth = 0;
+        nextYear += 1;
+      }
+
       const mesIso = `${year}-${String(month + 1).padStart(2, '0')}`;
-      const response = await api.get('/colaboradores/agendamentos/', {
-        params: {
-          mes_ano: mesIso
-        }
-      });
-      const data: Agendamento[] = response.data || [];
+      const prevMesIso = `${prevYear}-${String(prevMonth + 1).padStart(2, '0')}`;
+      const nextMesIso = `${nextYear}-${String(nextMonth + 1).padStart(2, '0')}`;
+
+      // Faz as buscas de agendamentos em paralelo
+      const [prevRes, currRes, nextRes] = await Promise.all([
+        api.get('/colaboradores/agendamentos/', { params: { mes_ano: prevMesIso } }),
+        api.get('/colaboradores/agendamentos/', { params: { mes_ano: mesIso } }),
+        api.get('/colaboradores/agendamentos/', { params: { mes_ano: nextMesIso } }),
+      ]);
+
+      const data: Agendamento[] = [
+        ...(prevRes.data || []),
+        ...(currRes.data || []),
+        ...(nextRes.data || [])
+      ];
       setAgendamentos(data);
 
-      // Constrói a lista de colaboradores que já possuem agendamentos no mês
+      // Constrói a lista de colaboradores que já possuem agendamentos no período
       const uniqueColabsMap = new Map<string, Colaborador>();
       data.forEach((a) => {
         if (a.colaborador) {
@@ -169,15 +195,27 @@ export default function Agenda() {
   }, []);
 
   // Abre o modal de configuração de roteiro para o dia/dias selecionados
-  const openDayModal = useCallback((date: string) => {
+  const openDayModal = useCallback((date: string, customRange?: string[]) => {
     const [y, m, d] = date.split('-').map(Number);
     const isSunday = new Date(y, m - 1, d).getDay() === 0;
     setSelectedDate(date);
 
-    // Procura se já existe agendamento nessa data para o colaborador selecionado
-    const agendamento = agendamentos.find(
-      item => item.data === date && String(item.colaborador) === String(selectedColaboradorId)
+    const targetDates = customRange && customRange.length > 0 ? customRange : [date];
+
+    // Procura primeiro se existe algum agendamento com loja física em qualquer um dos dias selecionados
+    let agendamento = agendamentos.find(
+      item => targetDates.includes(item.data) && 
+              String(item.colaborador) === String(selectedColaboradorId) && 
+              !!item.loja
     );
+
+    // Se não encontrou nenhum com loja, pega o primeiro agendamento que encontrar (mesmo sem loja, ex: folga/livre)
+    if (!agendamento) {
+      agendamento = agendamentos.find(
+        item => targetDates.includes(item.data) && 
+                String(item.colaborador) === String(selectedColaboradorId)
+      );
+    }
 
     let formData = {
       lojaId: '',
