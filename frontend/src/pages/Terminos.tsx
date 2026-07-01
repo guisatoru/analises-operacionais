@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { 
   Loader2,
   AlertCircle,
@@ -28,6 +28,21 @@ interface SyncProgressResponse {
  * da listagem, barra de filtros inteligentes e formulário de decisão para subcomponentes dedicados.
  */
 export default function Terminos() {
+  // Referências para evitar requisições concorrentes duplicadas (race conditions)
+  const lastRequestParamsRef = useRef('');
+  const prevFiltersRef = useRef({
+    busca: '',
+    reFiltro: '',
+    nomeFiltro: '',
+    coordenador: '',
+    statusGestao: '',
+    ordenacao: 'data',
+    dataFiltro: '',
+    dataFim: '',
+    etapaFiltro: '',
+    acaoFiltro: '',
+  });
+
   // Estados de listagem e paginação
   const [terminos, setTerminos] = useState<TerminoItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,38 +75,74 @@ export default function Terminos() {
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Efeito reativo: recarrega os prazos ao mudar filtros ou ordenação
-  useEffect(() => {
-    fetchTerminos(true);
-  }, [ordenacao, statusGestao, coordenador, dataFiltro, dataFim, etapaFiltro, acaoFiltro, fetchTrigger]);
-
+  // Efeito reativo único: recarrega os prazos ao mudar filtros, ordenação ou página atual.
+  // Re-adicionamos reFiltro e nomeFiltro para restaurar a pesquisa dinâmica.
   useEffect(() => {
     fetchTerminos();
-  }, [currentPage]);
+  }, [currentPage, ordenacao, statusGestao, coordenador, dataFiltro, dataFim, reFiltro, nomeFiltro, etapaFiltro, acaoFiltro, fetchTrigger]);
 
-  const fetchTerminos = async (resetPage = false) => {
+  const fetchTerminos = async () => {
     setLoading(true);
     setErrorMsg(null);
-    const targetPage = resetPage ? 1 : currentPage;
-    if (resetPage) {
+
+    // Detecta se algum filtro mudou em relação à última requisição
+    const filtersChanged =
+      prevFiltersRef.current.busca !== busca ||
+      prevFiltersRef.current.reFiltro !== reFiltro ||
+      prevFiltersRef.current.nomeFiltro !== nomeFiltro ||
+      prevFiltersRef.current.coordenador !== coordenador ||
+      prevFiltersRef.current.statusGestao !== statusGestao ||
+      prevFiltersRef.current.ordenacao !== ordenacao ||
+      prevFiltersRef.current.dataFiltro !== dataFiltro ||
+      prevFiltersRef.current.dataFim !== dataFim ||
+      prevFiltersRef.current.etapaFiltro !== etapaFiltro ||
+      prevFiltersRef.current.acaoFiltro !== acaoFiltro;
+
+    const targetPage = filtersChanged ? 1 : currentPage;
+
+    if (filtersChanged) {
       setCurrentPage(1);
     }
 
+    // Atualiza a referência de filtros anteriores
+    prevFiltersRef.current = {
+      busca,
+      reFiltro,
+      nomeFiltro,
+      coordenador,
+      statusGestao,
+      ordenacao,
+      dataFiltro,
+      dataFim,
+      etapaFiltro,
+      acaoFiltro,
+    };
+
+    const requestParams = {
+      page: targetPage,
+      search: busca || undefined,
+      re: reFiltro || undefined,
+      nome: nomeFiltro || undefined,
+      coordenador: coordenador || undefined,
+      status_gestao: statusGestao || undefined,
+      ordenar: ordenacao || undefined,
+      data_filtro: dataFiltro || undefined,
+      data_fim: dataFim || undefined,
+      etapa: etapaFiltro || undefined,
+      acao: acaoFiltro || undefined,
+    };
+
+    // Evita requisições duplicadas idênticas na mesma página
+    const paramsString = JSON.stringify(requestParams);
+    if (paramsString === lastRequestParamsRef.current) {
+      setLoading(false);
+      return;
+    }
+    lastRequestParamsRef.current = paramsString;
+
     try {
       const response = await api.get('/colaboradores/terminos/', {
-        params: {
-          page: targetPage,
-          search: busca || undefined,
-          re: reFiltro || undefined,
-          nome: nomeFiltro || undefined,
-          coordenador: coordenador || undefined,
-          status_gestao: statusGestao || undefined,
-          ordenar: ordenacao || undefined,
-          data_filtro: dataFiltro || undefined,
-          data_fim: dataFim || undefined,
-          etapa: etapaFiltro || undefined,
-          acao: acaoFiltro || undefined,
-        }
+        params: requestParams
       });
 
       if (response.data && response.data.results) {
