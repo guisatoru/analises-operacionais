@@ -94,10 +94,19 @@ if DATABASE_URL:
         )
     }
 else:
+    # Por que existe: Permite alterar o caminho do arquivo do banco de dados SQLite para
+    # uma pasta de rede (como o disco F) ou outro local customizado através da variável
+    # SQLITE_PATH no arquivo .env, evitando encher o armazenamento da máquina local.
+    sqlite_path = config("SQLITE_PATH", default="")
+    if sqlite_path:
+        db_name = Path(sqlite_path)
+    else:
+        db_name = BASE_DIR / "db.sqlite3"
+
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
+            "NAME": db_name,
         }
     }
 
