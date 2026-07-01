@@ -35,6 +35,7 @@ import api from '../api/client';
 
 interface SidebarProps {
   username?: string;
+  email?: string;
   onLogout: () => void;
   role?: string;
   onOpenProfile?: () => void;
@@ -47,7 +48,7 @@ interface SidebarProps {
  * Utiliza o visual e componentes oficiais do Shadcn UI (grupos, switcher de workspace,
  * rodapé com dados do perfil e submenus colapsáveis).
  */
-export default function Sidebar({ username = 'Usuário', onLogout, role, onOpenProfile }: SidebarProps) {
+export default function Sidebar({ username = 'Usuário', email = '', onLogout, role, onOpenProfile }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { open } = useSidebar();
@@ -379,7 +380,7 @@ export default function Sidebar({ username = 'Usuário', onLogout, role, onOpenP
                     {username}
                   </p>
                   <p className="text-[9px] text-neutral-400 truncate leading-none mt-0.5">
-                    {username.toLowerCase()}@grupo.com
+                    {email || `${username.toLowerCase()}@grupo.com`}
                   </p>
                 </div>
               )}

@@ -14,8 +14,10 @@ import {
 interface LayoutProps {
   isAuthenticated: boolean;
   username: string;
+  email?: string;
   onLogout: () => void;
   role?: string;
+  onUpdateProfile?: (username: string, email: string) => void;
 }
 
 /**
@@ -27,7 +29,7 @@ interface LayoutProps {
  * de conteúdo ao lado da barra lateral. Inclui também o cabeçalho com o sistema
  * de breadcrumbs dinâmicos para facilitar a navegação do usuário.
  */
-export default function Layout({ isAuthenticated, username, onLogout, role }: LayoutProps) {
+export default function Layout({ isAuthenticated, username, email, onLogout, role, onUpdateProfile }: LayoutProps) {
   const location = useLocation();
   const [profileModalOpen, setProfileModalOpen] = useState(false);
 
@@ -83,6 +85,7 @@ export default function Layout({ isAuthenticated, username, onLogout, role }: La
       {/* Menu Lateral de Navegação */}
       <Sidebar 
         username={username} 
+        email={email}
         onLogout={onLogout} 
         role={role} 
         onOpenProfile={() => setProfileModalOpen(true)} 
@@ -127,7 +130,10 @@ export default function Layout({ isAuthenticated, username, onLogout, role }: La
       {profileModalOpen && (
         <PerfilEditModal
           onClose={() => setProfileModalOpen(false)}
-          onSaveSuccess={() => setProfileModalOpen(false)}
+          onSaveSuccess={(newUsername, newEmail) => {
+            onUpdateProfile?.(newUsername, newEmail);
+            setProfileModalOpen(false);
+          }}
         />
       )}
     </SidebarProvider>

@@ -14,7 +14,7 @@ import FormField from '../ui/form-field';
 
 interface PerfilEditModalProps {
   onClose: () => void;
-  onSaveSuccess: (newUsername: string) => void;
+  onSaveSuccess: (newUsername: string, newEmail: string) => void;
 }
 
 /**
@@ -117,7 +117,7 @@ export default function PerfilEditModal({
       const res = await api.patch(`/usuarios/${userId}/`, payload);
       if (res.data.success) {
         toast.success('Suas informações de perfil foram atualizadas!');
-        onSaveSuccess(res.data.usuario.username);
+        onSaveSuccess(res.data.usuario.username, res.data.usuario.email);
       } else {
         setErrorMsg(res.data.error || 'Erro ao atualizar informações.');
       }

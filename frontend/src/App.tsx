@@ -34,6 +34,7 @@ import { Toaster } from './components/ui/sonner';
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [username, setUsername] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
   const [role, setRole] = useState<string>('');
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
 
@@ -45,15 +46,18 @@ function App() {
         if (response.data.authenticated) {
           setIsAuthenticated(true);
           setUsername(response.data.user.username);
+          setEmail(response.data.user.email || '');
           setRole(response.data.user.role || '');
         } else {
           setIsAuthenticated(false);
           setUsername('');
+          setEmail('');
           setRole('');
         }
       } catch (error) {
         console.error('Erro ao verificar sessão ativa no backend:', error);
         setIsAuthenticated(false);
+        setEmail('');
         setRole('');
       } finally {
         setCheckingAuth(false);
@@ -63,16 +67,23 @@ function App() {
     verifyAuth();
   }, []);
 
-  const handleLoginSuccess = (userLogin: string, userRole: string) => {
+  const handleLoginSuccess = (userLogin: string, userRole: string, userEmail: string) => {
     setIsAuthenticated(true);
     setUsername(userLogin);
     setRole(userRole);
+    setEmail(userEmail);
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
     setUsername('');
+    setEmail('');
     setRole('');
+  };
+
+  const handleProfileUpdate = (newUsername: string, newEmail: string) => {
+    setUsername(newUsername);
+    setEmail(newEmail);
   };
 
   // Enquanto verifica o status de autenticação, exibe um spinner centralizado
@@ -106,8 +117,10 @@ function App() {
             <Layout 
               isAuthenticated={isAuthenticated} 
               username={username} 
+              email={email}
               onLogout={handleLogout} 
               role={role}
+              onUpdateProfile={handleProfileUpdate}
             />
           }
         >
