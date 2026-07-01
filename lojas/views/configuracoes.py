@@ -157,25 +157,39 @@ def folha_import_async(request):
 @permission_classes([IsAuthenticated, IsAdministrador])
 def diaria_import_async(request):
     """
-    Inicia a importação assíncrona do arquivo CSV de Diárias via upload.
+    Inicia a importação assíncrona dos arquivos de Diárias (Sistema e Manual) via upload.
     """
-    arquivo = request.FILES.get("arquivo")
-    if not arquivo:
-        return Response({"success": False, "error": "Nenhum arquivo enviado."}, status=status.HTTP_400_BAD_REQUEST)
+    arquivo_sistema = request.FILES.get("arquivo_sistema")
+    arquivo_manual = request.FILES.get("arquivo_manual")
 
-    if not arquivo.name.lower().endswith(".csv"):
-        return Response({"success": False, "error": "Envie um arquivo CSV de diárias válido."}, status=status.HTTP_400_BAD_REQUEST)
+    if not arquivo_sistema or not arquivo_manual:
+        return Response({
+            "success": False, 
+            "error": "Forneça ambos os arquivos: a Base do Sistema e a Base Manual."
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    if not arquivo_sistema.name.lower().endswith(".csv"):
+        return Response({
+            "success": False,
+            "error": "O arquivo da Base do Sistema deve ser um CSV de diárias válido."
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    nome_manual = (arquivo_manual.name or "").lower()
+    if not (nome_manual.endswith(".xlsx") or nome_manual.endswith(".xlsm") or nome_manual.endswith(".xls")):
+        return Response({
+            "success": False,
+            "error": "O arquivo da Base Manual deve ser uma planilha Excel válida."
+        }, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        conteudo = arquivo.read().decode("utf-8-sig")
+        conteudo_sistema = arquivo_sistema.read().decode("utf-8-sig")
     except UnicodeDecodeError:
         try:
-            # Tenta decodificar como ISO-8859-1 se falhar em UTF-8
-            conteudo = arquivo.read().decode("iso-8859-1")
+            conteudo_sistema = arquivo_sistema.read().decode("iso-8859-1")
         except UnicodeDecodeError:
             return Response({
                 "success": False,
-                "error": "Não foi possível ler o arquivo. Salve o CSV em UTF-8 e tente de novo."
+                "error": "Não foi possível ler o arquivo do sistema. Salve o CSV em UTF-8 e tente de novo."
             }, status=status.HTTP_400_BAD_REQUEST)
 
     if request.user.is_authenticated:
@@ -186,16 +200,23 @@ def diaria_import_async(request):
             user_id=request.user.id,
             content_type_id=ContentType.objects.get_for_model(Diaria).pk,
             object_id=0,
-            object_repr="Importação de Diárias",
+            object_repr="Importação Unificada de Diárias",
             action_flag=CHANGE,
-            change_message=f"Iniciou a importação do arquivo de diárias: {arquivo.name}"
+            change_message=f"Iniciou a importação unificada de diárias: {arquivo_sistema.name} e {arquivo_manual.name}"
         )
+
+    payload = {
+        "conteudo_sistema": conteudo_sistema,
+        "nome_sistema": arquivo_sistema.name,
+        "conteudo_manual": arquivo_manual.read(),
+        "nome_manual": arquivo_manual.name
+    }
 
     return _iniciar_importacao_async(
         tipo_importacao="diaria",
-        payload={"conteudo": conteudo, "nome": arquivo.name or "diarias.csv"},
-        titulo="Progresso da Importacao de Diarias",
-        mensagem_inicial="Iniciando processamento do arquivo de diárias...",
+        payload=payload,
+        titulo="Progresso da Importação Unificada de Diárias",
+        mensagem_inicial="Iniciando processamento das diárias (Sistema e Manual)...",
     )
 
 @api_view(["POST"])
@@ -345,8 +366,13 @@ def _processar_importacao_background(import_id, tipo_importacao):
             )
             mensagem, status_msg = _montar_mensagem_folha(resultado)
         elif tipo_importacao == "diaria":
-            resultado = importar_diarias_de_texto(
-                payload["conteudo"],
+            from lojas.services.diaria_importacao import importar_diarias_unificadas
+            conteudo_csv = payload["conteudo_sistema"]
+            arquivo_manual = BytesIO(payload["conteudo_manual"])
+            arquivo_manual.name = payload["nome_manual"]
+            resultado = importar_diarias_unificadas(
+                conteudo_csv=conteudo_csv,
+                arquivo_manual=arquivo_manual,
                 progress_callback=atualizar_progresso,
             )
             mensagem, status_msg = _montar_mensagem_diaria(resultado)
@@ -460,14 +486,16 @@ def _montar_mensagem_folha(resultado):
     return mensagem, "success"
 
 def _montar_mensagem_diaria(resultado):
-    if resultado["total"] == 0:
-        return "Nenhuma diária processada. Verifique as colunas do CSV.", "warning"
+    total_processado = resultado.get("total_sistema", 0) + resultado.get("total_manual", 0)
+    if total_processado == 0:
+        return "Nenhuma diária processada. Verifique as colunas dos arquivos.", "warning"
 
     mensagem = (
-        f"Importação de Diárias concluída: {resultado['total']} linhas processadas. "
-        f"{resultado['criados']} criadas, {resultado['atualizados']} atualizadas."
+        f"Importação de Diárias concluída: "
+        f"{resultado.get('total_sistema', 0)} do sistema e {resultado.get('total_manual', 0)} manuais processadas. "
+        f"{resultado.get('criados', 0)} criadas, {resultado.get('atualizados', 0)} atualizadas."
     )
-    if resultado["erros"] > 0:
+    if resultado.get("erros", 0) > 0:
         mensagem += f" {resultado['erros']} erros ignorados."
         return mensagem, "warning"
     return mensagem, "success"

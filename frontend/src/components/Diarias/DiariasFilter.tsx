@@ -13,6 +13,7 @@ interface FiltroOpcoes {
   coordenadores: string[];
   ufs: string[];
   meses_anos: { value: string; label: string }[];
+  order_types: string[];
 }
 
 interface DiariasFilterProps {
@@ -34,6 +35,8 @@ interface DiariasFilterProps {
   setFiltroCoordenador: (val: string) => void;
   filtroUf: string;
   setFiltroUf: (val: string) => void;
+  filtroOrderType: string;
+  setFiltroOrderType: (val: string) => void;
   onClear: () => void;
   onError: (msg: string | null) => void;
 }
@@ -64,6 +67,8 @@ export default function DiariasFilter({
   setFiltroCoordenador,
   filtroUf,
   setFiltroUf,
+  filtroOrderType,
+  setFiltroOrderType,
   onClear,
   onError,
 }: DiariasFilterProps) {
@@ -76,7 +81,8 @@ export default function DiariasFilter({
     supervisores: [],
     coordenadores: [],
     ufs: [],
-    meses_anos: []
+    meses_anos: [],
+    order_types: []
   });
   const [loading, setLoading] = useState(true);
 
@@ -279,6 +285,25 @@ export default function DiariasFilter({
               value={filtroUf}
               onChange={setFiltroUf}
               placeholder="Todas as UFs..."
+              multiple={true}
+            />
+          )}
+        </div>
+
+        {/* Origem */}
+        <div className="space-y-1.5">
+          <label className="block text-[10px] font-bold text-neutral-500 uppercase">Origem</label>
+          {loading ? (
+            <div className="text-xs text-neutral-400">Carregando...</div>
+          ) : (
+            <SearchableSelect
+              options={[
+                { value: "", label: "Todas as Origens" },
+                ...opcoes.order_types.map((o) => ({ value: o, label: o }))
+              ]}
+              value={filtroOrderType}
+              onChange={setFiltroOrderType}
+              placeholder="Todas as origens..."
               multiple={true}
             />
           )}

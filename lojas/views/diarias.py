@@ -136,6 +136,19 @@ def diarias_list_api(request):
                 q_obj = q_obj | Q(loja__isnull=True) | Q(loja__uf="") | Q(loja__uf__isnull=True)
             queryset = queryset.filter(q_obj)
 
+    order_type_val = request.query_params.get("order_type")
+    if order_type_val:
+        order_types = [ot.strip() for ot in order_type_val.split(",") if ot.strip()]
+        if order_types:
+            has_null = "null" in order_types
+            vals = [ot for ot in order_types if ot != "null"]
+            q_obj = Q()
+            if vals:
+                q_obj = Q(order_type__in=vals)
+            if has_null:
+                q_obj = q_obj | Q(order_type__isnull=True) | Q(order_type="")
+            queryset = queryset.filter(q_obj)
+
     # Filtro por Mês/Ano (competência) no formato YYYY-MM
     mes_ano = request.query_params.get("mes_ano")
     if mes_ano:
@@ -269,6 +282,21 @@ def diarias_list_api(request):
         } for item in dist_coord
     ]
 
+    # 8. Top 10 Lojas com maiores gastos (Novo Gráfico)
+    dist_loja = (
+        queryset.filter(loja__isnull=False)
+        .values("loja__nome_referencia")
+        .annotate(quantidade=Count("id_diaria"), total=Sum("valor"))
+        .order_by("-total")[:10]
+    )
+    dados_grafico_loja = [
+        {
+            "loja": item["loja__nome_referencia"],
+            "quantidade": item["quantidade"],
+            "total": float(item["total"] or 0)
+        } for item in dist_loja
+    ]
+
     # Paginação dos resultados da tabela detalhada
     paginator = DiariaPaginacao()
     page = paginator.paginate_queryset(queryset, request)
@@ -288,7 +316,8 @@ def diarias_list_api(request):
             "turno": dados_grafico_turno,
             "motivo": dados_grafico_motivo,
             "uf": dados_grafico_uf,
-            "coordenador": dados_grafico_coordenador
+            "coordenador": dados_grafico_coordenador,
+            "lojas": dados_grafico_loja
         },
         "resultados": serializer.data
     })
@@ -371,7 +400,14 @@ def diarias_filtro_opcoes_api(request):
             "value": ma,
             "label": f"{mes}/{ano}"
         })
- 
+
+    # Mapeia as origens/tipo de pedido únicos disponíveis
+    order_types = Diaria.objects.values_list("order_type", flat=True).distinct().order_by("order_type")
+    order_types_list = sorted(list(set(ot.strip() for ot in order_types if ot and ot.strip())))
+    has_null_order_type = Diaria.objects.filter(Q(order_type__isnull=True) | Q(order_type="")).exists()
+    if has_null_order_type:
+        order_types_list.append("null")
+
     return Response({
         "diaristas": diaristas_list,
         "lojas": lojas_lista,
@@ -381,5 +417,6 @@ def diarias_filtro_opcoes_api(request):
         "supervisores": supervisores_list,
         "coordenadores": coordenadores_list,
         "ufs": ufs_list,
-        "meses_anos": meses_formatados
+        "meses_anos": meses_formatados,
+        "order_types": order_types_list
     })

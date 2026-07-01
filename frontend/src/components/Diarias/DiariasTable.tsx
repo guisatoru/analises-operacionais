@@ -14,6 +14,7 @@ export interface DiariaData {
   status: string;
   ultima_atualizacao: string;
   justificativa: string;
+  order_type?: string;
 }
 
 interface DiariasTableProps {
@@ -28,7 +29,7 @@ interface DiariasTableProps {
 // Retorna o badge estilizado de acordo com o status
 const getStatusBadge = (statusStr: string) => {
   const lower = statusStr.toLowerCase();
-  if (lower.includes('pago')) {
+  if (lower.includes('pago') || lower.includes('finalizado')) {
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
         <CheckCircle2 className="h-3 w-3" />
@@ -102,6 +103,7 @@ export default function DiariasTable({
                 <th className="py-4 px-6">Data</th>
                 <th className="py-4 px-6">Motivo</th>
                 <th className="py-4 px-6">Solicitante</th>
+                <th className="py-4 px-6">Origem</th>
                 <th className="py-4 px-6 text-right">Valor</th>
                 <th className="py-4 px-6 text-center">Status</th>
               </tr>
@@ -120,8 +122,19 @@ export default function DiariasTable({
                   <td className="py-4 px-6 text-neutral-600 dark:text-neutral-400">
                     {new Date(d.data_servico).toLocaleDateString('pt-BR')}
                   </td>
-                  <td className="py-4 px-6 text-neutral-600 dark:text-neutral-400">{d.motivo}</td>
+                   <td className="py-4 px-6 text-neutral-600 dark:text-neutral-400">{d.motivo}</td>
                   <td className="py-4 px-6 text-neutral-600 dark:text-neutral-400">{d.solicitante.toUpperCase()}</td>
+                  <td className="py-4 px-6">
+                    {d.order_type === 'MANUAL' ? (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                        MANUAL
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-600 border border-blue-500/20">
+                        SISTEMA
+                      </span>
+                    )}
+                  </td>
                   <td className="py-4 px-6 text-right font-mono font-bold text-neutral-900 dark:text-neutral-100">{formatarReal(parseFloat(d.valor))}</td>
                   <td className="py-4 px-6 text-center">{getStatusBadge(d.status)}</td>
                 </tr>

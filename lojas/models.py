@@ -863,6 +863,7 @@ class Diaria(models.Model):
     status = models.CharField("Status do Pagamento", max_length=100)
     ultima_atualizacao = models.DateField("Última Atualização")
     justificativa = models.TextField("Justificativa", blank=True, default="")
+    order_type = models.CharField("Tipo de Pedido", max_length=50, default="SISTEMA")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

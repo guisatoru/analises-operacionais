@@ -49,7 +49,8 @@ export default function Diarias() {
     turno: [] as { turno: string; quantidade: number; total: number }[],
     motivo: [] as { motivo: string; quantidade: number; total: number }[],
     uf: [] as { uf: string; quantidade: number; total: number }[],
-    coordenador: [] as { coordenador: string; quantidade: number; total: number }[]
+    coordenador: [] as { coordenador: string; quantidade: number; total: number }[],
+    lojas: [] as { loja: string; quantidade: number; total: number }[]
   });
 
   // Estados dos filtros
@@ -62,6 +63,7 @@ export default function Diarias() {
   const [filtroSupervisor, setFiltroSupervisor] = useState('');
   const [filtroCoordenador, setFiltroCoordenador] = useState('');
   const [filtroUf, setFiltroUf] = useState('');
+  const [filtroOrderType, setFiltroOrderType] = useState('');
 
   // Estados de paginação e UI
   const [currentPage, setCurrentPage] = useState(1);
@@ -92,6 +94,7 @@ export default function Diarias() {
         if (filtroSupervisor) params.append('supervisor', filtroSupervisor);
         if (filtroCoordenador) params.append('coordenador', filtroCoordenador);
         if (filtroUf) params.append('uf', filtroUf);
+        if (filtroOrderType) params.append('order_type', filtroOrderType);
 
         const response = await api.get(`/diarias/?${params.toString()}`);
         
@@ -99,7 +102,7 @@ export default function Diarias() {
           const results = response.data.results || {};
           setDiarias(results.resultados || []);
           setKpis(results.kpis || { valor_total: 0, quantidade_total: 0, preco_medio: 0, pendentes: 0 });
-          setGraficos(results.graficos || { mensal: [], status: [], turno: [], motivo: [], uf: [], coordenador: [] });
+          setGraficos(results.graficos || { mensal: [], status: [], turno: [], motivo: [], uf: [], coordenador: [], lojas: [] });
           
           const count = response.data.count || 0;
           setTotalPages(Math.ceil(count / 20) || 1);
@@ -123,7 +126,8 @@ export default function Diarias() {
     filtroStatus,
     filtroSupervisor,
     filtroCoordenador,
-    filtroUf
+    filtroUf,
+    filtroOrderType
   ]);
 
   const handleLimparFiltros = () => {
@@ -136,6 +140,7 @@ export default function Diarias() {
     setFiltroSupervisor('');
     setFiltroCoordenador('');
     setFiltroUf('');
+    setFiltroOrderType('');
     setCurrentPage(1);
   };
 
@@ -180,6 +185,8 @@ export default function Diarias() {
         setFiltroCoordenador={(val) => { setFiltroCoordenador(val); setCurrentPage(1); }}
         filtroUf={filtroUf}
         setFiltroUf={(val) => { setFiltroUf(val); setCurrentPage(1); }}
+        filtroOrderType={filtroOrderType}
+        setFiltroOrderType={(val) => { setFiltroOrderType(val); setCurrentPage(1); }}
         onClear={handleLimparFiltros}
         onError={handleFilterError}
       />
@@ -553,6 +560,41 @@ export default function Diarias() {
                 </ResponsiveContainer>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Gráfico Top 10 Lojas com Maiores Gastos */}
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-xs shadow-sm">
+          <h3 className="font-bold text-xs uppercase tracking-wider text-neutral-800 dark:text-neutral-200 mb-4">
+            Top 10 Lojas com Maiores Gastos de Diárias (R$)
+          </h3>
+          <div className="h-64">
+            {loadingData ? (
+              <div className="h-full flex items-center justify-center text-xs text-neutral-400">
+                Carregando lojas...
+              </div>
+            ) : !graficos.lojas || graficos.lojas.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-xs text-neutral-400 italic">
+                Nenhuma diária registrada
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={graficos.lojas} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+                  <XAxis dataKey="loja" stroke="#888888" fontSize={9} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#888888" fontSize={9} tickLine={false} axisLine={false} tickFormatter={(v) => `R$ ${v}`} />
+                  <Tooltip
+                    contentStyle={{ background: '#171717', border: 'none', borderRadius: '8px', fontSize: '11px', color: '#fff' }}
+                    formatter={(value: any) => [formatarReal(Number(value)), 'Gasto Total']}
+                  />
+                  <Bar 
+                    dataKey="total" 
+                    fill="#10b981" 
+                    radius={[4, 4, 0, 0]}
+                    style={{ cursor: 'pointer' }}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
