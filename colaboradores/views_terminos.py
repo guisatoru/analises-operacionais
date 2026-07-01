@@ -24,13 +24,59 @@ from .view_utils import derive_termino_state
 
 from rest_framework.pagination import PageNumberPagination
 
-@api_view(["GET", "POST"])
+@api_view(["GET", "POST", "DELETE"])
 @permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def terminos_list(request):
     """
     Lista colaboradores próximos das datas de término de experiência (GET)
     ou registra uma ação no controle de término (POST).
     """
+    if request.method == "DELETE":
+        # Por que existe: Permite que o usuário reverta uma decisão de término tomada anteriormente,
+        # fazendo com que o colaborador retorne para o status pendente no acompanhamento de termos de experiência.
+        colaborador_id = request.data.get("colaborador_id") or request.query_params.get("colaborador_id")
+        etapa = request.data.get("etapa") or request.query_params.get("etapa")
+
+        if not colaborador_id or not etapa:
+            return Response({
+                "error": "colaborador_id e etapa são obrigatórios para limpar a decisão."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        colaborador = get_object_or_404(Colaborador, id=colaborador_id)
+        etapa_num = int(etapa)
+
+        # Se for limpar a etapa 1, limpamos as decisões da etapa 1 e também da etapa 2. 
+        # Se for a etapa 2, limpamos apenas a etapa 2.
+        if etapa_num == 1:
+            controles = ControleTermino.objects.filter(colaborador=colaborador, etapa__in=[1, 2])
+        else:
+            controles = ControleTermino.objects.filter(colaborador=colaborador, etapa=etapa_num)
+
+        count = controles.count()
+        if count > 0:
+            controles.delete()
+
+            # Registrar a ação de exclusão no log de auditoria do Django Admin
+            if request.user.is_authenticated:
+                from django.contrib.admin.models import LogEntry, DELETION
+                from django.contrib.contenttypes.models import ContentType
+                LogEntry.objects.log_action(
+                    user_id=request.user.id,
+                    content_type_id=ContentType.objects.get_for_model(ControleTermino).pk,
+                    object_id=colaborador.pk,
+                    object_repr=f"Limpeza de decisões da etapa {etapa_num} para {colaborador.nome}",
+                    action_flag=DELETION,
+                    change_message=f"Limpou decisões da etapa {etapa_num} para o colaborador {colaborador.nome} ({count} registros removidos)."
+                )
+
+            return Response({
+                "message": f"Decisão da etapa {etapa_num} limpa com sucesso. {count} registros removidos."
+            }, status=status.HTTP_200_OK)
+
+        return Response({
+            "message": "Nenhuma decisão encontrada para limpar nesta etapa."
+        }, status=status.HTTP_200_OK)
+
     if request.method == "POST":
         colaborador_id = request.data.get("colaborador_id")
         acao = request.data.get("acao")

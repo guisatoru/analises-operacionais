@@ -74,6 +74,40 @@ export default function DecisaoTerminoModal({
     }
   };
 
+  // Limpa a decisão atual da etapa selecionada na API do Django
+  // Por que existe: Permite reverter decisões de término já cadastradas para devolver o colaborador ao estado pendente.
+  const handleDeleteAcao = async () => {
+    const confirmClear = window.confirm(
+      `Tem certeza que deseja limpar a decisão de Término ${selectedEtapa}?\n\n` +
+      `Isso fará com que o colaborador volte para o status "Pendente" nesta etapa.\n` +
+      `Atenção: Se você limpar o Término 1, as decisões de ambas as etapas (Término 1 e Término 2) serão apagadas.`
+    );
+    if (!confirmClear) return;
+
+    setErrorMsg(null);
+    setActionLoading(true);
+
+    try {
+      await api.delete('/colaboradores/terminos/', {
+        data: {
+          colaborador_id: item.colaborador.id,
+          etapa: selectedEtapa,
+        },
+      });
+
+      toast.success('Decisão de término limpa com sucesso!');
+      onSaveSuccess();
+    } catch (err: any) {
+      console.error('Erro ao limpar decisão:', err);
+      setErrorMsg(
+        err.response?.data?.error || 'Erro ao limpar decisão de término.'
+      );
+      toast.error('Erro ao limpar decisão de término.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Regra de validação para habilitar/desabilitar a segunda etapa do término
   const latestStage1 = item.history.find((h) => h.etapa === 1);
   const isStage2Disabled = latestStage1
@@ -292,22 +326,36 @@ export default function DecisaoTerminoModal({
           </div>
 
           {/* Rodapé Ações */}
-          <div className="flex justify-end gap-3 p-6 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 shrink-0">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2.5 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 rounded-full text-xs font-bold text-neutral-700 dark:text-neutral-300 text-sm font-semibold transition-colors"
-            >
-              Voltar
-            </button>
-            <button
-              type="submit"
-              disabled={actionLoading}
-              className="px-6 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full text-xs font-bold hover:bg-neutral-850 dark:hover:bg-neutral-100 shadow-xs disabled:opacity-50 transition-colors flex items-center gap-2"
-            >
-              {actionLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-              Salvar Decisão
-            </button>
+          <div className="flex justify-between items-center p-6 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 shrink-0">
+            <div>
+              {item.history.some((h) => h.etapa === selectedEtapa) && (
+                <button
+                  type="button"
+                  disabled={actionLoading}
+                  onClick={handleDeleteAcao}
+                  className="px-5 py-2.5 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 rounded-full text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Limpar Decisão
+                </button>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-5 py-2.5 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 rounded-full text-xs font-bold text-neutral-700 dark:text-neutral-300 text-sm font-semibold transition-colors"
+              >
+                Voltar
+              </button>
+              <button
+                type="submit"
+                disabled={actionLoading}
+                className="px-6 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full text-xs font-bold hover:bg-neutral-850 dark:hover:bg-neutral-100 shadow-xs disabled:opacity-50 transition-colors flex items-center gap-2"
+              >
+                {actionLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                Salvar Decisão
+              </button>
+            </div>
           </div>
         </form>
       </div>

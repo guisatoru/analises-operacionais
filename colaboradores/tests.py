@@ -3,6 +3,8 @@ from io import BytesIO
 
 import pandas as pd
 from django.test import TestCase
+from django.urls import reverse
+from django.contrib.auth.models import User
 
 from colaboradores.models import Colaborador, ControleTermino
 from colaboradores.services.gestao_importacao import importar_gestao_pessoas
@@ -239,5 +241,93 @@ class TerminoStateTests(TestCase):
         self.assertFalse(state["encerrado"])
         self.assertIsNone(state["ultimaAcao"])
 
-
 # Create your tests here.
+
+
+class TerminoAPITests(TestCase):
+    """
+    Por que existe: Garante a integridade das requisições REST da listagem e registro
+    de término, especificamente as ações de salvar (POST) e limpar (DELETE) decisão.
+    """
+    def setUp(self):
+        # Criar usuário administrador para passar no IsGestaoOrAdministrador
+        self.user = User.objects.create_superuser(
+            username="admin", email="admin@teste.com", password="password123"
+        )
+        self.client.force_login(self.user)
+        
+        # Criar loja e colaborador para os testes
+        self.loja = Loja.objects.create(
+            nome_referencia="LOJA SP TESTE",
+            nome_gestao="LOJA SP TESTE",
+            centro_de_custo="999",
+            quadro="1",
+            uf="SP",
+        )
+        self.colaborador = Colaborador.objects.create(
+            re="999999",
+            nome="Colaborador Teste",
+            loja=self.loja,
+            centro_custo="999",
+            data_admissao=date(2026, 1, 10),
+            status="A",
+            termino_1=date(2026, 2, 10),
+            termino_2=date(2026, 3, 10),
+        )
+        self.url = reverse("colaboradores:terminos_list")
+
+    def test_delete_limpa_decisao_etapa_1_e_2(self):
+        # 1. Registrar decisões na etapa 1 e na etapa 2
+        ControleTermino.objects.create(
+            colaborador=self.colaborador,
+            etapa=1,
+            acao="prorrogado",
+            observacao="Prorrogar etapa 1",
+        )
+        ControleTermino.objects.create(
+            colaborador=self.colaborador,
+            etapa=2,
+            acao="manter",
+            observacao="Efetivar na etapa 2",
+        )
+
+        # Confirmar que existem 2 controles
+        self.assertEqual(ControleTermino.objects.filter(colaborador=self.colaborador).count(), 2)
+
+        # 2. Fazer requisição DELETE para limpar a etapa 1
+        response = self.client.delete(
+            self.url,
+            data={"colaborador_id": self.colaborador.id, "etapa": 1},
+            content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        # O DELETE na etapa 1 deve apagar tanto a etapa 1 quanto a etapa 2
+        self.assertEqual(ControleTermino.objects.filter(colaborador=self.colaborador).count(), 0)
+
+    def test_delete_limpa_apenas_etapa_2(self):
+        # 1. Registrar decisões na etapa 1 e na etapa 2
+        ControleTermino.objects.create(
+            colaborador=self.colaborador,
+            etapa=1,
+            acao="prorrogado",
+            observacao="Prorrogar etapa 1",
+        )
+        ControleTermino.objects.create(
+            colaborador=self.colaborador,
+            etapa=2,
+            acao="manter",
+            observacao="Efetivar na etapa 2",
+        )
+
+        # 2. Fazer requisição DELETE para limpar apenas a etapa 2
+        response = self.client.delete(
+            self.url,
+            data={"colaborador_id": self.colaborador.id, "etapa": 2},
+            content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        # O DELETE na etapa 2 deve remover apenas a decisão da etapa 2
+        self.assertEqual(ControleTermino.objects.filter(colaborador=self.colaborador).count(), 1)
+        self.assertEqual(ControleTermino.objects.filter(colaborador=self.colaborador, etapa=1).count(), 1)
