@@ -24,6 +24,8 @@ interface TerminosFilterProps {
   setOrdenacao: (val: string) => void;
   etapaFiltro: string;
   setEtapaFiltro: (val: string) => void;
+  acaoFiltro: string;
+  setAcaoFiltro: (val: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   onClear: () => void;
 }
@@ -52,6 +54,8 @@ export default function TerminosFilter({
   setOrdenacao,
   etapaFiltro,
   setEtapaFiltro,
+  acaoFiltro,
+  setAcaoFiltro,
   onSubmit,
   onClear,
 }: TerminosFilterProps) {
@@ -233,6 +237,24 @@ export default function TerminosFilter({
             <option value="">Todos os Términos</option>
             <option value="1">1º Término (30 dias)</option>
             <option value="2">2º Término (60 dias)</option>
+          </select>
+        </div>
+
+        {/* Decisão / Ação Tomada */}
+        <div>
+          <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
+            Decisão / Ação Tomada
+          </label>
+          <select
+            value={acaoFiltro}
+            onChange={(e) => setAcaoFiltro(e.target.value)}
+            className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+          >
+            <option value="">Todas as Ações</option>
+            <option value="pendente">Pendente (Sem Decisão)</option>
+            <option value="manter">Efetivado (Manter)</option>
+            <option value="termino">Dispensado (Término)</option>
+            <option value="prorrogado">Prorrogado</option>
           </select>
         </div>
 

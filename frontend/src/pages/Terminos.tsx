@@ -45,6 +45,7 @@ export default function Terminos() {
   const [dataFiltro, setDataFiltro] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [etapaFiltro, setEtapaFiltro] = useState('');
+  const [acaoFiltro, setAcaoFiltro] = useState('');
   const [fetchTrigger, setFetchTrigger] = useState(0);
 
   // Estados dos Modais
@@ -62,7 +63,7 @@ export default function Terminos() {
   // Efeito reativo: recarrega os prazos ao mudar filtros ou ordenação
   useEffect(() => {
     fetchTerminos(true);
-  }, [ordenacao, statusGestao, coordenador, dataFiltro, dataFim, reFiltro, nomeFiltro, etapaFiltro, fetchTrigger]);
+  }, [ordenacao, statusGestao, coordenador, dataFiltro, dataFim, reFiltro, nomeFiltro, etapaFiltro, acaoFiltro, fetchTrigger]);
 
   useEffect(() => {
     fetchTerminos();
@@ -89,6 +90,7 @@ export default function Terminos() {
           data_filtro: dataFiltro || undefined,
           data_fim: dataFim || undefined,
           etapa: etapaFiltro || undefined,
+          acao: acaoFiltro || undefined,
         }
       });
 
@@ -188,6 +190,7 @@ export default function Terminos() {
     setDataFiltro('');
     setDataFim('');
     setEtapaFiltro('');
+    setAcaoFiltro('');
 
     setFetchTrigger(prev => prev + 1);
   };
@@ -215,6 +218,7 @@ export default function Terminos() {
     if (dataFiltro) params.append('data_filtro', dataFiltro);
     if (dataFim) params.append('data_fim', dataFim);
     if (etapaFiltro) params.append('etapa', etapaFiltro);
+    if (acaoFiltro) params.append('acao', acaoFiltro);
     
     // Por que existe: Utiliza o hostname dinâmico do navegador para garantir que a requisição de exportação funcione em qualquer máquina que esteja acessando o frontend.
     const url = `http://${window.location.hostname}:8000/colaboradores/terminos/exportar/?${params.toString()}`;
@@ -312,6 +316,8 @@ export default function Terminos() {
         setOrdenacao={setOrdenacao}
         etapaFiltro={etapaFiltro}
         setEtapaFiltro={setEtapaFiltro}
+        acaoFiltro={acaoFiltro}
+        setAcaoFiltro={setAcaoFiltro}
         onSubmit={handleSearchSubmit}
         onClear={handleClearFilters}
       />

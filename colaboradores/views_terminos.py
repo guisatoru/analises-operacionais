@@ -122,6 +122,7 @@ def terminos_list(request):
     re_query = request.GET.get("re", "")
     nome_query = request.GET.get("nome", "")
     etapa_filtro = request.GET.get("etapa", "")
+    acao_filtro = request.GET.get("acao", "")
 
     # Esta chamada aplica filtros de busca, coordenador, status de gestão, matrícula (RE) e nome do colaborador.
     colaboradores_qs = _filtrar_terminos_queryset(
@@ -140,6 +141,7 @@ def terminos_list(request):
         data_filtro,
         data_fim,
         etapa_filtro=etapa_filtro,
+        acao_filtro=acao_filtro,
     )
 
     cache_info = _montar_cache_info_geovictoria(colaboradores_qs)
@@ -176,6 +178,7 @@ def exportar_terminos_excel(request):
     re_query = request.GET.get("re", "")
     nome_query = request.GET.get("nome", "")
     etapa_filtro = request.GET.get("etapa", "")
+    acao_filtro = request.GET.get("acao", "")
 
     # Filtra os colaboradores antes de gerar a planilha Excel com base nos filtros da tela.
     colaboradores_qs = _filtrar_terminos_queryset(
@@ -194,6 +197,7 @@ def exportar_terminos_excel(request):
         data_filtro,
         data_fim,
         etapa_filtro=etapa_filtro,
+        acao_filtro=acao_filtro,
     )
 
     if not processed_colaboradores:
@@ -365,13 +369,15 @@ def _filtrar_terminos_queryset(
     return colaboradores_qs
 
 
-def _processar_colaboradores_termino(colaboradores_qs, today, data_filtro, data_fim, etapa_filtro=None):
+def _processar_colaboradores_termino(
+    colaboradores_qs, today, data_filtro, data_fim, etapa_filtro=None, acao_filtro=None
+):
     """
     Calcula a fase de término e remove registros que não devem aparecer na tela.
 
     Por que existe: Centraliza o cálculo da etapa atual do término do contrato de experiência
     e permite filtrar os colaboradores pertencentes à primeira ou segunda etapa do período
-    de experiência antes da paginação e exportação.
+    de experiência ou pela decisão/ação tomada antes da paginação e exportação.
     """
     processed_colaboradores = []
 
@@ -386,6 +392,20 @@ def _processar_colaboradores_termino(colaboradores_qs, today, data_filtro, data_
                     continue
             except ValueError:
                 pass
+
+        # Filtra pela ação tomada na etapa atual do término caso tenha sido selecionada
+        if acao_filtro:
+            # Por que existe: Permite filtrar os colaboradores de acordo com as decisões
+            # tomadas ou pendentes na etapa corrente (1 ou 2).
+            if acao_filtro == "pendente":
+                if state["encerrado"]:
+                    continue
+            elif acao_filtro == "prorrogado":
+                if state["ultimaAcao"] != "prorrogado":
+                    continue
+            elif acao_filtro in ["manter", "termino"]:
+                if not state["encerrado"] or state["ultimaAcao"] != acao_filtro:
+                    continue
 
         latest_first = next((controle for controle in history if controle.etapa == 1), None)
         latest_second = next((controle for controle in history if controle.etapa == 2), None)

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from io import BytesIO
 
 import pandas as pd
@@ -331,3 +331,57 @@ class TerminoAPITests(TestCase):
         # O DELETE na etapa 2 deve remover apenas a decisão da etapa 2
         self.assertEqual(ControleTermino.objects.filter(colaborador=self.colaborador).count(), 1)
         self.assertEqual(ControleTermino.objects.filter(colaborador=self.colaborador, etapa=1).count(), 1)
+
+    def test_list_filter_by_acao(self):
+        """
+        Testa se o filtro de ação ('acao') funciona na listagem de términos.
+        """
+        today = date.today()
+        # Ajustar data de self.colaborador para não expirar por atraso
+        self.colaborador.termino_1 = today + timedelta(days=5)
+        self.colaborador.termino_2 = today + timedelta(days=35)
+        self.colaborador.save()
+
+        # Criar outro colaborador
+        colab_outro = Colaborador.objects.create(
+            re="888888",
+            nome="Outro Colaborador",
+            loja=self.loja,
+            centro_custo="999",
+            data_admissao=today - timedelta(days=10),
+            status="A",
+            termino_1=today + timedelta(days=5),
+            termino_2=today + timedelta(days=35),
+        )
+
+        # 1. Por padrão, sem filtros, ambos aparecem (pendentes)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data["results"]), 2)
+
+        # 2. Filtrar por 'pendente' (ambos estão pendentes)
+        response = self.client.get(self.url, {"acao": "pendente"})
+        self.assertEqual(len(response.data["results"]), 2)
+
+        # 3. Filtrar por 'manter' (nenhum foi efetivado ainda)
+        response = self.client.get(self.url, {"acao": "manter"})
+        self.assertEqual(len(response.data["results"]), 0)
+
+        # 4. Registrar decisão 'manter' para self.colaborador na etapa 1 (ele encerra)
+        ControleTermino.objects.create(
+            colaborador=self.colaborador,
+            etapa=1,
+            acao="manter",
+            observacao="Efetivar",
+        )
+
+        # Agora, self.colaborador está 'manter' (efetivado) e colab_outro está 'pendente'
+        # 5. Filtrar por 'manter' (apenas self.colaborador deve vir)
+        response = self.client.get(self.url, {"acao": "manter"})
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["colaborador"]["re"], "999999")
+
+        # 6. Filtrar por 'pendente' (apenas colab_outro deve vir)
+        response = self.client.get(self.url, {"acao": "pendente"})
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["colaborador"]["re"], "888888")
