@@ -140,6 +140,7 @@ export default function Colaboradores() {
             window.clearInterval(intervalId);
             setSyncingLojas(false);
             fetchColaboradores();
+            setFetchTrigger(prev => prev + 1);
           }
         }
       } catch (err) {
@@ -288,6 +289,7 @@ export default function Colaboradores() {
         setSoTotvsQuery={setSoTotvsQuery}
         onSubmit={handleFilterSubmit}
         onClear={handleClearFilters}
+        fetchTrigger={fetchTrigger}
       />
 
       {/* Painel de Sincronização de Lojas (GeoVictoria) */}

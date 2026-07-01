@@ -170,7 +170,7 @@ export default function Terminos() {
               toast.success('Sincronização de faltas e atestados do GeoVictoria concluída!');
               setTimeout(() => {
                 setShowProgressBar(false);
-                fetchTerminos();
+                setFetchTrigger(prev => prev + 1);
               }, 1200);
             } else if (data.status === 'error') {
               clearInterval(intervalId);
@@ -227,7 +227,7 @@ export default function Terminos() {
 
   const handleSaveSuccess = () => {
     setShowAcaoModal(false);
-    fetchTerminos();
+    setFetchTrigger(prev => prev + 1);
   };
 
   // Trata a exportação dos dados em lote para arquivo Excel (.xlsx)
@@ -343,6 +343,7 @@ export default function Terminos() {
         setAcaoFiltro={setAcaoFiltro}
         onSubmit={handleSearchSubmit}
         onClear={handleClearFilters}
+        fetchTrigger={fetchTrigger}
       />
 
       {/* Erro de comunicação de listagem */}

@@ -28,6 +28,7 @@ interface TerminosFilterProps {
   setAcaoFiltro: (val: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   onClear: () => void;
+  fetchTrigger?: number;
 }
 
 /**
@@ -58,6 +59,7 @@ export default function TerminosFilter({
   setAcaoFiltro,
   onSubmit,
   onClear,
+  fetchTrigger,
 }: TerminosFilterProps) {
   // Opções dinâmicas carregadas da API
   const [coordenadoresOpcoes, setCoordenadoresOpcoes] = useState<string[]>([]);
@@ -92,7 +94,7 @@ export default function TerminosFilter({
     };
 
     fetchFiltroOpcoes();
-  }, [coordenador, statusGestao, dataFiltro, dataFim]);
+  }, [coordenador, statusGestao, dataFiltro, dataFim, fetchTrigger]);
 
   return (
     <form

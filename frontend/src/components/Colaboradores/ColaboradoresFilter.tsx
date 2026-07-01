@@ -36,6 +36,7 @@ interface ColaboradoresFilterProps {
   setSoTotvsQuery: (val: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   onClear: () => void;
+  fetchTrigger?: number;
 }
 
 /**
@@ -69,6 +70,7 @@ export default function ColaboradoresFilter({
   setSoTotvsQuery,
   onSubmit,
   onClear,
+  fetchTrigger,
 }: ColaboradoresFilterProps) {
   // Cache de opções dinâmicas obtidas da API
   const [lojasOpcoes, setLojasOpcoes] = useState<LojaRef[]>([]);
@@ -117,6 +119,7 @@ export default function ColaboradoresFilter({
     funcaoDivergenteQuery,
     divergenteQuery,
     soTotvsQuery,
+    fetchTrigger,
   ]);
 
   // Auxiliar para ligar/desligar um chip de auditoria rápido

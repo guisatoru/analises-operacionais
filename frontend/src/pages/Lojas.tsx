@@ -109,7 +109,7 @@ export default function Lojas() {
     };
 
     fetchFiltroOpcoes();
-  }, [busca, cliente, statusFiltro, centroCusto, coordenadorFiltro, supervisorFiltro, codigoLojaFiltro]);
+  }, [busca, cliente, statusFiltro, centroCusto, coordenadorFiltro, supervisorFiltro, codigoLojaFiltro, fetchTrigger]);
 
   const fetchCoordenadores = async () => {
     try {
@@ -232,6 +232,7 @@ export default function Lojas() {
   const handleCadastroSaveSuccess = () => {
     setShowCadastroModal(false);
     fetchLojas();
+    setFetchTrigger(prev => prev + 1);
   };
 
   // Deleta uma loja
@@ -244,6 +245,7 @@ export default function Lojas() {
       await api.delete(`/lojas/${loja.id}/excluir/`);
       toast.success('Loja excluída com sucesso!');
       fetchLojas();
+      setFetchTrigger(prev => prev + 1);
     } catch (err) {
       console.error('Erro ao excluir loja:', err);
       toast.error('Erro ao excluir loja. Verifique as permissões.');
@@ -474,6 +476,7 @@ export default function Lojas() {
             fetchCoordenadores();
             fetchSupervisores();
             fetchLojas();
+            setFetchTrigger(prev => prev + 1);
           }}
         />
       )}
