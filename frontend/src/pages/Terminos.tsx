@@ -28,20 +28,8 @@ interface SyncProgressResponse {
  * da listagem, barra de filtros inteligentes e formulário de decisão para subcomponentes dedicados.
  */
 export default function Terminos() {
-  // Referências para evitar requisições concorrentes duplicadas (race conditions)
-  const lastRequestParamsRef = useRef('');
-  const prevFiltersRef = useRef({
-    busca: '',
-    reFiltro: '',
-    nomeFiltro: '',
-    coordenador: '',
-    statusGestao: '',
-    ordenacao: 'data',
-    dataFiltro: '',
-    dataFim: '',
-    etapaFiltro: '',
-    acaoFiltro: '',
-  });
+  // Não há mais necessidade de armazenar estados anteriores em referências adicionais
+  // para evitar problemas no fluxo de eventos de colagem (Ctrl-V) e digitação.
 
   // Estados de listagem e paginação
   const [terminos, setTerminos] = useState<TerminoItem[]>([]);
@@ -75,48 +63,19 @@ export default function Terminos() {
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Efeito reativo único: recarrega os prazos ao mudar filtros, ordenação ou página atual.
-  // Re-adicionamos reFiltro e nomeFiltro para restaurar a pesquisa dinâmica.
-  useEffect(() => {
-    fetchTerminos();
-  }, [currentPage, ordenacao, statusGestao, coordenador, dataFiltro, dataFim, reFiltro, nomeFiltro, etapaFiltro, acaoFiltro, fetchTrigger]);
-
-  const fetchTerminos = async () => {
+  /**
+   * Busca a lista de prazos de término aplicando todos os filtros ativos.
+   * 
+   * Por que existe: Centraliza o envio dos parâmetros de filtro (etapa, coordenador, data, etc.)
+   * para a API de término dos contratos de experiência, permitindo forçar o reset para a primeira página.
+   */
+  const fetchTerminos = async (resetPage = false) => {
     setLoading(true);
     setErrorMsg(null);
-
-    // Detecta se algum filtro mudou em relação à última requisição
-    const filtersChanged =
-      prevFiltersRef.current.busca !== busca ||
-      prevFiltersRef.current.reFiltro !== reFiltro ||
-      prevFiltersRef.current.nomeFiltro !== nomeFiltro ||
-      prevFiltersRef.current.coordenador !== coordenador ||
-      prevFiltersRef.current.statusGestao !== statusGestao ||
-      prevFiltersRef.current.ordenacao !== ordenacao ||
-      prevFiltersRef.current.dataFiltro !== dataFiltro ||
-      prevFiltersRef.current.dataFim !== dataFim ||
-      prevFiltersRef.current.etapaFiltro !== etapaFiltro ||
-      prevFiltersRef.current.acaoFiltro !== acaoFiltro;
-
-    const targetPage = filtersChanged ? 1 : currentPage;
-
-    if (filtersChanged) {
+    const targetPage = resetPage ? 1 : currentPage;
+    if (resetPage) {
       setCurrentPage(1);
     }
-
-    // Atualiza a referência de filtros anteriores
-    prevFiltersRef.current = {
-      busca,
-      reFiltro,
-      nomeFiltro,
-      coordenador,
-      statusGestao,
-      ordenacao,
-      dataFiltro,
-      dataFim,
-      etapaFiltro,
-      acaoFiltro,
-    };
 
     const requestParams = {
       page: targetPage,
@@ -131,14 +90,6 @@ export default function Terminos() {
       etapa: etapaFiltro || undefined,
       acao: acaoFiltro || undefined,
     };
-
-    // Evita requisições duplicadas idênticas na mesma página
-    const paramsString = JSON.stringify(requestParams);
-    if (paramsString === lastRequestParamsRef.current) {
-      setLoading(false);
-      return;
-    }
-    lastRequestParamsRef.current = paramsString;
 
     try {
       const response = await api.get('/colaboradores/terminos/', {
@@ -161,6 +112,27 @@ export default function Terminos() {
       setLoading(false);
     }
   };
+
+  // Por que existe: Recarrega a busca a partir da página inicial sempre que qualquer filtro de seleção (dropdown/data),
+  // ordenação ou o gatilho de busca explícito sofrer alterações por parte do usuário.
+  // Note que removemos reFiltro e nomeFiltro daqui para desativar a busca dinâmica a cada caractere digitado.
+  useEffect(() => {
+    fetchTerminos(true);
+  }, [
+    ordenacao,
+    statusGestao,
+    coordenador,
+    dataFiltro,
+    dataFim,
+    etapaFiltro,
+    acaoFiltro,
+    fetchTrigger
+  ]);
+
+  // Por que existe: Recarrega os dados preservando o filtro atual quando o usuário navegar entre as páginas.
+  useEffect(() => {
+    fetchTerminos();
+  }, [currentPage]);
 
   // Trata o início da sincronização com GeoVictoria em tempo real (Polling)
   const handleStartSyncGeoVictoria = async () => {

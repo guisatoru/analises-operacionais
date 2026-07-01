@@ -96,7 +96,9 @@ export default function Colaboradores() {
     }
   };
 
-  // Efeito reativo para recarregar do início caso mude filtros ou aba ativa
+  // Por que existe: Recarrega a listagem a partir da página inicial sempre que filtros baseados
+  // em seleção (dropdowns), abas, chips rápidos ou o gatilho de busca (Enter/Botão de Pesquisar) forem alterados.
+  // Note que removemos reBusca e nomeBusca daqui para evitar requisições a cada tecla digitada.
   useEffect(() => {
     fetchColaboradores(true);
   }, [
@@ -108,8 +110,6 @@ export default function Colaboradores() {
     lojaFiltro,
     statusFiltro,
     statusGestaoFiltro,
-    reBusca,
-    nomeBusca,
     fetchTrigger
   ]);
 
