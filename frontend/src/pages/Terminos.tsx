@@ -63,7 +63,7 @@ export default function Terminos() {
   // Efeito reativo: recarrega os prazos ao mudar filtros ou ordenação
   useEffect(() => {
     fetchTerminos(true);
-  }, [ordenacao, statusGestao, coordenador, dataFiltro, dataFim, reFiltro, nomeFiltro, etapaFiltro, acaoFiltro, fetchTrigger]);
+  }, [ordenacao, statusGestao, coordenador, dataFiltro, dataFim, etapaFiltro, acaoFiltro, fetchTrigger]);
 
   useEffect(() => {
     fetchTerminos();
