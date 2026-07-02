@@ -51,6 +51,7 @@ O sistema é dividido em fluxos operacionais bem definidos:
    - Lista colaboradores vindos do ERP TOTVS (SRA) e aponta inconsistências em relação ao ponto real da GeoVictoria ou à planilha de Gestão de Pessoas.
 4. **Términos de Experiência:**
    - Monitora datas de vencimento do 1º e 2º período de experiência de novos funcionários. Permite prorrogações contratuais, download de avisos em lote e filtros avançados.
+   - **Tomada de Decisão com Dados de Ponto:** Permite ao RH visualizar e reverter decisões de prorrogação ou término. Integra uma aba detalhada de faltas/atestados sob demanda do GeoVictoria para embasar a decisão.
 5. **Central de Importações (Assíncrona):**
    - Upload de arquivos de grande porte (TOTVS SRA, planilha de Gestão de Pessoas e SRD de custos de Folha de Pagamento).
    - O processamento roda em threads de segundo plano (`threading.Thread`), comunicando o progresso percentual via Cache do Django para o React para evitar timeouts HTTP.
@@ -199,6 +200,23 @@ O frontend estará acessível em `http://localhost:5173`.
 ---
 
 ## 👨‍💻 Guia para Novos Desenvolvedores
+
+### 📍 Localização de Regras de Negócio e Serviços
 *   **Regras de Conciliação:** Localizadas em: [comparativo_loja.py](file:///c:/Users/guilherme.satoru/Desktop/analises-operacionais/lojas/services/comparativo_loja.py).
 *   **Importadores de Arquivos:** Localizados em: [views/configuracoes.py](file:///c:/Users/guilherme.satoru/Desktop/analises-operacionais/lojas/views/configuracoes.py).
 *   **Ciclo de Experiência (Términos):** Fica em: [views_terminos.py](file:///c:/Users/guilherme.satoru/Desktop/analises-operacionais/colaboradores/views_terminos.py).
+
+### 📐 Diretrizes de Arquitetura Frontend (Boas Práticas de Refatoração)
+Para manter o frontend legível e livre de arquivos excessivamente longos (acima de 350-400 linhas), adotamos as seguintes regras:
+1.  **Decomposição em Subcomponentes (Single Responsibility Principle - SRP):**
+    - Páginas ou modais complexos devem ser divididos em subcomponentes focados colocados em pastas correspondentes (ex: `src/components/Premios/` ou `src/components/Terminos/`).
+    - Exemplo de sucesso:
+      - O modal de término foi quebrado em [DecisaoTerminoModal.tsx](file:///c:/Users/guilherme.satoru/Desktop/analises-operacionais/frontend/src/components/Terminos/DecisaoTerminoModal.tsx) (orquestrador), [DecisaoTab.tsx](file:///c:/Users/guilherme.satoru/Desktop/analises-operacionais/frontend/src/components/Terminos/DecisaoTab.tsx) (formulário), [AusenciasTab.tsx](file:///c:/Users/guilherme.satoru/Desktop/analises-operacionais/frontend/src/components/Terminos/AusenciasTab.tsx) (integração de dados GeoVictoria) e [ConfirmDeleteModal.tsx](file:///c:/Users/guilherme.satoru/Desktop/analises-operacionais/frontend/src/components/Terminos/ConfirmDeleteModal.tsx) (diálogo de exclusão).
+      - O painel de prêmios foi dividido em [Premios.tsx](file:///c:/Users/guilherme.satoru/Desktop/analises-operacionais/frontend/src/pages/Premios.tsx) (página principal), [PremiosKPIs.tsx](file:///c:/Users/guilherme.satoru/Desktop/analises-operacionais/frontend/src/components/Premios/PremiosKPIs.tsx) (indicadores) e [PremiosCharts.tsx](file:///c:/Users/guilherme.satoru/Desktop/analises-operacionais/frontend/src/components/Premios/PremiosCharts.tsx) (gráficos Recharts).
+2.  **Separação de Preocupações (Separation of Concerns):**
+    - **Lógica e UI:** Centralize manipulações de requisições de API e formulários em subcomponentes ou hooks dedicados para não sobrecarregar o JSX principal.
+    - **Estilo:** Use apenas classes utilitárias do TailwindCSS. **Nunca** utilize estilos inline (`style={{ ... }}`).
+3.  **Evitar Duplicação de Formatação (Reusabilidade):**
+    - Utilize os utilitários centralizados em [formatters.ts](file:///c:/Users/guilherme.satoru/Desktop/analises-operacionais/frontend/src/utils/formatters.ts) para formatar moedas (`formatCurrency`) e datas (`formatDate`). Não redeclare helpers de formatação locais dentro dos componentes.
+4.  **Auto-Documentação:**
+    - Ao criar novos componentes ou helpers, insira docstrings em português explicando **o porquê** (WHY) de o código existir, facilitando a manutenção futura por outros desenvolvedores.
