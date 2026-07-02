@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User, Loader2, TrendingUp } from 'lucide-react';
 import api from '../api/client';
@@ -23,6 +23,11 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [usernameInput, setUsernameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Por que existe: Define o título da aba do navegador especificamente para a página de Login.
+  useEffect(() => {
+    document.title = 'Operacional | Login';
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,10 +75,10 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           <TrendingUp className="h-6 w-6" />
         </div>
         <h2 className="text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
-          Análises Operacionais
+          Sistema Operacional
         </h2>
         <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-450">
-          Entre com as suas credenciais de analista
+          Entre com as suas credenciais
         </p>
       </div>
 

@@ -1,5 +1,5 @@
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import PerfilEditModal from './Usuarios/PerfilEditModal';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from './ui/sidebar';
@@ -43,32 +43,38 @@ export default function Layout({ isAuthenticated, username, email, onLogout, rol
   let pageName = 'Início';
 
   if (path === 'lojas') {
-    sector = 'Operação & Equipe';
+    sector = 'Operação';
     pageName = 'Lojas';
   } else if (path === 'agenda') {
-    sector = 'Operação & Equipe';
-    pageName = 'Agenda de Apoio';
+    sector = 'Operação';
+    pageName = 'Agenda';
   } else if (path === 'agenda/historico') {
-    sector = 'Operação & Equipe';
+    sector = 'Operação';
     pageName = 'Histórico de Limpeza';
   } else if (path === 'colaboradores') {
-    sector = 'Operação & Equipe';
-    pageName = 'Auditoria de Equipe';
+    sector = 'Operação';
+    pageName = 'Base de Colaboradores';
   } else if (path === 'terminos') {
-    sector = 'Operação & Equipe';
-    pageName = 'Términos de Experiência';
+    sector = 'Operação';
+    pageName = 'Términos de Exp.';
+  } else if (path === 'presencas') {
+    sector = 'Operação';
+    pageName = 'Presenças';
   } else if (path === 'escopos') {
-    sector = 'Planejamento & BI';
+    sector = 'Análises';
     pageName = 'Escopos';
   } else if (path === 'comparativo') {
-    sector = 'Planejamento & BI';
-    pageName = 'Raio-X (Comparativo)';
+    sector = 'Análises';
+    pageName = 'Raio-X';
   } else if (path === 'headcount') {
-    sector = 'Planejamento & BI';
-    pageName = 'Análise de Headcount';
+    sector = 'Análises';
+    pageName = 'Headcount';
   } else if (path === 'diarias') {
-    sector = 'Planejamento & BI';
-    pageName = 'Painel de Diárias';
+    sector = 'Análises';
+    pageName = 'Diárias';
+  } else if (path === 'premios') {
+    sector = 'Análises';
+    pageName = 'Prêmios';
   } else if (path === 'importacoes') {
     sector = 'Configurações';
     pageName = 'Importações';
@@ -79,6 +85,11 @@ export default function Layout({ isAuthenticated, username, email, onLogout, rol
     sector = 'Geral';
     pageName = 'Início';
   }
+
+  // Por que existe: Atualiza o título da aba do navegador dinamicamente conforme o usuário navega entre as páginas do sistema.
+  useEffect(() => {
+    document.title = `Operacional | ${pageName}`;
+  }, [pageName]);
 
   return (
     <SidebarProvider>

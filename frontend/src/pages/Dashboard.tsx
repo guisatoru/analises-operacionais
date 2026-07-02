@@ -5,9 +5,7 @@ import {
   Users, 
   Clock, 
   CheckCircle2, 
-  XCircle,
   ArrowRight,
-  Sparkles,
   Layers,
   TrendingUp,
   Database,
@@ -21,33 +19,24 @@ import api from '../api/client';
  * 
  * Por que existe: Serve como a tela de boas-vindas inicial para o usuário logado,
  * fornecendo um panorama geral da plataforma com atalhos para todas as seções
- * operacionais e financeiras, além de monitorar o status do servidor.
+ * operacionais e financeiras do Sistema Operacional.
  */
 export default function Dashboard() {
-  const [apiStatus, setApiStatus] = useState<'loading' | 'online' | 'offline'>('loading');
   const [userRole, setUserRole] = useState<string>('');
 
   useEffect(() => {
-    const checkApiAndUser = async () => {
+    const fetchUserRole = async () => {
       try {
-        const response = await api.get('/');
-        if (response.data.status === 'online') {
-          setApiStatus('online');
-        } else {
-          setApiStatus('offline');
-        }
-
         const meResponse = await api.get('/usuarios/api/me/');
         if (meResponse.data && meResponse.data.user) {
           setUserRole(meResponse.data.user.role || '');
         }
       } catch (error) {
-        console.error('Erro ao verificar API ou perfil:', error);
-        setApiStatus('offline');
+        console.error('Erro ao verificar perfil do usuário:', error);
       }
     };
 
-    checkApiAndUser();
+    fetchUserRole();
   }, []);
 
   // Lista de cards para os atalhos da tela inicial, com acesso rápido a todas as seções do sistema.
@@ -146,47 +135,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8 max-w-6xl">
-      {/* Bloco de Boas-vindas Premium */}
-      <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-[rgba(87,154,160,0.08)] to-[rgba(245,132,51,0.03)] p-8 md:p-10 shadow-sm">
-        <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
-          <Sparkles className="h-40 w-40 text-primary" />
-        </div>
-        <div className="relative z-10 max-w-2xl space-y-4">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-            Nova Versão React + DRF
-          </span>
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-primary">
-            Painel de Análises Operacionais
-          </h1>
-          <p className="text-neutral-600 leading-relaxed text-sm">
-            Seja bem-vindo ao seu novo painel gerencial. Esta interface em React está conectada
-            diretamente ao Django REST Framework, proporcionando buscas instantâneas, paginação fluida
-            e melhor desempenho para suas tomadas de decisão.
-          </p>
-          <div className="pt-2 flex items-center gap-3">
-            <span className="text-xs text-neutral-450 font-medium">Status do Servidor:</span>
-            {apiStatus === 'loading' && (
-              <span className="inline-flex items-center gap-1.5 text-xs text-neutral-400">
-                <span className="h-2 w-2 rounded-full bg-neutral-400 animate-pulse" />
-                Verificando...
-              </span>
-            )}
-            {apiStatus === 'online' && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-green-500/10 text-green-700 border border-green-500/20">
-                <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
-                Conectado (API Online)
-              </span>
-            )}
-            {apiStatus === 'offline' && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-red-500/10 text-red-700 border border-red-500/20">
-                <XCircle className="h-3.5 w-3.5 text-red-655" />
-                Erro de Conexão
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* Cards de Atalho */}
       <div>
         <h2 className="text-lg font-bold mb-6 text-neutral-800 tracking-tight">

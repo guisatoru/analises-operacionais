@@ -50,6 +50,11 @@ export default function RelatorioPremios() {
   const [error, setError] = useState<string | null>(null);
   const [resultadosPeriodos, setResultadosPeriodos] = useState<PeriodResult[]>([]);
 
+  // Por que existe: Define o título da aba do navegador especificamente para a página de Relatório de Prêmios.
+  useEffect(() => {
+    document.title = 'Operacional | Relatório de Prêmios';
+  }, []);
+
   const periodParam = searchParams.get('period') || '';
   const coordenadorParam = searchParams.get('coordenador') || '';
   const supervisorParam = searchParams.get('supervisor') || '';
@@ -322,7 +327,7 @@ export default function RelatorioPremios() {
 
           {/* Rodapé da Página 1 */}
           <div className="border-t border-neutral-200 dark:border-neutral-800 print:border-neutral-300 pt-6 flex justify-between items-center text-[10px] text-neutral-450 dark:text-neutral-500 print:text-neutral-600 font-medium">
-            <span>Sistema de Análises Operacionais</span>
+            <span>Sistema Operacional</span>
             <span>Página 1</span>
           </div>
         </div>
@@ -405,7 +410,7 @@ export default function RelatorioPremios() {
 
           {/* Rodapé da Página 2 */}
           <div className="border-t border-neutral-200 dark:border-neutral-800 print:border-neutral-300 pt-6 flex justify-between items-center text-[10px] text-neutral-450 dark:text-neutral-500 print:text-neutral-600 font-medium">
-            <span>Sistema de Análises Operacionais</span>
+            <span>Sistema Operacional</span>
             <span>Página 2</span>
           </div>
         </div>

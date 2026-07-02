@@ -68,9 +68,13 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, r
 
   return (
     <ShadcnSidebar>
-      {/* Cabeçalho da Sidebar - Switcher de Organização Mockup */}
+      {/* Cabeçalho da Sidebar - Atalho para Página Inicial */}
       <SidebarHeader>
-        <div className="flex items-center justify-between w-full p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-850 cursor-pointer transition-colors group">
+        <Link 
+          to="/"
+          className="flex items-center justify-between w-full p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-850 cursor-pointer transition-colors group"
+          title="Ir para o início"
+        >
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white overflow-hidden shadow-xs border border-neutral-100">
               <img src={logoBase64} alt="Logo" className="h-7 w-7 object-contain" />
@@ -78,18 +82,15 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, r
             {open && (
               <div className="flex flex-col min-w-0 text-left">
                 <span className="font-semibold text-xs leading-tight truncate text-neutral-900 dark:text-white">
-                  Grupo Lojas
+                  Sistema Operacional
                 </span>
                 <span className="text-[10px] text-neutral-400 truncate">
-                  Operações & BI
+                  Operação & Análises
                 </span>
               </div>
             )}
           </div>
-          {open && (
-            <ChevronsUpDown className="h-4 w-4 shrink-0 text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-200 transition-colors" />
-          )}
-        </div>
+        </Link>
       </SidebarHeader>
 
       {/* Conteúdo com os links por setores */}
@@ -117,7 +118,7 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, r
 
         {/* Setor Equipe & Lotação */}
         <SidebarGroup>
-          <SidebarGroupLabel>Operação & Equipe</SidebarGroupLabel>
+          <SidebarGroupLabel>Operação</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {/* Lojas */}
@@ -247,7 +248,7 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, r
 
         {/* Setor Planejamento & BI */}
         <SidebarGroup>
-          <SidebarGroupLabel>Planejamento & BI</SidebarGroupLabel>
+          <SidebarGroupLabel>Análises</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {role !== 'Gestão' && (
