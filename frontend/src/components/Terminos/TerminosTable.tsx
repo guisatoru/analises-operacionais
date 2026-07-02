@@ -1,4 +1,5 @@
-import { Edit } from 'lucide-react';
+import { Edit, Copy } from 'lucide-react';
+import { toast } from 'sonner';
 import { Skeleton } from '../ui/skeleton';
 import {
   Pagination,
@@ -143,6 +144,26 @@ export default function TerminosTable({
   onOpenAcao,
 }: TerminosTableProps) {
 
+  /**
+   * Copia as informações de nome, RE e data de término vigente do colaborador.
+   * 
+   * Por que existe: Facilita a cópia rápida e padronizada dessas informações para
+   * a área de transferência do usuário.
+   */
+  const handleCopyFormattedInfo = (item: TerminoItem) => {
+    const formattedDate = formatDate(item.relevant_date);
+    const text = `*Colaborador:* ${item.colaborador.nome}\n*RE:* ${item.colaborador.re}\n*Data de Término Vigente:* ${formattedDate}`;
+    
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        toast.success(`Informações de ${item.colaborador.nome} copiadas!`);
+      })
+      .catch((err) => {
+        console.error('Erro ao copiar informações:', err);
+        toast.error('Erro ao copiar informações.');
+      });
+  };
+
   return (
     <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
@@ -209,8 +230,18 @@ export default function TerminosTable({
                   className="group hover:bg-neutral-50 dark:bg-neutral-850 transition-colors"
                 >
                   <td className="py-3 px-4">
-                    <div className="font-semibold text-neutral-900 dark:text-neutral-100">
-                      {item.colaborador.nome}
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-neutral-900 dark:text-neutral-100">
+                        {item.colaborador.nome}
+                      </span>
+                      <button
+                        onClick={() => handleCopyFormattedInfo(item)}
+                        title="Copiar informações"
+                        className="text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors p-0.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                        aria-label={`Copiar dados de ${item.colaborador.nome}`}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                     <div className="text-xs text-neutral-400 font-mono">
                       RE: {item.colaborador.re}
