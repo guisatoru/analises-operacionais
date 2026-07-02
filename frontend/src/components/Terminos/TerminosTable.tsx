@@ -152,7 +152,7 @@ export default function TerminosTable({
    */
   const handleCopyFormattedInfo = (item: TerminoItem) => {
     const formattedDate = formatDate(item.relevant_date);
-    const text = `*Colaborador:* ${item.colaborador.nome}\n*RE:* ${item.colaborador.re}\n*Data de Término Vigente:* ${formattedDate}`;
+    const text = `Colaborador: ${item.colaborador.nome}\nRE: ${item.colaborador.re}\nData de Término Vigente: ${formattedDate}`;
     
     // Por que existe: Verifica se a API moderna de clipboard está disponível (geralmente restrita a HTTPS ou localhost)
     if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
