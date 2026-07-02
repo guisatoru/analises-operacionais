@@ -31,13 +31,63 @@ export default function DecisaoTerminoModal({
   const [actionLoading, setActionLoading] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
-  // Inicializa o modal com a etapa padrão sugerida
+  // Estados para controle de abas e carregamento de detalhes de faltas/atestados
+  const [activeTab, setActiveTab] = useState<'decisao' | 'detalhes'>('decisao');
+  const [details, setDetails] = useState<any[]>([]);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
+  const [hasFetchedDetails, setHasFetchedDetails] = useState(false);
+
+  // Formata data do formato YYYY-MM-DD para dd/MM/yyyy
+  const formatDateSafe = (dateStr: string) => {
+    try {
+      if (!dateStr) return '-';
+      if (dateStr.includes('-')) {
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+          return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+      }
+      return dateStr;
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
+  // Inicializa o modal com a etapa padrão sugerida e limpa estados anteriores
   useEffect(() => {
     setSelectedEtapa(item.state.etapaAtual);
     setObservacao('');
     setErrorMsg(null);
     setShowConfirmDelete(false);
+    setActiveTab('decisao');
+    setHasFetchedDetails(false);
+    setDetails([]);
+    setDetailsError(null);
   }, [item]);
+
+  // Busca o detalhamento das faltas/atestados sob demanda na GeoVictoria
+  useEffect(() => {
+    if (activeTab === 'detalhes' && !hasFetchedDetails) {
+      const fetchDetails = async () => {
+        setDetailsLoading(true);
+        setDetailsError(null);
+        try {
+          const response = await api.get(`/colaboradores/geovictoria/detalhes/${item.colaborador.id}/`);
+          setDetails(response.data);
+          setHasFetchedDetails(true);
+        } catch (err: any) {
+          console.error('Erro ao buscar detalhes da GeoVictoria:', err);
+          setDetailsError(
+            err.response?.data?.error || 'Erro ao carregar detalhes do ponto.'
+          );
+        } finally {
+          setDetailsLoading(false);
+        }
+      };
+      fetchDetails();
+    }
+  }, [activeTab, item.colaborador.id, hasFetchedDetails]);
 
   // Sincroniza a ação selecionada com a etapa e histórico existente do colaborador
   useEffect(() => {
@@ -135,229 +185,354 @@ export default function DecisaoTerminoModal({
           </button>
         </div>
 
-        {/* Formulário */}
-        <form onSubmit={handleSaveAcao} className="flex-1 flex flex-col overflow-hidden">
-          <div className="p-6 space-y-4 overflow-y-auto flex-1">
-            {errorMsg && (
-              <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 rounded-md text-xs flex gap-2">
-                <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
-                <span>{errorMsg}</span>
-              </div>
-            )}
+        {/* Seletor de Abas */}
+        <div className="flex border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 px-6 shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveTab('decisao')}
+            className={`py-3 px-4 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+              activeTab === 'decisao'
+                ? 'border-neutral-900 dark:border-white text-neutral-900 dark:text-white'
+                : 'border-transparent text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-350'
+            }`}
+          >
+            Registrar Decisão
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('detalhes')}
+            className={`py-3 px-4 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+              activeTab === 'detalhes'
+                ? 'border-neutral-900 dark:border-white text-neutral-900 dark:text-white'
+                : 'border-transparent text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-350'
+            }`}
+          >
+            Detalhes de Ausências
+          </button>
+        </div>
 
-            {/* Aviso de alteração de decisão se já houver registro prévio */}
-            {item.history.some((h) => h.etapa === selectedEtapa) && (
-              <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 text-amber-700 dark:text-amber-300 rounded-md text-xs flex gap-2">
-                <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
-                <span>
-                  <strong>Aviso:</strong> Já existe uma decisão registrada para esta etapa. Registrar uma nova decisão irá atualizar o status do colaborador e manterá a decisão anterior no histórico para auditoria.
-                </span>
-              </div>
-            )}
+        {activeTab === 'decisao' ? (
+          <form onSubmit={handleSaveAcao} className="flex-1 flex flex-col overflow-hidden">
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+              {errorMsg && (
+                <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 rounded-md text-xs flex gap-2">
+                  <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
 
-            {/* Informações GeoVictoria */}
-            <div className="bg-neutral-50 dark:bg-neutral-850 p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 space-y-2">
-              <h4 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
-                <Clock className="h-4 w-4" />
-                Dados do Relógio GeoVictoria
-              </h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-card p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 text-center">
-                  <span className="block text-[10px] font-bold text-neutral-400 uppercase">
-                    Faltas Coletadas
-                  </span>
-                  <span className="text-xl font-bold text-red-500">
-                    {item.faltas}
+              {/* Aviso de alteração de decisão se já houver registro prévio */}
+              {item.history.some((h) => h.etapa === selectedEtapa) && (
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 text-amber-700 dark:text-amber-300 rounded-md text-xs flex gap-2">
+                  <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                  <span>
+                    <strong>Aviso:</strong> Já existe uma decisão registrada para esta etapa. Registrar uma nova decisão irá atualizar o status do colaborador e manterá a decisão anterior no histórico para auditoria.
                   </span>
                 </div>
-                <div className="bg-card p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 text-center">
-                  <span className="block text-[10px] font-bold text-neutral-400 uppercase">
-                    Atestados Coletados
-                  </span>
-                  <span className="text-xl font-bold text-amber-500">
-                    {item.atestados}
-                  </span>
+              )}
+
+              {/* Informações GeoVictoria */}
+              <div className="bg-neutral-50 dark:bg-neutral-850 p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 space-y-2">
+                <h4 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                  <Clock className="h-4 w-4" />
+                  Dados do Relógio GeoVictoria
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-card p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 text-center">
+                    <span className="block text-[10px] font-bold text-neutral-400 uppercase">
+                      Faltas Coletadas
+                    </span>
+                    <span className="text-xl font-bold text-red-500">
+                      {item.faltas}
+                    </span>
+                  </div>
+                  <div className="bg-card p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 text-center">
+                    <span className="block text-[10px] font-bold text-neutral-400 uppercase">
+                      Atestados Coletados
+                    </span>
+                    <span className="text-xl font-bold text-amber-500">
+                      {item.atestados}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Seletor de Etapa */}
-            {item.colaborador.termino_2 && (
+              {/* Seletor de Etapa */}
+              {item.colaborador.termino_2 && (
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1.5">
+                    Etapa da Decisão *
+                  </label>
+                  <div className="flex gap-6 p-3 bg-neutral-50 dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-lg">
+                    <label className="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="selectedEtapa"
+                        value={1}
+                        checked={selectedEtapa === 1}
+                        onChange={() => setSelectedEtapa(1)}
+                        className="text-primary focus:ring-primary h-4 w-4"
+                      />
+                      Término 1
+                    </label>
+                    <label
+                      className={`flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300 ${
+                        isStage2Disabled
+                          ? 'opacity-40 cursor-not-allowed'
+                          : 'cursor-pointer'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="selectedEtapa"
+                        value={2}
+                        checked={selectedEtapa === 2}
+                        disabled={isStage2Disabled}
+                        onChange={() => setSelectedEtapa(2)}
+                        className="text-primary focus:ring-primary h-4 w-4 disabled:opacity-50"
+                      />
+                      Término 2
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Ação */}
               <div>
                 <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1.5">
-                  Etapa da Decisão *
+                  Ação Selecionada *
                 </label>
-                <div className="flex gap-6 p-3 bg-neutral-50 dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-lg">
-                  <label className="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="selectedEtapa"
-                      value={1}
-                      checked={selectedEtapa === 1}
-                      onChange={() => setSelectedEtapa(1)}
-                      className="text-primary focus:ring-primary h-4 w-4"
-                    />
-                    Término 1
-                  </label>
-                  <label
-                    className={`flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300 ${
-                      isStage2Disabled
-                        ? 'opacity-40 cursor-not-allowed'
-                        : 'cursor-pointer'
+                <div className="grid grid-cols-2 gap-2">
+                  {selectedEtapa === 2 ? (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAcao('MANTER')}
+                      className={`py-3 px-2 border rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        selectedAcao === 'MANTER'
+                          ? 'border-green-500 ring-2 ring-green-500 bg-green-500/10 text-green-600'
+                          : 'border-green-500/30 text-green-600 hover:bg-green-500/5'
+                      }`}
+                    >
+                      Efetivar
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAcao('PRORROGADO')}
+                      className={`py-3 px-2 border rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        selectedAcao === 'PRORROGADO'
+                          ? 'border-blue-500 ring-2 ring-blue-500 bg-blue-500/10 text-blue-600'
+                          : 'border-blue-500/30 text-blue-600 hover:bg-blue-500/5'
+                      }`}
+                    >
+                      Prorrogar
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAcao('TERMINO')}
+                    className={`py-3 px-2 border rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      selectedAcao === 'TERMINO'
+                        ? 'border-red-500 ring-2 ring-red-500 bg-red-500/10 text-red-600'
+                        : 'border-red-500/30 text-red-600 hover:bg-red-500/5'
                     }`}
                   >
-                    <input
-                      type="radio"
-                      name="selectedEtapa"
-                      value={2}
-                      checked={selectedEtapa === 2}
-                      disabled={isStage2Disabled}
-                      onChange={() => setSelectedEtapa(2)}
-                      className="text-primary focus:ring-primary h-4 w-4 disabled:opacity-50"
-                    />
-                    Término 2
-                  </label>
+                    Dispensar
+                  </button>
                 </div>
               </div>
-            )}
 
-            {/* Ação */}
-            <div>
-              <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1.5">
-                Ação Selecionada *
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {selectedEtapa === 2 ? (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedAcao('MANTER')}
-                    className={`py-3 px-2 border rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      selectedAcao === 'MANTER'
-                        ? 'border-green-500 ring-2 ring-green-500 bg-green-500/10 text-green-600'
-                        : 'border-green-500/30 text-green-600 hover:bg-green-500/5'
-                    }`}
-                  >
-                    Efetivar
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedAcao('PRORROGADO')}
-                    className={`py-3 px-2 border rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      selectedAcao === 'PRORROGADO'
-                        ? 'border-blue-500 ring-2 ring-blue-500 bg-blue-500/10 text-blue-600'
-                        : 'border-blue-500/30 text-blue-600 hover:bg-blue-500/5'
-                    }`}
-                  >
-                    Prorrogar
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedAcao('TERMINO')}
-                  className={`py-3 px-2 border rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    selectedAcao === 'TERMINO'
-                      ? 'border-red-500 ring-2 ring-red-500 bg-red-500/10 text-red-600'
-                      : 'border-red-500/30 text-red-600 hover:bg-red-500/5'
-                  }`}
-                >
-                  Dispensar
-                </button>
+              {/* Justificativa */}
+              <div>
+                <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
+                  Justificativa / Observação Interna
+                </label>
+                <textarea
+                  required
+                  value={observacao}
+                  onChange={(e) => setObservacao(e.target.value)}
+                  className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white h-24 resize-none"
+                  placeholder="Descreva o motivo da decisão..."
+                />
               </div>
-            </div>
 
-            {/* Justificativa */}
-            <div>
-              <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
-                Justificativa / Observação Interna
-              </label>
-              <textarea
-                required
-                value={observacao}
-                onChange={(e) => setObservacao(e.target.value)}
-                className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white h-24 resize-none"
-                placeholder="Descreva o motivo da decisão..."
-              />
-            </div>
-
-            {/* Histórico anterior se houver */}
-            {item.history && item.history.length > 0 && (
-              <div className="space-y-2 border-t border-neutral-200 dark:border-neutral-800 pt-4">
-                <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider flex items-center gap-1">
-                  <Briefcase className="h-4 w-4" />
-                  Histórico de Acompanhamento
-                </h4>
-                <div className="space-y-2 max-h-36 overflow-y-auto">
-                  {item.history.map((hist) => (
-                    <div
-                      key={hist.id}
-                      className="p-2.5 bg-neutral-50 dark:bg-neutral-850 rounded-lg border border-neutral-200 dark:border-neutral-800 text-xs space-y-1"
-                    >
-                      <div className="flex justify-between items-center font-semibold">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-primary capitalize text-neutral-900 dark:text-neutral-100">
-                            {hist.acao_display || hist.acao}
-                          </span>
-                          <span className="text-[10px] bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 px-1.5 py-0.5 rounded font-bold">
-                            Término {hist.etapa}
+              {/* Histórico anterior se houver */}
+              {item.history && item.history.length > 0 && (
+                <div className="space-y-2 border-t border-neutral-200 dark:border-neutral-800 pt-4">
+                  <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider flex items-center gap-1">
+                    <Briefcase className="h-4 w-4" />
+                    Histórico de Acompanhamento
+                  </h4>
+                  <div className="space-y-2 max-h-36 overflow-y-auto">
+                    {item.history.map((hist) => (
+                      <div
+                        key={hist.id}
+                        className="p-2.5 bg-neutral-50 dark:bg-neutral-850 rounded-lg border border-neutral-200 dark:border-neutral-800 text-xs space-y-1"
+                      >
+                        <div className="flex justify-between items-center font-semibold">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-primary capitalize text-neutral-900 dark:text-neutral-100">
+                              {hist.acao_display || hist.acao}
+                            </span>
+                            <span className="text-[10px] bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 px-1.5 py-0.5 rounded font-bold">
+                              Término {hist.etapa}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-neutral-400">
+                            {hist.created_at
+                              ? format(parseISO(hist.created_at), 'dd/MM/yyyy HH:mm')
+                              : '-'}
                           </span>
                         </div>
-                        <span className="text-[10px] text-neutral-400">
-                          {hist.created_at
-                            ? format(parseISO(hist.created_at), 'dd/MM/yyyy HH:mm')
-                            : '-'}
-                        </span>
+                        <div className="text-[10px] text-neutral-500 font-medium">
+                          Respondido por:{' '}
+                          <span className="font-semibold">
+                            {hist.respondido_por || 'Sistema'}
+                          </span>
+                        </div>
+                        <p className="text-neutral-600 dark:text-neutral-350 bg-white dark:bg-neutral-900/40 p-2 rounded border border-neutral-100 dark:border-neutral-800/40 mt-1 whitespace-pre-wrap leading-relaxed">
+                          {hist.observacao}
+                        </p>
                       </div>
-                      <div className="text-[10px] text-neutral-500 font-medium">
-                        Respondido por:{' '}
-                        <span className="font-semibold">
-                          {hist.respondido_por || 'Sistema'}
-                        </span>
-                      </div>
-                      <p className="text-neutral-600 dark:text-neutral-350 bg-white dark:bg-neutral-900/40 p-2 rounded border border-neutral-100 dark:border-neutral-800/40 mt-1 whitespace-pre-wrap leading-relaxed">
-                        {hist.observacao}
-                      </p>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-
-          {/* Rodapé Ações */}
-          <div className="flex justify-between items-center p-6 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 shrink-0">
-            <div>
-              {item.history.some((h) => h.etapa === selectedEtapa) && (
-                <button
-                  type="button"
-                  disabled={actionLoading}
-                  onClick={handleDeleteAcao}
-                  className="px-5 py-2.5 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 rounded-full text-xs font-bold transition-colors cursor-pointer"
-                >
-                  Limpar Decisão
-                </button>
               )}
             </div>
-            <div className="flex gap-3">
+
+            {/* Rodapé Ações */}
+            <div className="flex justify-between items-center p-6 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 shrink-0">
+              <div>
+                {item.history.some((h) => h.etapa === selectedEtapa) && (
+                  <button
+                    type="button"
+                    disabled={actionLoading}
+                    onClick={handleDeleteAcao}
+                    className="px-5 py-2.5 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 rounded-full text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    Limpar Decisão
+                  </button>
+                )}
+              </div>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-5 py-2.5 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 rounded-full text-xs font-bold text-neutral-700 dark:text-neutral-300 transition-colors cursor-pointer"
+                >
+                  Voltar
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-6 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full text-xs font-bold hover:bg-neutral-850 dark:hover:bg-neutral-100 shadow-xs disabled:opacity-50 transition-colors flex items-center gap-2"
+                >
+                  {actionLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Salvar Decisão
+                </button>
+              </div>
+            </div>
+          </form>
+        ) : (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Detalhes de Ausências */}
+            <div className="p-6 pb-2 grid grid-cols-2 gap-4 shrink-0">
+              <div className="bg-red-500/10 border border-red-500/20 p-3.5 rounded-xl text-center">
+                <span className="block text-[10px] font-bold text-red-500 uppercase tracking-wider">
+                  Total de Faltas
+                </span>
+                <span className="text-xl font-extrabold text-red-600 dark:text-red-400">
+                  {item.faltas}
+                </span>
+              </div>
+              <div className="bg-amber-500/10 border border-amber-500/20 p-3.5 rounded-xl text-center">
+                <span className="block text-[10px] font-bold text-amber-500 uppercase tracking-wider">
+                  Total de Atestados
+                </span>
+                <span className="text-xl font-extrabold text-amber-600 dark:text-amber-400">
+                  {item.atestados}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex-1 p-6 pt-2 overflow-y-auto space-y-3">
+              {detailsLoading && (
+                <div className="flex flex-col items-center justify-center py-12 space-y-3">
+                  <Loader2 className="h-8 w-8 text-neutral-400 animate-spin" />
+                  <span className="text-xs text-neutral-500 font-medium">Carregando dados da GeoVictoria...</span>
+                </div>
+              )}
+
+              {detailsError && (
+                <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 rounded-md text-xs flex gap-2">
+                  <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
+                  <span>{detailsError}</span>
+                </div>
+              )}
+
+              {!detailsLoading && !detailsError && details.length === 0 && (
+                <div className="text-center py-12 border border-dashed border-neutral-200 dark:border-neutral-800 rounded-xl my-4">
+                  <p className="text-sm text-neutral-500 font-medium">Nenhuma ausência detalhada encontrada.</p>
+                  <p className="text-xs text-neutral-400 mt-1">Este colaborador não possui registros de faltas ou atestados.</p>
+                </div>
+              )}
+
+              {!detailsLoading && !detailsError && details.map((detail, idx) => (
+                <div
+                  key={idx}
+                  className={`p-3.5 rounded-xl border flex flex-col gap-1.5 transition-all bg-card ${
+                    detail.tipo === 'FALTA'
+                      ? 'border-red-100 dark:border-red-900/30 bg-red-50/20 dark:bg-red-950/5'
+                      : 'border-amber-100 dark:border-amber-900/30 bg-amber-50/20 dark:bg-amber-950/5'
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                        detail.tipo === 'FALTA'
+                          ? 'bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200/40 dark:border-red-900/40'
+                          : 'bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/40 dark:border-amber-900/40'
+                      }`}
+                    >
+                      {detail.tipo}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <h5 className="text-xs font-semibold text-neutral-900 dark:text-neutral-100">
+                      {detail.descricao || (detail.tipo === 'FALTA' ? 'Falta' : 'Atestado')}
+                    </h5>
+                    <p className="text-[11px] text-neutral-500 font-medium">
+                      Dia:{' '}
+                      <span className="font-semibold text-neutral-750 dark:text-neutral-250">
+                        {formatDateSafe(detail.data)}
+                      </span>
+                    </p>
+                  </div>
+
+                  {detail.observacao && (
+                    <p className="text-[10px] text-neutral-600 dark:text-neutral-400 bg-white/60 dark:bg-neutral-950/40 p-2 rounded border border-neutral-100 dark:border-neutral-800/45 mt-1 leading-relaxed whitespace-pre-wrap">
+                      <span className="font-bold text-[9px] uppercase tracking-wider text-neutral-400 block mb-0.5">Observação:</span>
+                      {detail.observacao}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Rodapé Detalhes */}
+            <div className="flex justify-end p-6 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 shrink-0">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 rounded-full text-xs font-bold text-neutral-700 dark:text-neutral-300 text-sm font-semibold transition-colors"
+                className="px-6 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full text-xs font-bold hover:bg-neutral-850 dark:hover:bg-neutral-100 transition-colors cursor-pointer"
               >
-                Voltar
-              </button>
-              <button
-                type="submit"
-                disabled={actionLoading}
-                className="px-6 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full text-xs font-bold hover:bg-neutral-850 dark:hover:bg-neutral-100 shadow-xs disabled:opacity-50 transition-colors flex items-center gap-2"
-              >
-                {actionLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                Salvar Decisão
+                Fechar
               </button>
             </div>
           </div>
-        </form>
+        )}
       </div>
 
       {/* Pop-up de Confirmação customizado */}

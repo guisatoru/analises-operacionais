@@ -13,6 +13,7 @@ from .views_sync import (
     sync_lojas_geovictoria_progress,
 )
 from .views_terminos import (
+    colaborador_geovictoria_details,
     colaborador_geovictoria_summary,
     exportar_terminos_excel,
     terminos_list,
@@ -20,6 +21,7 @@ from .views_terminos import (
 
 
 __all__ = [
+    "colaborador_geovictoria_details",
     "colaborador_geovictoria_summary",
     "colaborador_list",
     "demitido_list",

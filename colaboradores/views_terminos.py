@@ -279,6 +279,36 @@ def colaborador_geovictoria_summary(request, colaborador_id):
         return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
+def colaborador_geovictoria_details(request, colaborador_id):
+    """
+    Retorna a lista detalhada de faltas e atestados da GeoVictoria para um colaborador específico.
+
+    Por que existe: Esta view fornece ao modal de decisão de término no frontend um 
+    detalhamento cronológico e individual das ausências do colaborador (data, tipo, dias e 
+    observação) sob demanda.
+    """
+    colaborador = get_object_or_404(Colaborador, id=colaborador_id)
+
+    if not colaborador.cpf:
+        return Response(
+            {"error": "CPF do colaborador não cadastrado. Reimporte os dados da TOTVS."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        today = date.today()
+        details = geovictoria.get_timeoff_details(
+            colaborador.cpf,
+            colaborador.data_admissao,
+            today,
+        )
+        return Response(details)
+    except Exception as exc:
+        return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 def _buscar_colaboradores_com_termino():
     """
     Mantém a consulta base de término em um único lugar para tela, exportação e sincronização.

@@ -2,7 +2,7 @@ import json
 import re
 import urllib.request
 import urllib.error
-from datetime import datetime
+from datetime import datetime, timedelta
 from decouple import config
 
 """
@@ -161,3 +161,86 @@ def listar_usuarios_completos():
         or payload.get("result")
         or []
     )
+
+
+def get_timeoff_details(cpf, start_date, end_date):
+    """
+    Busca o detalhamento de faltas e atestados para um CPF específico na GeoVictoria, retornando cada dia individualmente.
+
+    Por que existe: Esta função realiza a integração direta com a API /TimeOff/Get
+    da GeoVictoria, mapeando e desmembrando as ausências brutas de múltiplos dias em registros 
+    diários individuais para melhor visualização no frontend.
+    """
+    token = get_token()
+    if not token or not cpf:
+        return []
+
+    def format_date(dt):
+        return dt.strftime("%Y%m%d000000")
+
+    body = {
+        "StartDate": format_date(start_date),
+        "EndDate": format_date(end_date),
+        "UserIds": str(cpf),
+    }
+
+    payload = _geovictoria_request("/TimeOff/Get", body=body, token=token)
+
+    if isinstance(payload, list):
+        entries = payload
+    else:
+        entries = (
+            payload.get("TimeOff")
+            or payload.get("timeOff")
+            or payload.get("Data")
+            or payload.get("data")
+            or payload.get("Result")
+            or payload.get("result")
+            or []
+        )
+
+    details = []
+    for entry in entries:
+        entry_cpf = str(entry.get("UserIdentifier", "")).strip()
+        if not entry_cpf or entry_cpf != str(cpf).strip():
+            continue
+
+        desc = (entry.get("TimeOffTypeDescription", "") or "").upper()
+        
+        is_falta = desc == "FALTA"
+        is_atestado = "ATESTADO" in desc or "MEDICO" in desc
+
+        if not (is_falta or is_atestado):
+            continue
+
+        starts_str = entry.get("Starts", "")
+        ends_str = entry.get("Ends", "")
+        
+        try:
+            start_dt = datetime.strptime(starts_str[:8], "%Y%m%d")
+            end_dt = datetime.strptime(ends_str[:8], "%Y%m%d")
+            days = (end_dt - start_dt).days + 1
+            
+            # Desmembra o período em dias individuais
+            for i in range(days):
+                current_day = start_dt + timedelta(days=i)
+                current_formatted = current_day.strftime("%Y-%m-%d")
+                details.append({
+                    "tipo": "FALTA" if is_falta else "ATESTADO",
+                    "descricao": entry.get("TimeOffTypeDescription", ""),
+                    "data": current_formatted,
+                    "observacao": entry.get("Comment", "") or entry.get("Observacao", "") or ""
+                })
+        except Exception:
+            # Em caso de falha de conversão, adiciona o registro com a string original de início
+            details.append({
+                "tipo": "FALTA" if is_falta else "ATESTADO",
+                "descricao": entry.get("TimeOffTypeDescription", ""),
+                "data": starts_str[:8] if len(starts_str) >= 8 else starts_str,
+                "observacao": entry.get("Comment", "") or entry.get("Observacao", "") or ""
+            })
+
+    # Ordena da ausência mais antiga para a mais recente
+    details.sort(key=lambda x: x["data"])
+    return details
+

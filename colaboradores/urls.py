@@ -13,6 +13,7 @@ urlpatterns = [
     path('terminos/', views.terminos_list, name='terminos_list'),
     path('terminos/exportar/', views.exportar_terminos_excel, name='terminos_export'),
     path('geovictoria/resumo/<int:colaborador_id>/', views.colaborador_geovictoria_summary, name='geovictoria_summary'),
+    path('geovictoria/detalhes/<int:colaborador_id>/', views.colaborador_geovictoria_details, name='geovictoria_details'),
     path('importar/', configuracoes.colaborador_import_async, name='importar'),
     path('importar-gestao/', configuracoes.gestao_import_async, name='importar_gestao'),
     path('sync-lojas-geovictoria/', views.sync_lojas_geovictoria, name='sync_lojas_geovictoria'),
