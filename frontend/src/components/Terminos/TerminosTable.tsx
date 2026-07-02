@@ -154,14 +154,42 @@ export default function TerminosTable({
     const formattedDate = formatDate(item.relevant_date);
     const text = `*Colaborador:* ${item.colaborador.nome}\n*RE:* ${item.colaborador.re}\n*Data de Término Vigente:* ${formattedDate}`;
     
-    navigator.clipboard.writeText(text)
-      .then(() => {
-        toast.success(`Informações de ${item.colaborador.nome} copiadas!`);
-      })
-      .catch((err) => {
-        console.error('Erro ao copiar informações:', err);
+    // Por que existe: Verifica se a API moderna de clipboard está disponível (geralmente restrita a HTTPS ou localhost)
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      navigator.clipboard.writeText(text)
+        .then(() => {
+          toast.success(`Informações de ${item.colaborador.nome} copiadas!`);
+        })
+        .catch((err) => {
+          console.error('Erro ao copiar informações via Clipboard API:', err);
+          toast.error('Erro ao copiar informações.');
+        });
+    } else {
+      // Por que existe: Fallback para contextos não-seguros (HTTP) utilizando a técnica de área de texto temporária
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.top = '0';
+        textarea.style.left = '0';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        
+        const success = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        
+        if (success) {
+          toast.success(`Informações de ${item.colaborador.nome} copiadas!`);
+        } else {
+          toast.error('Não foi possível copiar as informações.');
+        }
+      } catch (err) {
+        console.error('Erro ao copiar informações via execCommand (fallback):', err);
         toast.error('Erro ao copiar informações.');
-      });
+      }
+    }
   };
 
   return (
