@@ -36,6 +36,10 @@ from .diarias import diarias_list_api, diarias_filtro_opcoes_api
 from .premios import premios_list_api, premios_filtro_opcoes_api
 from .headcount import headcount_analise_api, headcount_loja_colaboradores_api
 from .presencas import importar_presencas_api
+from .salarios import (
+    salario_list_create_api,
+    salario_detail_update_delete_api,
+)
 
 __all__ = [
     "api_item_escopo_delete",
@@ -70,6 +74,6 @@ __all__ = [
     "premios_list_api",
     "premios_filtro_opcoes_api",
     "importar_presencas_api",
+    "salario_list_create_api",
+    "salario_detail_update_delete_api",
 ]
-
-

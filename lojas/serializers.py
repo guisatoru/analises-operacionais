@@ -12,6 +12,7 @@ from .models import (
     Supervisor,
     Diaria,
     Premio,
+    Salario,
 )
 
 class CoordenadorSerializer(serializers.ModelSerializer):
@@ -310,6 +311,29 @@ class PremioSerializer(serializers.ModelSerializer):
         if "reward_value" in data and data["reward_value"] is not None:
             data["reward_value"] = str(data["reward_value"])
         return data
+
+
+class SalarioSerializer(serializers.ModelSerializer):
+    """
+    Este serializer existe para formatar as informações de salários de cargos operacionais,
+    fornecendo o nome do cargo por extenso e preservando chaves numéricas e valores como strings.
+    """
+    cargo_nome = serializers.CharField(source="cargo.nome", read_only=True)
+
+    class Meta:
+        model = Salario
+        fields = ["id", "cargo", "cargo_nome", "uf", "ano", "valor"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if "id" in data and data["id"] is not None:
+            data["id"] = str(data["id"])
+        if "cargo" in data and data["cargo"] is not None:
+            data["cargo"] = str(data["cargo"])
+        if "valor" in data and data["valor"] is not None:
+            data["valor"] = str(data["valor"])
+        return data
+
 
 
 

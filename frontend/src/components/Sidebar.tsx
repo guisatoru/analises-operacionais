@@ -12,7 +12,8 @@ import {
   ChevronDown,
   ChevronRight,
   CalendarCheck,
-  Coins
+  Coins,
+  CircleDollarSign
 } from 'lucide-react';
 import { logoBase64 } from '../assets/logoBase64';
 import { 
@@ -351,6 +352,21 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, p
                     <Link to="/usuarios">
                       <Users className="h-5 w-5 shrink-0" />
                       {open && <span className="truncate">Usuários</span>}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+
+              {permissions?.salarios?.view !== false && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={location.pathname === '/salarios'}
+                    title={!open ? "Salários" : undefined}
+                  >
+                    <Link to="/salarios">
+                      <CircleDollarSign className="h-5 w-5 shrink-0" />
+                      {open && <span className="truncate">Salários</span>}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

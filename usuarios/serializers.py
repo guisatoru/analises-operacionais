@@ -48,7 +48,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
             modulos = [
                 "dashboard", "lojas", "apoio", "colaboradores", "presencas",
                 "escopos", "comparativo", "headcount", "diarias", "premios",
-                "importacoes", "usuarios"
+                "importacoes", "usuarios", "salarios"
             ]
             for modulo in modulos:
                 permissions_dict[modulo] = {

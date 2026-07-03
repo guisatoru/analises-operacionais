@@ -20,6 +20,7 @@ import Usuarios from './pages/Usuarios';
 import Agenda from './pages/Agenda';
 import HistoricoAgenda from './pages/HistoricoAgenda';
 import Headcount from './pages/Headcount';
+import Salarios from './pages/Salarios';
 import { Toaster } from './components/ui/sonner';
 
 
@@ -185,6 +186,16 @@ function App() {
             element={
               permissions.usuarios?.view ? (
                 <Usuarios />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            } 
+          />
+          <Route 
+            path="/salarios" 
+            element={
+              permissions.salarios?.view ? (
+                <Salarios />
               ) : (
                 <Navigate to="/" replace />
               )

@@ -31,6 +31,8 @@ def obter_modulo_por_view(view_name, path):
         return "headcount"
     elif "importacoes" in path_lower:
         return "importacoes"
+    elif "salarios" in path_lower or "salario" in path_lower:
+        return "salarios"
     elif "lojas" in path_lower or "stores" in path_lower:
         return "lojas"
         

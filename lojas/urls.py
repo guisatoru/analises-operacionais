@@ -30,6 +30,8 @@ urlpatterns = [
     path("lojas/api/coordenadores/<int:pk>/", views.coordenador_detail_update_delete, name="coordenador_detail_update_delete"),
     path("lojas/api/supervisores/", views.supervisor_list_create, name="supervisor_list_create"),
     path("lojas/api/supervisores/<int:pk>/", views.supervisor_detail_update_delete, name="supervisor_detail_update_delete"),
+    path("lojas/api/salarios/", views.salario_list_create_api, name="salario_list_create_api"),
+    path("lojas/api/salarios/<int:pk>/", views.salario_detail_update_delete_api, name="salario_detail_update_delete_api"),
     path("folhas/importar/", configuracoes.folha_import_async, name="importar_folha"),
     
     # ========== HEADCOUNT ==========

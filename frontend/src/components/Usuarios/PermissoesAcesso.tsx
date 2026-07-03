@@ -10,7 +10,8 @@ import {
   Database, 
   Save, 
   Loader2, 
-  Info 
+  Info,
+  CircleDollarSign
 } from 'lucide-react';
 import api from '../../api/client';
 import { toast } from 'sonner';
@@ -44,6 +45,7 @@ const MODULE_CONFIG: Record<string, { label: string; icon: any; desc: string }> 
   premios: { label: 'Prêmios', icon: Coins, desc: 'Apuramento de prêmios mensais e relatórios formatados' },
   importacoes: { label: 'Importações', icon: Database, desc: 'Upload de planilhas para consolidação de dados' },
   usuarios: { label: 'Usuários & Permissões', icon: Users, desc: 'Controle de acessos e configurações de usuários' },
+  salarios: { label: 'Salários de Dissídios', icon: CircleDollarSign, desc: 'Configuração de salários base por cargo e região (UF)' },
 };
 
 /**
