@@ -172,6 +172,9 @@ def comparativo_relatorio_api(request):
     escopo_total = Decimal("0.00")
     escopo_por_loja_comp = defaultdict(Decimal)
     
+    # Conjunto de competências (ano, mes) que já possuem qualquer dado de folha importado
+    meses_com_folha_geral = set((ano, mes) for (loja_id, ano, mes) in folha_por_loja_comp.keys())
+    
     if lojas_filtradas_ids:
         # Otimização N+1: Carrega configs de insalubridade de uma vez
         configs = {cfg.loja_id: cfg for cfg in ConfiguracaoInsalubridadeLoja.objects.filter(loja_id__in=lojas_filtradas_ids)}
@@ -205,6 +208,12 @@ def comparativo_relatorio_api(request):
             escopos_loja = escopos_por_loja.get(loja_id, [])
             
             for ano, mes in competencias_list:
+                # Regra: Se esse mês possui dados de folha de pagamento importados para alguma loja,
+                # só calculamos o escopo para esta loja se ela especificamente tiver folha nesta competência.
+                if (ano, mes) in meses_com_folha_geral:
+                    if folha_por_loja_comp.get((loja_id, ano, mes), Decimal("0.00")) <= Decimal("0.00"):
+                        continue
+
                 # 1. Tenta achar o escopo exato da competência na lista em memória
                 esc = None
                 for e in escopos_loja:

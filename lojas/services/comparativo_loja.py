@@ -243,7 +243,25 @@ def montar_resultado_comparativo(
     )
     escopos_dict = {(esc.ano, esc.mes): esc for esc in escopos}
 
+    # Mapeia quais competências de fato possuem qualquer folha de pagamento na base geral do banco
+    datas_com_folha_no_banco = set(
+        LinhaFolha.objects.filter(dt_arq__in=datas_exatas, verba__tipo_codigo="PROVENTO", verba__considerar_na_contagem=True)
+        .values_list("dt_arq", flat=True)
+        .distinct()
+    )
+
+    competencias_com_folha_da_loja = set(
+        folha_qs.values_list("dt_arq", flat=True).distinct()
+    )
+
     for ano, mes in competencias:
+        # Regra: Se esse mês possui dados de folha de pagamento importados no banco,
+        # só calculamos o escopo se a loja tiver de fato folha nesta competência.
+        dt_comp = datetime.date(ano, mes, 1)
+        if dt_comp in datas_com_folha_no_banco:
+            if dt_comp not in competencias_com_folha_da_loja:
+                continue
+
         escopo = escopos_dict.get((ano, mes))
         if escopo is None:
             # EXPLICAÇÃO DO PORQUÊ EXISTE (Docstring de suporte em português):
