@@ -58,7 +58,7 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, p
 
   const handleLogoutClick = async () => {
     try {
-      await api.post('/api/usuarios/logout/');
+      await api.post('/usuarios/api/logout/');
     } catch (error) {
       console.error('Erro ao deslogar da API:', error);
     } finally {

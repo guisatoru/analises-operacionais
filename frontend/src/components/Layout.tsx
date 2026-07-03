@@ -34,10 +34,6 @@ export default function Layout({ isAuthenticated, username, email, onLogout, rol
   const location = useLocation();
   const [profileModalOpen, setProfileModalOpen] = useState(false);
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
   // Mapeamento manual e amigável da rota atual para definir o setor e a página ativa
   const path = location.pathname.replace(/^\/|\/$/g, '');
   let sector = '';
@@ -91,6 +87,10 @@ export default function Layout({ isAuthenticated, username, email, onLogout, rol
   useEffect(() => {
     document.title = `Operacional | ${pageName}`;
   }, [pageName]);
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
 
   return (
     <SidebarProvider>

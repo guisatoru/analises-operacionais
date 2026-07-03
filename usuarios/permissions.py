@@ -1,4 +1,5 @@
 from rest_framework.permissions import BasePermission
+from django.db import DatabaseError
 from .constants import ADMINISTRADOR_ROLE, GESTAO_ROLE
 
 def obter_modulo_por_view(view_name, path):
@@ -81,7 +82,8 @@ class IsAdministrador(BasePermission):
                 return perm.can_edit
             elif action == "delete":
                 return perm.can_delete
-        except RolePermission.DoesNotExist:
+        except (RolePermission.DoesNotExist, DatabaseError):
+            # Se a tabela não existir ou o registro for nulo, bloqueia por padrão mas evita erro 500
             return False
             
         return False
@@ -132,7 +134,8 @@ class IsGestaoOrAdministrador(BasePermission):
                 return perm.can_edit
             elif action == "delete":
                 return perm.can_delete
-        except RolePermission.DoesNotExist:
+        except (RolePermission.DoesNotExist, DatabaseError):
+            # Se a tabela não existir ou o registro for nulo, bloqueia por padrão mas evita erro 500
             return False
             
         return False

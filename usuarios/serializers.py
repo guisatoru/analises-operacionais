@@ -61,14 +61,19 @@ class UsuarioSerializer(serializers.ModelSerializer):
 
         group = obj.groups.first()
         if group:
-            perms = RolePermission.objects.filter(group=group)
-            for perm in perms:
-                permissions_dict[perm.module] = {
-                    "view": perm.can_view,
-                    "create": perm.can_create,
-                    "edit": perm.can_edit,
-                    "delete": perm.can_delete
-                }
+            from django.db import DatabaseError
+            try:
+                perms = RolePermission.objects.filter(group=group)
+                for perm in perms:
+                    permissions_dict[perm.module] = {
+                        "view": perm.can_view,
+                        "create": perm.can_create,
+                        "edit": perm.can_edit,
+                        "delete": perm.can_delete
+                    }
+            except DatabaseError:
+                # Se a tabela não existir, retorna um dicionário de permissões vazio e evita erro 500
+                pass
         return permissions_dict
 
     def to_representation(self, instance):
