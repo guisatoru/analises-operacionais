@@ -5,7 +5,7 @@
 import datetime
 from decimal import Decimal
 from collections import defaultdict
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Subquery, OuterRef
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -17,6 +17,7 @@ from lojas.models import (
     EscopoMensal,
     ItemEscopoMensal,
     LinhaFolha,
+    ResumoFolhaMensal,
     ConfiguracaoInsalubridadeLoja,
     obter_ou_criar_config_insalubridade_loja,
     escala_insalubridade_fixa_para_escopo,
@@ -76,7 +77,7 @@ def comparativo_filtro_opcoes_api(request):
     for ano, mes in EscopoMensal.objects.values_list("ano", "mes"):
         competencias_set.add((int(ano), int(mes)))
         
-    for dt in LinhaFolha.objects.values_list("dt_arq", flat=True).distinct():
+    for dt in ResumoFolhaMensal.objects.values_list("dt_arq", flat=True):
         if dt:
             competencias_set.add((dt.year, dt.month))
             
@@ -99,6 +100,30 @@ def comparativo_filtro_opcoes_api(request):
     
     return Response(response_data)
 
+def obter_parametro_lista(request, nome_base: str) -> List[str]:
+    """
+    Por que existe: Obtém de forma resiliente e robusta os valores de um parâmetro que pode 
+    vir do frontend formatado como string com vírgula ou como array (Ex: com sufixo [] do Axios).
+    """
+    chaves = [nome_base, f"{nome_base}[]"]
+    valores = []
+    
+    for chave in chaves:
+        lista = request.query_params.getlist(chave)
+        if lista:
+            for item in lista:
+                if item:
+                    valores.extend([part.strip() for part in item.split(",") if part.strip()])
+                    
+    if not valores:
+        for chave in chaves:
+            single = request.query_params.get(chave)
+            if single:
+                valores.extend([part.strip() for part in single.split(",") if part.strip()])
+                
+    return list(set(valores))
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, IsAdministrador])
 def comparativo_relatorio_api(request):
@@ -109,30 +134,24 @@ def comparativo_relatorio_api(request):
     # 1. Filtros das Lojas
     lojas_qs = Loja.objects.all().select_related("supervisor", "coordenador")
     
-    loja_val = request.query_params.get("loja")
-    if loja_val:
-        lojas_ids = [int(l.strip()) for l in loja_val.split(",") if l.strip().isdigit()]
+    lojas_selecionadas = obter_parametro_lista(request, "loja")
+    if lojas_selecionadas:
+        lojas_ids = [int(l) for l in lojas_selecionadas if l.isdigit()]
         if lojas_ids:
             lojas_qs = lojas_qs.filter(id__in=lojas_ids)
             
-    supervisor_val = request.query_params.get("supervisor")
-    if supervisor_val:
-        supervisores = [s.strip() for s in supervisor_val.split(",") if s.strip()]
-        if supervisores:
-            lojas_qs = lojas_qs.filter(supervisor__nome__in=supervisores)
-            
-    coordenador_val = request.query_params.get("coordenador")
-    if coordenador_val:
-        coordenadores = [c.strip() for c in coordenador_val.split(",") if c.strip()]
-        if coordenadores:
-            lojas_qs = lojas_qs.filter(coordenador__nome__in=coordenadores)
-            
-    uf_val = request.query_params.get("uf")
-    if uf_val:
-        ufs = [u.strip().upper() for u in uf_val.split(",") if u.strip()]
-        if ufs:
-            lojas_qs = lojas_qs.filter(uf__in=ufs)
-            
+    supervisores = obter_parametro_lista(request, "supervisor")
+    if supervisores:
+        lojas_qs = lojas_qs.filter(supervisor__nome__in=supervisores)
+        
+    coordenadores = obter_parametro_lista(request, "coordenador")
+    if coordenadores:
+        lojas_qs = lojas_qs.filter(coordenador__nome__in=coordenadores)
+        
+    ufs = obter_parametro_lista(request, "uf")
+    if ufs:
+        lojas_qs = lojas_qs.filter(uf__in=[u.upper() for u in ufs])
+        
     search_val = request.query_params.get("search")
     if search_val:
         lojas_qs = lojas_qs.filter(nome_referencia__icontains=search_val)
@@ -141,19 +160,21 @@ def comparativo_relatorio_api(request):
     
     # 2. Competências (Mês/Ano)
     competencias_list = []
-    comp_val = request.query_params.get("period") or request.query_params.get("mes_ano")
-    if comp_val:
-        for val in comp_val.split(","):
-            parsed = _parse_competencia_param(val)
-            if parsed:
-                competencias_list.append(parsed)
+    periodos_selecionados = obter_parametro_lista(request, "period")
+    if not periodos_selecionados:
+        periodos_selecionados = obter_parametro_lista(request, "mes_ano")
+        
+    for val in periodos_selecionados:
+        parsed = _parse_competencia_param(val)
+        if parsed:
+            competencias_list.append(parsed)
                 
     if not competencias_list:
         # Pega todas as competências que possuem dados no banco se nenhuma for selecionada
         competencias_set = set()
         for ano, mes in EscopoMensal.objects.values_list("ano", "mes"):
             competencias_set.add((int(ano), int(mes)))
-        for dt in LinhaFolha.objects.values_list("dt_arq", flat=True).distinct():
+        for dt in ResumoFolhaMensal.objects.values_list("dt_arq", flat=True):
             if dt:
                 competencias_set.add((dt.year, dt.month))
         competencias_list = sorted(list(competencias_set), reverse=True)
@@ -171,20 +192,14 @@ def comparativo_relatorio_api(request):
     folha_por_loja_comp = defaultdict(Decimal)
     
     if lojas_filtradas_ids:
-        folha_linhas = (
-            LinhaFolha.objects.filter(
-                loja_id__in=lojas_filtradas_ids,
-                dt_arq__in=datas_exatas,
-                verba__tipo_codigo="PROVENTO",
-                verba__considerar_na_contagem=True
-            )
-            .values("loja_id", "dt_arq")
-            .annotate(soma=Sum("valor"))
-        )
-        for fl in folha_linhas:
-            valor = fl["soma"] or Decimal("0.00")
-            dt = fl["dt_arq"]
-            folha_por_loja_comp[(fl["loja_id"], dt.year, dt.month)] = valor
+        folha_resumos = ResumoFolhaMensal.objects.filter(
+            loja_id__in=lojas_filtradas_ids,
+            dt_arq__in=datas_exatas
+        ).values("loja_id", "dt_arq", "valor_total")
+        for fr in folha_resumos:
+            valor = fr["valor_total"] or Decimal("0.00")
+            dt = fr["dt_arq"]
+            folha_por_loja_comp[(fr["loja_id"], dt.year, dt.month)] = valor
             folha_total += valor
 
     # --- Escopo com Fallback (Vigência Implícita) Otimizado (Query Única O(1))
@@ -214,26 +229,29 @@ def comparativo_relatorio_api(request):
         for ano, mes in competencias_list:
             q_exatos |= Q(ano=ano, mes=mes)
             
-        escopos_ids_para_carregar = []
-        for loja_id in lojas_filtradas_ids:
-            # 1. IDs dos escopos exatos que batem com as competências do período
-            ids_exatos = list(
-                EscopoMensal.objects.filter(loja_id=loja_id)
-                .filter(q_exatos)
-                .values_list("id", flat=True)
-            )
-            escopos_ids_para_carregar.extend(ids_exatos)
-            
-            # 2. ID do escopo anterior mais recente (fallback principal)
-            id_fallback = (
-                EscopoMensal.objects.filter(loja_id=loja_id)
-                .filter(Q(ano__lt=min_ano) | Q(ano=min_ano, mes__lt=min_mes))
-                .order_by("-ano", "-mes")
-                .values_list("id", flat=True)
-                .first()
-            )
-            if id_fallback:
-                escopos_ids_para_carregar.append(id_fallback)
+        # Otimização N+1: Carrega em lote todos os escopos exatos das competências
+        escopos_exatos_ids = list(
+            EscopoMensal.objects.filter(loja_id__in=lojas_filtradas_ids)
+            .filter(q_exatos)
+            .values_list("id", flat=True)
+        )
+
+        # Otimização N+1: Subquery para obter o ID do último escopo anterior ao período para cada loja de uma vez só
+        subquery_fallback = EscopoMensal.objects.filter(
+            loja_id=OuterRef("id")
+        ).filter(
+            Q(ano__lt=min_ano) | Q(ano=min_ano, mes__lt=min_mes)
+        ).order_by("-ano", "-mes").values("id")[:1]
+
+        escopos_fallback_ids = list(
+            lojas_qs.annotate(
+                fallback_id=Subquery(subquery_fallback)
+            ).values_list("fallback_id", flat=True)
+        )
+        escopos_fallback_ids = [fid for fid in escopos_fallback_ids if fid is not None]
+
+        # Junta os IDs sem duplicidades
+        escopos_ids_para_carregar = list(set(escopos_exatos_ids + escopos_fallback_ids))
                 
         todos_escopos = (
             EscopoMensal.objects.filter(id__in=escopos_ids_para_carregar)

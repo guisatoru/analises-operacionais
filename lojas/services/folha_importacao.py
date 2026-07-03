@@ -447,7 +447,175 @@ def importar_folha_de_texto(conteudo_utf8, arquivo_origem, dry_run=False, progre
     with transaction.atomic():
         LinhaFolha.objects.bulk_create(para_gravar, batch_size=2000)
 
+        # Coleta os pares de (loja_id, dt_arq) afetados por esta importação
+        lojas_e_datas = set(
+            (obj.loja_id, obj.dt_arq) for obj in para_gravar if obj.loja_id is not None
+        )
+        if lojas_e_datas:
+            recalcular_resumos_folha(list(lojas_e_datas))
+
     if progress_callback:
         progress_callback(95, "Finalizando resumo da importacao SRD...")
 
     return resumo
+
+
+def recalcular_resumos_folha(lojas_e_datas):
+    """
+    Por que existe: Recalcula e atualiza os valores agregados de folha para os pares (loja_id, dt_arq)
+    passados, salvando em ResumoFolhaMensal. Caso não existam mais linhas válidas para o par, 
+    o resumo correspondente é deletado do banco de dados.
+    """
+    from django.db.models import Sum, Count, Case, When, Value, DecimalField, Q
+    from lojas.models import LinhaFolha, ResumoFolhaMensal
+    from lojas.services.comparativo_loja import (
+        CAT_FOLHA_SALARIO,
+        CAT_FOLHA_INSALUBRIDADE,
+        CAT_FOLHA_ADICIONAL_NOTURNO,
+        _q_categoria_um_dos,
+    )
+
+    q_filter = Q()
+    for loja_id, dt_arq in lojas_e_datas:
+        if loja_id is not None and dt_arq is not None:
+            q_filter |= Q(loja_id=loja_id, dt_arq=dt_arq)
+
+    if not q_filter:
+        return
+
+    # Filtra apenas verbas marcadas para entrar na conta (Provento e Considerar)
+    folha_qs = (
+        LinhaFolha.objects.filter(q_filter)
+        .filter(verba__tipo_codigo="PROVENTO", verba__considerar_na_contagem=True)
+    )
+
+    q_salario = _q_categoria_um_dos(CAT_FOLHA_SALARIO)
+    q_insalubridade = _q_categoria_um_dos(CAT_FOLHA_INSALUBRIDADE)
+    q_adicional_noturno = _q_categoria_um_dos(CAT_FOLHA_ADICIONAL_NOTURNO)
+
+    agregados = (
+        folha_qs.values("loja_id", "dt_arq")
+        .annotate(
+            valor_total=Sum("valor"),
+            linhas_count=Count("id"),
+            valor_salario=Sum(
+                Case(
+                    When(q_salario, then="valor"),
+                    default=Value(Decimal("0.00")),
+                    output_field=DecimalField(max_digits=14, decimal_places=2),
+                )
+            ),
+            valor_insalubridade=Sum(
+                Case(
+                    When(q_insalubridade, then="valor"),
+                    default=Value(Decimal("0.00")),
+                    output_field=DecimalField(max_digits=14, decimal_places=2),
+                )
+            ),
+            valor_adicional_noturno=Sum(
+                Case(
+                    When(q_adicional_noturno, then="valor"),
+                    default=Value(Decimal("0.00")),
+                    output_field=DecimalField(max_digits=14, decimal_places=2),
+                )
+            ),
+        )
+    )
+
+    atualizados = set()
+    for agg in agregados:
+        loja_id = agg["loja_id"]
+        dt_arq = agg["dt_arq"]
+
+        ResumoFolhaMensal.objects.update_or_create(
+            loja_id=loja_id,
+            dt_arq=dt_arq,
+            defaults={
+                "valor_total": agg["valor_total"] or Decimal("0.00"),
+                "linhas_count": agg["linhas_count"] or 0,
+                "valor_salario": agg["valor_salario"] or Decimal("0.00"),
+                "valor_insalubridade": agg["valor_insalubridade"] or Decimal("0.00"),
+                "valor_adicional_noturno": agg["valor_adicional_noturno"] or Decimal("0.00"),
+            },
+        )
+        atualizados.add((loja_id, dt_arq))
+
+    # Deleta resumos se as linhas associadas sumiram
+    for loja_id, dt_arq in lojas_e_datas:
+        if (loja_id, dt_arq) not in atualizados:
+            ResumoFolhaMensal.objects.filter(loja_id=loja_id, dt_arq=dt_arq).delete()
+
+
+def recalcular_todo_historico():
+    """
+    Por que existe: Recalcula do zero os resumos de folha para todas as lojas e datas de competência 
+    existentes no banco de dados. Usado principalmente durante migrações ou scripts de correção.
+    """
+    from django.db.models import Sum, Count, Case, When, Value, DecimalField
+    from lojas.models import LinhaFolha, ResumoFolhaMensal
+    from lojas.services.comparativo_loja import (
+        CAT_FOLHA_SALARIO,
+        CAT_FOLHA_INSALUBRIDADE,
+        CAT_FOLHA_ADICIONAL_NOTURNO,
+        _q_categoria_um_dos,
+    )
+
+    # Limpa tabela existente
+    ResumoFolhaMensal.objects.all().delete()
+
+    folha_qs = LinhaFolha.objects.filter(
+        verba__tipo_codigo="PROVENTO",
+        verba__considerar_na_contagem=True,
+        loja__isnull=False,
+    )
+
+    q_salario = _q_categoria_um_dos(CAT_FOLHA_SALARIO)
+    q_insalubridade = _q_categoria_um_dos(CAT_FOLHA_INSALUBRIDADE)
+    q_adicional_noturno = _q_categoria_um_dos(CAT_FOLHA_ADICIONAL_NOTURNO)
+
+    agregados = (
+        folha_qs.values("loja_id", "dt_arq")
+        .annotate(
+            valor_total=Sum("valor"),
+            linhas_count=Count("id"),
+            valor_salario=Sum(
+                Case(
+                    When(q_salario, then="valor"),
+                    default=Value(Decimal("0.00")),
+                    output_field=DecimalField(max_digits=14, decimal_places=2),
+                )
+            ),
+            valor_insalubridade=Sum(
+                Case(
+                    When(q_insalubridade, then="valor"),
+                    default=Value(Decimal("0.00")),
+                    output_field=DecimalField(max_digits=14, decimal_places=2),
+                )
+            ),
+            valor_adicional_noturno=Sum(
+                Case(
+                    When(q_adicional_noturno, then="valor"),
+                    default=Value(Decimal("0.00")),
+                    output_field=DecimalField(max_digits=14, decimal_places=2),
+                )
+            ),
+        )
+    )
+
+    resumos_para_criar = []
+    for agg in agregados:
+        resumos_para_criar.append(
+            ResumoFolhaMensal(
+                loja_id=agg["loja_id"],
+                dt_arq=agg["dt_arq"],
+                valor_total=agg["valor_total"] or Decimal("0.00"),
+                linhas_count=agg["linhas_count"] or 0,
+                valor_salario=agg["valor_salario"] or Decimal("0.00"),
+                valor_insalubridade=agg["valor_insalubridade"] or Decimal("0.00"),
+                valor_adicional_noturno=agg["valor_adicional_noturno"] or Decimal("0.00"),
+            )
+        )
+
+    if resumos_para_criar:
+        ResumoFolhaMensal.objects.bulk_create(resumos_para_criar, batch_size=2000)
+

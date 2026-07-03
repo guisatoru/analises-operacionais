@@ -13,6 +13,7 @@ from lojas.models import (
     ItemEscopoMensal,
     LinhaFolha,
     Loja,
+    ResumoFolhaMensal,
     escala_insalubridade_fixa_para_escopo,
     montar_caches_salario_para_itens,
 )
@@ -55,9 +56,8 @@ def competencias_distintas_para_loja(loja_id: int) -> List[Tuple[int, int]]:
     ):
         pares.add((int(ano), int(mes)))
 
-    # Otimizado: Busca as datas direto e faz a extração de ano/mês em Python
-    # para evitar consultas funcionais lentas de banco de dados no SQLite.
-    for dt_arq in LinhaFolha.objects.filter(loja_id=loja_id).values_list("dt_arq", flat=True).distinct():
+    # Otimizado: Busca no ResumoFolhaMensal em vez de varrer a gigantesca LinhaFolha.
+    for dt_arq in ResumoFolhaMensal.objects.filter(loja_id=loja_id).values_list("dt_arq", flat=True):
         if dt_arq:
             pares.add((dt_arq.year, dt_arq.month))
 
@@ -200,25 +200,28 @@ def montar_resultado_comparativo(
     # Isso permite que o SQLite utilize o índice no campo dt_arq e evite full table scans.
     datas_exatas = [datetime.date(ano, mes, 1) for ano, mes in competencias]
 
-    # Filtra apenas verbas marcadas para entrar na conta (Provento e Considerar)
-    folha_qs = (
-        LinhaFolha.objects.filter(loja_id=loja_id, dt_arq__in=datas_exatas)
-        .filter(verba__tipo_codigo="PROVENTO", verba__considerar_na_contagem=True)
-    )
-    folha_total = folha_qs.aggregate(s=Sum("valor"))["s"] or Decimal("0.00")
-    resultado.folha_total = folha_total
-    resultado.folha_linhas_count = folha_qs.count()
+    # Otimização: Obtém os valores consolidados diretamente de ResumoFolhaMensal
+    # evitando agregação na gigantesca tabela LinhaFolha.
+    resumos = ResumoFolhaMensal.objects.filter(loja_id=loja_id, dt_arq__in=datas_exatas)
 
-    # Por categoria: só linhas cuja categoria bate com o cadastro de verbas (import).
-    resultado.folha_salario_categoria_total = _somar_valor_folha_com_filtro(
-        folha_qs, _q_categoria_um_dos(CAT_FOLHA_SALARIO)
-    )
-    resultado.folha_insalubridade_categoria_total = _somar_valor_folha_com_filtro(
-        folha_qs, _q_categoria_um_dos(CAT_FOLHA_INSALUBRIDADE)
-    )
-    resultado.folha_adicional_noturno_categoria_total = _somar_valor_folha_com_filtro(
-        folha_qs, _q_categoria_um_dos(CAT_FOLHA_ADICIONAL_NOTURNO)
-    )
+    folha_total = Decimal("0.00")
+    folha_linhas_count = 0
+    folha_salario = Decimal("0.00")
+    folha_insalubridade = Decimal("0.00")
+    folha_adicional_noturno = Decimal("0.00")
+
+    for r in resumos:
+        folha_total += r.valor_total
+        folha_linhas_count += r.linhas_count
+        folha_salario += r.valor_salario
+        folha_insalubridade += r.valor_insalubridade
+        folha_adicional_noturno += r.valor_adicional_noturno
+
+    resultado.folha_total = folha_total
+    resultado.folha_linhas_count = folha_linhas_count
+    resultado.folha_salario_categoria_total = folha_salario
+    resultado.folha_insalubridade_categoria_total = folha_insalubridade
+    resultado.folha_adicional_noturno_categoria_total = folha_adicional_noturno
 
     # --- Escopo: todos os itens dos escopos mensais da loja nesses meses
     itens_todos: List[ItemEscopoMensal] = []
@@ -246,14 +249,11 @@ def montar_resultado_comparativo(
 
     # Mapeia quais competências de fato possuem qualquer folha de pagamento na base geral do banco
     datas_com_folha_no_banco = set(
-        LinhaFolha.objects.filter(dt_arq__in=datas_exatas, verba__tipo_codigo="PROVENTO", verba__considerar_na_contagem=True)
+        ResumoFolhaMensal.objects.filter(dt_arq__in=datas_exatas)
         .values_list("dt_arq", flat=True)
-        .distinct()
     )
 
-    competencias_com_folha_da_loja = set(
-        folha_qs.values_list("dt_arq", flat=True).distinct()
-    )
+    competencias_com_folha_da_loja = set(r.dt_arq for r in resumos)
 
     for ano, mes in competencias:
         # Regra: Se esse mês possui dados de folha de pagamento importados no banco,

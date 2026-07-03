@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
-import { RotateCcw } from 'lucide-react';
-import api from '../../api/client';
 import SearchableSelect from '../ui/searchable-select';
+
+interface Option {
+  value: string;
+  label: string;
+}
 
 interface FiltroOpcoes {
   supervisores: string[];
   coordenadores: string[];
   ufs: string[];
-  competencias: { value: string; label: string }[];
+  competencias: Option[];
 }
 
 interface LojaRef {
@@ -15,18 +18,20 @@ interface LojaRef {
   nome_referencia: string;
 }
 
+interface FiltrosDados {
+  periodo: string;
+  loja: string;
+  supervisor: string;
+  coordenador: string;
+  uf: string;
+}
+
 interface ComparativoFilterProps {
-  filtroPeriodo: string;
-  setFiltroPeriodo: (val: string) => void;
-  filtroLoja: string;
-  setFiltroLoja: (val: string) => void;
-  filtroSupervisor: string;
-  setFiltroSupervisor: (val: string) => void;
-  filtroCoordenador: string;
-  setFiltroCoordenador: (val: string) => void;
-  filtroUf: string;
-  setFiltroUf: (val: string) => void;
+  filtros: FiltrosDados;
+  onApplyFilters: (novosFiltros: FiltrosDados) => void;
   lojasOpcoes: LojaRef[];
+  opcoesFiltros: FiltroOpcoes;
+  loadingFiltros: boolean;
   onClear: () => void;
   onError: (msg: string | null) => void;
 }
@@ -34,84 +39,69 @@ interface ComparativoFilterProps {
 /**
  * Painel de Filtros para o Relatório de Comparativo (Raio-X).
  * 
- * Por que existe: Permite a filtragem dinâmica de competências, lojas,
- * supervisores, coordenadores e estados (UF) para consolidar a análise
- * de desvios orçamentários no estilo BI.
+ * Por que existe: Permite a filtragem de competências, lojas, supervisores,
+ * coordenadores e estados (UF) de forma explícita com botão de busca,
+ * recebendo as opções do pai para evitar concorrência e loops de requisições.
  */
 export default function ComparativoFilter({
-  filtroPeriodo,
-  setFiltroPeriodo,
-  filtroLoja,
-  setFiltroLoja,
-  filtroSupervisor,
-  setFiltroSupervisor,
-  filtroCoordenador,
-  setFiltroCoordenador,
-  filtroUf,
-  setFiltroUf,
+  filtros,
+  onApplyFilters,
   lojasOpcoes,
+  opcoesFiltros,
+  loadingFiltros,
   onClear,
   onError,
 }: ComparativoFilterProps) {
-  const [opcoes, setOpcoes] = useState<FiltroOpcoes>({
-    supervisores: [],
-    coordenadores: [],
-    ufs: [],
-    competencias: [],
-  });
-  const [loading, setLoading] = useState(true);
+  // Estados locais temporários para digitação/seleção do usuário antes de clicar em buscar
+  const [tempPeriodo, setTempPeriodo] = useState(filtros.periodo);
+  const [tempLoja, setTempLoja] = useState(filtros.loja);
+  const [tempSupervisor, setTempSupervisor] = useState(filtros.supervisor);
+  const [tempCoordenador, setTempCoordenador] = useState(filtros.coordenador);
+  const [tempUf, setTempUf] = useState(filtros.uf);
 
-  // Carrega as opções válidas dos filtros ao montar o componente
+  // Sincroniza os estados temporários sempre que os filtros aplicados oficialmente no pai mudarem
   useEffect(() => {
-    const fetchFiltros = async () => {
-      try {
-        const response = await api.get('/comparativo/filtro-opcoes/');
-        setOpcoes(response.data);
-        
-        // Pré-seleciona a competência mais recente na carga inicial para melhorar a performance de renderização
-        if (!filtroPeriodo && response.data.competencias && response.data.competencias.length > 0) {
-          setFiltroPeriodo(response.data.competencias[0].value);
-        }
-      } catch (err) {
-        console.error('Erro ao buscar filtros de comparativo:', err);
-        onError('Erro ao obter os filtros de dados do comparativo de custos.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchFiltros();
-  }, [onError, filtroPeriodo, setFiltroPeriodo]);
+    setTempPeriodo(filtros.periodo);
+    setTempLoja(filtros.loja);
+    setTempSupervisor(filtros.supervisor);
+    setTempCoordenador(filtros.coordenador);
+    setTempUf(filtros.uf);
+  }, [filtros]);
+
+  // Handler para submissão do formulário de busca
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onApplyFilters({
+      periodo: tempPeriodo,
+      loja: tempLoja,
+      supervisor: tempSupervisor,
+      coordenador: tempCoordenador,
+      uf: tempUf
+    });
+  };
 
   return (
-    <form onSubmit={(e) => e.preventDefault()} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-xs shadow-sm space-y-4">
-      <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3">
+    <form onSubmit={handleSubmit} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-xs shadow-sm space-y-5">
+      <div className="border-b border-neutral-100 dark:border-neutral-800 pb-3">
         <h2 className="text-xs font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
           Filtros do Raio-X
         </h2>
-        <button 
-          type="button"
-          onClick={onClear}
-          className="text-[10px] text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 font-semibold flex items-center gap-1 cursor-pointer"
-        >
-          <RotateCcw className="h-3 w-3" />
-          Limpar filtros
-        </button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {/* Período */}
         <div className="space-y-1.5">
           <label className="block text-[10px] font-bold text-neutral-500 uppercase">Período / Competência</label>
-          {loading ? (
+          {loadingFiltros ? (
             <div className="text-xs text-neutral-400">Carregando...</div>
           ) : (
             <SearchableSelect
               options={[
                 { value: "", label: "Todas as Competências" },
-                ...opcoes.competencias
+                ...opcoesFiltros.competencias
               ]}
-              value={filtroPeriodo}
-              onChange={setFiltroPeriodo}
+              value={tempPeriodo}
+              onChange={setTempPeriodo}
               placeholder="Todas as competências..."
               multiple={true}
             />
@@ -121,7 +111,7 @@ export default function ComparativoFilter({
         {/* Loja Física */}
         <div className="space-y-1.5">
           <label className="block text-[10px] font-bold text-neutral-500 uppercase">Loja Física</label>
-          {loading ? (
+          {loadingFiltros ? (
             <div className="text-xs text-neutral-400">Carregando...</div>
           ) : (
             <SearchableSelect
@@ -129,8 +119,8 @@ export default function ComparativoFilter({
                 { value: "", label: "Todas as Lojas" },
                 ...lojasOpcoes.map((l) => ({ value: String(l.id), label: l.nome_referencia }))
               ]}
-              value={filtroLoja}
-              onChange={setFiltroLoja}
+              value={tempLoja}
+              onChange={setTempLoja}
               placeholder="Todas as lojas..."
               multiple={true}
             />
@@ -140,16 +130,16 @@ export default function ComparativoFilter({
         {/* Supervisor */}
         <div className="space-y-1.5">
           <label className="block text-[10px] font-bold text-neutral-500 uppercase">Supervisor</label>
-          {loading ? (
+          {loadingFiltros ? (
             <div className="text-xs text-neutral-400">Carregando...</div>
           ) : (
             <SearchableSelect
               options={[
                 { value: "", label: "Todos os Supervisores" },
-                ...opcoes.supervisores.map((s) => ({ value: s, label: s }))
+                ...opcoesFiltros.supervisores.map((s) => ({ value: s, label: s }))
               ]}
-              value={filtroSupervisor}
-              onChange={setFiltroSupervisor}
+              value={tempSupervisor}
+              onChange={setTempSupervisor}
               placeholder="Todos os supervisores..."
               multiple={true}
             />
@@ -159,16 +149,16 @@ export default function ComparativoFilter({
         {/* Coordenador */}
         <div className="space-y-1.5">
           <label className="block text-[10px] font-bold text-neutral-500 uppercase">Coordenador</label>
-          {loading ? (
+          {loadingFiltros ? (
             <div className="text-xs text-neutral-400">Carregando...</div>
           ) : (
             <SearchableSelect
               options={[
                 { value: "", label: "Todos os Coordenadores" },
-                ...opcoes.coordenadores.map((c) => ({ value: c, label: c }))
+                ...opcoesFiltros.coordenadores.map((c) => ({ value: c, label: c }))
               ]}
-              value={filtroCoordenador}
-              onChange={setFiltroCoordenador}
+              value={tempCoordenador}
+              onChange={setTempCoordenador}
               placeholder="Todos os coordenadores..."
               multiple={true}
             />
@@ -178,21 +168,38 @@ export default function ComparativoFilter({
         {/* UF */}
         <div className="space-y-1.5">
           <label className="block text-[10px] font-bold text-neutral-500 uppercase">UF / Estado</label>
-          {loading ? (
+          {loadingFiltros ? (
             <div className="text-xs text-neutral-400">Carregando...</div>
           ) : (
             <SearchableSelect
               options={[
                 { value: "", label: "Todas as UFs" },
-                ...opcoes.ufs.map((u) => ({ value: u, label: u }))
+                ...opcoesFiltros.ufs.map((u) => ({ value: u, label: u }))
               ]}
-              value={filtroUf}
-              onChange={setFiltroUf}
+              value={tempUf}
+              onChange={setTempUf}
               placeholder="Todas as UFs..."
               multiple={true}
             />
           )}
         </div>
+      </div>
+
+      {/* Botões de Ação */}
+      <div className="flex justify-end gap-3 border-t border-neutral-100 dark:border-neutral-800 pt-3">
+        <button
+          type="button"
+          onClick={onClear}
+          className="px-5 py-2 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 rounded-full text-xs font-bold text-neutral-700 dark:text-neutral-300 transition-colors cursor-pointer"
+        >
+          Limpar Filtros
+        </button>
+        <button
+          type="submit"
+          className="px-6 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full text-xs font-bold hover:bg-neutral-850 dark:hover:bg-neutral-100 shadow-xs transition-opacity cursor-pointer"
+        >
+          Aplicar Filtros
+        </button>
       </div>
     </form>
   );

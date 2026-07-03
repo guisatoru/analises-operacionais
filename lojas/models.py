@@ -755,6 +755,51 @@ class LinhaFolha(models.Model):
         return f"{self.matricula} / {self.codigo_verba} / {self.dt_arq}"
 
 
+class ResumoFolhaMensal(models.Model):
+    """
+    Por que existe: Armazena os valores consolidados (total, por categoria e contagem de linhas)
+    da folha de pagamento por loja e por data de competência (dt_arq), agilizando a renderização
+    do relatório do Raio-X e evitando consultas pesadas à tabela LinhaFolha.
+    """
+
+    loja = models.ForeignKey(
+        "Loja",
+        on_delete=models.CASCADE,
+        related_name="resumos_folha",
+        verbose_name="Loja",
+    )
+    dt_arq = models.DateField("Data ARQ (competência)")
+    valor_total = models.DecimalField("Valor total", max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    linhas_count = models.IntegerField("Contagem de linhas", default=0)
+
+    # Valores por categoria (para detalhamento do Raio-X)
+    valor_salario = models.DecimalField("Valor salário", max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    valor_insalubridade = models.DecimalField(
+        "Valor insalubridade", max_digits=14, decimal_places=2, default=Decimal("0.00")
+    )
+    valor_adicional_noturno = models.DecimalField(
+        "Valor adicional noturno", max_digits=14, decimal_places=2, default=Decimal("0.00")
+    )
+
+    class Meta:
+        verbose_name = "Resumo de folha mensal"
+        verbose_name_plural = "Resumos de folha mensal"
+        constraints = [
+            UniqueConstraint(
+                fields=["loja", "dt_arq"],
+                name="unique_resumo_folha_loja_dt_arq",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["dt_arq", "loja_id"]),
+            models.Index(fields=["loja_id"]),
+        ]
+
+    def __str__(self):
+        return f"{self.loja} - {self.dt_arq} - R$ {self.valor_total}"
+
+
+
 def montar_caches_salario_para_itens(itens):
     """
     Carrega Salario em lote para a listagem de escopos.

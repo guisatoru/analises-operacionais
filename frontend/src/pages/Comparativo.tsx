@@ -12,6 +12,26 @@ interface LojaRef {
   nome_referencia: string;
 }
 
+interface FiltrosDados {
+  periodo: string;
+  loja: string;
+  supervisor: string;
+  coordenador: string;
+  uf: string;
+}
+
+interface Option {
+  value: string;
+  label: string;
+}
+
+interface FiltroOpcoes {
+  supervisores: string[];
+  coordenadores: string[];
+  ufs: string[];
+  competencias: Option[];
+}
+
 /**
  * Página de Comparativo de Custos Orçado vs Real (Raio-X).
  * 
@@ -21,13 +41,24 @@ interface LojaRef {
  */
 export default function Comparativo() {
   const [lojasOpcoes, setLojasOpcoes] = useState<LojaRef[]>([]);
+  
+  // Opções para preencher os filtros (coletadas do pai)
+  const [opcoesFiltros, setOpcoesFiltros] = useState<FiltroOpcoes>({
+    supervisores: [],
+    coordenadores: [],
+    ufs: [],
+    competencias: []
+  });
+  const [loadingFiltros, setLoadingFiltros] = useState(true);
 
-  // Estados dos filtros reativos
-  const [filtroPeriodo, setFiltroPeriodo] = useState('');
-  const [filtroLoja, setFiltroLoja] = useState('');
-  const [filtroSupervisor, setFiltroSupervisor] = useState('');
-  const [filtroCoordenador, setFiltroCoordenador] = useState('');
-  const [filtroUf, setFiltroUf] = useState('');
+  // Estados dos filtros oficiais (aplicados apenas no clique do botão Buscar)
+  const [filtros, setFiltros] = useState<FiltrosDados>({
+    periodo: '',
+    loja: '',
+    supervisor: '',
+    coordenador: '',
+    uf: ''
+  });
 
   // Estados de dados da API paginada
   const [resultados, setResultados] = useState<ComparativoLinhaData[]>([]);
@@ -57,22 +88,41 @@ export default function Comparativo() {
     competenciaLabel: ''
   });
 
-  // Busca lojas físicas para preencher o filtro na carga inicial
+  // Busca lojas físicas e opções de filtros em paralelo na carga inicial
   useEffect(() => {
-    const fetchLojas = async () => {
+    const carregarDadosIniciais = async () => {
       try {
-        const response = await api.get('/lojas/', { params: { sem_paginacao: 'true' } });
-        if (response.data) {
-          setLojasOpcoes(response.data.results || response.data || []);
+        const [resLojas, resFiltros] = await Promise.all([
+          api.get('/lojas/', { params: { sem_paginacao: 'true' } }),
+          api.get('/comparativo/filtro-opcoes/')
+        ]);
+
+        if (resLojas.data) {
+          setLojasOpcoes(resLojas.data.results || resLojas.data || []);
+        }
+
+        if (resFiltros.data) {
+          setOpcoesFiltros(resFiltros.data);
+          const comps = resFiltros.data.competencias || [];
+          // Pré-seleciona a competência mais recente de imediato no estado pai
+          if (comps.length > 0) {
+            setFiltros({
+              periodo: comps[0].value,
+              loja: '',
+              supervisor: '',
+              coordenador: '',
+              uf: ''
+            });
+          }
         }
       } catch (err) {
-        console.error('Erro ao buscar lojas:', err);
-        setErrorMsg('Erro ao carregar a listagem de lojas físicas.');
+        console.error('Erro ao carregar dados iniciais:', err);
+        setErrorMsg('Erro ao carregar a listagem de lojas físicas e opções de filtros.');
       } finally {
-        // Carregamento concluído
+        setLoadingFiltros(false);
       }
     };
-    fetchLojas();
+    carregarDadosIniciais();
   }, []);
 
   // Handler para capturar erro enviado pelos filhos
@@ -80,8 +130,11 @@ export default function Comparativo() {
     setErrorMsg(msg);
   }, []);
 
-  // Recarrega os dados agregados e a tabela ao alterar filtros ou paginação
+  // Recarrega os dados agregados e a tabela ao alterar os filtros aplicados ou a paginação
   useEffect(() => {
+    // IMPORTANTE: Bloqueia a primeira busca vazia (race condition) até carregar os filtros padrão.
+    if (loadingFiltros) return;
+
     const fetchComparativoData = async () => {
       setLoadingData(true);
       setErrorMsg(null);
@@ -89,11 +142,11 @@ export default function Comparativo() {
         const params = new URLSearchParams();
         params.append('page', String(currentPage));
 
-        if (filtroPeriodo) params.append('period', filtroPeriodo);
-        if (filtroLoja) params.append('loja', filtroLoja);
-        if (filtroSupervisor) params.append('supervisor', filtroSupervisor);
-        if (filtroCoordenador) params.append('coordenador', filtroCoordenador);
-        if (filtroUf) params.append('uf', filtroUf);
+        if (filtros.periodo) params.append('period', filtros.periodo);
+        if (filtros.loja) params.append('loja', filtros.loja);
+        if (filtros.supervisor) params.append('supervisor', filtros.supervisor);
+        if (filtros.coordenador) params.append('coordenador', filtros.coordenador);
+        if (filtros.uf) params.append('uf', filtros.uf);
 
         const response = await api.get(`/comparativo/relatorio/?${params.toString()}`);
         if (response.data) {
@@ -114,21 +167,33 @@ export default function Comparativo() {
     };
 
     fetchComparativoData();
-  }, [
-    currentPage,
-    filtroPeriodo,
-    filtroLoja,
-    filtroSupervisor,
-    filtroCoordenador,
-    filtroUf
-  ]);
+  }, [currentPage, filtros, loadingFiltros]);
+
+  // Handler para aplicar filtros (disparado pelo clique no botão Aplicar Filtros)
+  const handleApplyFilters = (novosFiltros: FiltrosDados) => {
+    setFiltros(novosFiltros);
+    setCurrentPage(1);
+  };
 
   const handleLimparFiltros = () => {
-    setFiltroPeriodo('');
-    setFiltroLoja('');
-    setFiltroSupervisor('');
-    setFiltroCoordenador('');
-    setFiltroUf('');
+    setFiltros({
+      periodo: '',
+      loja: '',
+      supervisor: '',
+      coordenador: '',
+      uf: ''
+    });
+    setCurrentPage(1);
+  };
+
+  // Handler para clicar num coordenador ou UF nos gráficos e aplicar como filtro na tabela
+  const handleSetFiltroCoordenador = (nome: string) => {
+    setFiltros(prev => ({ ...prev, coordenador: nome }));
+    setCurrentPage(1);
+  };
+
+  const handleSetFiltroUf = (sigla: string) => {
+    setFiltros(prev => ({ ...prev, uf: sigla }));
     setCurrentPage(1);
   };
 
@@ -163,17 +228,11 @@ export default function Comparativo() {
 
       {/* Seção de Filtros */}
       <ComparativoFilter
-        filtroPeriodo={filtroPeriodo}
-        setFiltroPeriodo={(val) => { setFiltroPeriodo(val); setCurrentPage(1); }}
-        filtroLoja={filtroLoja}
-        setFiltroLoja={(val) => { setFiltroLoja(val); setCurrentPage(1); }}
-        filtroSupervisor={filtroSupervisor}
-        setFiltroSupervisor={(val) => { setFiltroSupervisor(val); setCurrentPage(1); }}
-        filtroCoordenador={filtroCoordenador}
-        setFiltroCoordenador={(val) => { setFiltroCoordenador(val); setCurrentPage(1); }}
-        filtroUf={filtroUf}
-        setFiltroUf={(val) => { setFiltroUf(val); setCurrentPage(1); }}
+        filtros={filtros}
+        onApplyFilters={handleApplyFilters}
         lojasOpcoes={lojasOpcoes}
+        opcoesFiltros={opcoesFiltros}
+        loadingFiltros={loadingFiltros}
         onClear={handleLimparFiltros}
         onError={handleFilterError}
       />
@@ -187,8 +246,8 @@ export default function Comparativo() {
         <ComparativoCharts
           loadingData={loadingData}
           graficos={graficos}
-          setFiltroCoordenador={setFiltroCoordenador}
-          setFiltroUf={setFiltroUf}
+          setFiltroCoordenador={handleSetFiltroCoordenador}
+          setFiltroUf={handleSetFiltroUf}
           setCurrentPage={setCurrentPage}
         />
 

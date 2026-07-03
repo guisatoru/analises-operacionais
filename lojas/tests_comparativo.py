@@ -98,6 +98,11 @@ class ComparativoViewsTests(TestCase):
             categoria="SALÁRIO",
         )
 
+        # Força o recálculo para popular o ResumoFolhaMensal no ambiente de testes
+        from lojas.services.folha_importacao import recalcular_resumos_folha
+        recalcular_resumos_folha([(self.loja.id, date(2026, 3, 1))])
+
+
     def test_montar_resultado_comparativo(self):
         """Testa se o serviço calcula corretamente os desvios."""
         res = montar_resultado_comparativo(self.loja.pk, [(2026, 3)])
