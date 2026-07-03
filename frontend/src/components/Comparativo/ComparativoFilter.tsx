@@ -67,6 +67,11 @@ export default function ComparativoFilter({
       try {
         const response = await api.get('/comparativo/filtro-opcoes/');
         setOpcoes(response.data);
+        
+        // Pré-seleciona a competência mais recente na carga inicial para melhorar a performance de renderização
+        if (!filtroPeriodo && response.data.competencias && response.data.competencias.length > 0) {
+          setFiltroPeriodo(response.data.competencias[0].value);
+        }
       } catch (err) {
         console.error('Erro ao buscar filtros de comparativo:', err);
         onError('Erro ao obter os filtros de dados do comparativo de custos.');
@@ -75,7 +80,7 @@ export default function ComparativoFilter({
       }
     };
     fetchFiltros();
-  }, [onError]);
+  }, [onError, filtroPeriodo, setFiltroPeriodo]);
 
   return (
     <form onSubmit={(e) => e.preventDefault()} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-xs shadow-sm space-y-4">

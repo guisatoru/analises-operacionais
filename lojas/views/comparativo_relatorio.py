@@ -23,6 +23,12 @@ from lojas.models import (
     montar_caches_salario_para_itens,
 )
 from lojas.serializers import LojaSerializer
+import time
+
+_FILTROS_CACHE = None
+_FILTROS_CACHE_TIME = 0.0
+CACHE_EXPIRATION_SECONDS = 300.0  # 5 minutos
+
 
 def _nome_mes(mes: int) -> str:
     """Retorna o nome por extenso do mês."""
@@ -55,6 +61,11 @@ def comparativo_filtro_opcoes_api(request):
     """
     Retorna as opções disponíveis para preencher os seletores de filtros no frontend.
     """
+    global _FILTROS_CACHE, _FILTROS_CACHE_TIME
+    now = time.time()
+    if _FILTROS_CACHE is not None and (now - _FILTROS_CACHE_TIME) < CACHE_EXPIRATION_SECONDS:
+        return Response(_FILTROS_CACHE)
+
     # Coleta supervisores e coordenadores ativos nas lojas
     supervisores = list(Loja.objects.exclude(supervisor__isnull=True).values_list("supervisor__nome", flat=True).distinct().order_by("supervisor__nome"))
     coordenadores = list(Loja.objects.exclude(coordenador__isnull=True).values_list("coordenador__nome", flat=True).distinct().order_by("coordenador__nome"))
@@ -76,12 +87,17 @@ def comparativo_filtro_opcoes_api(request):
             "label": f"{_nome_mes(mes)} / {ano}"
         })
         
-    return Response({
+    response_data = {
         "supervisores": supervisores,
         "coordenadores": coordenadores,
         "ufs": ufs,
         "competencias": competencias_opcoes
-    })
+    }
+    
+    _FILTROS_CACHE = response_data
+    _FILTROS_CACHE_TIME = now
+    
+    return Response(response_data)
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, IsAdministrador])
@@ -189,9 +205,38 @@ def comparativo_relatorio_api(request):
         # Mapeia lojas para acesso rápido no loop
         lojas_dict = {l.id: l for l in lojas_qs}
         
-        # Otimização CRÍTICA: Carrega todos os escopos das lojas de uma vez
+        # Otimização de Memória & Query: Em vez de carregar TODOS os escopos de todos os tempos da história na memória do Django,
+        # fazemos varreduras indexadas leves para obter apenas os IDs dos escopos das competências desejadas
+        # e o escopo anterior mais recente de cada loja (para servir de fallback).
+        min_ano, min_mes = min(competencias_list)
+        
+        q_exatos = Q()
+        for ano, mes in competencias_list:
+            q_exatos |= Q(ano=ano, mes=mes)
+            
+        escopos_ids_para_carregar = []
+        for loja_id in lojas_filtradas_ids:
+            # 1. IDs dos escopos exatos que batem com as competências do período
+            ids_exatos = list(
+                EscopoMensal.objects.filter(loja_id=loja_id)
+                .filter(q_exatos)
+                .values_list("id", flat=True)
+            )
+            escopos_ids_para_carregar.extend(ids_exatos)
+            
+            # 2. ID do escopo anterior mais recente (fallback principal)
+            id_fallback = (
+                EscopoMensal.objects.filter(loja_id=loja_id)
+                .filter(Q(ano__lt=min_ano) | Q(ano=min_ano, mes__lt=min_mes))
+                .order_by("-ano", "-mes")
+                .values_list("id", flat=True)
+                .first()
+            )
+            if id_fallback:
+                escopos_ids_para_carregar.append(id_fallback)
+                
         todos_escopos = (
-            EscopoMensal.objects.filter(loja_id__in=lojas_filtradas_ids)
+            EscopoMensal.objects.filter(id__in=escopos_ids_para_carregar)
             .prefetch_related("itens", "itens__cargo")
             .select_related("loja")
             .order_by("-ano", "-mes")
