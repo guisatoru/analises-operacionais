@@ -86,9 +86,10 @@ def parse_competencias_get(getlist) -> List[Tuple[int, int]]:
     """Lê request.GET.getlist('c') e devolve lista única de (ano, mês) ordenada."""
     visto: Set[Tuple[int, int]] = set()
     for raw in getlist:
-        par = _parse_competencia_param(raw)
-        if par:
-            visto.add(par)
+        for item in raw.split(","):
+            par = _parse_competencia_param(item)
+            if par:
+                visto.add(par)
     return sorted(visto)
 
 

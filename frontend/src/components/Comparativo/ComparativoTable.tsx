@@ -61,7 +61,6 @@ export default function ComparativoTable({
               <th className="py-3 px-5">Supervisor</th>
               <th className="py-3 px-5">Coordenador</th>
               <th className="py-3 px-5 text-center">UF</th>
-              <th className="py-3 px-5">Competência</th>
               <th className="py-3 px-5 text-right">Orçado (Escopo)</th>
               <th className="py-3 px-5 text-right">Real (Folha)</th>
               <th className="py-3 px-5 text-center">Desvio</th>
@@ -71,7 +70,7 @@ export default function ComparativoTable({
           <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800 text-xs font-bold text-neutral-700 dark:text-neutral-300">
             {loading && resultados.length === 0 ? (
               <tr>
-                <td colSpan={9} className="py-20 text-center text-xs text-neutral-400">
+                <td colSpan={8} className="py-20 text-center text-xs text-neutral-400">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <span className="animate-spin text-neutral-400">...</span>
                     <span>Carregando dados comparativos...</span>
@@ -80,7 +79,7 @@ export default function ComparativoTable({
               </tr>
             ) : resultados.length === 0 ? (
               <tr>
-                <td colSpan={9} className="py-16 text-center text-xs text-neutral-400 italic">
+                <td colSpan={8} className="py-16 text-center text-xs text-neutral-400 italic">
                   Nenhum registro encontrado para os filtros selecionados.
                 </td>
               </tr>
@@ -98,7 +97,6 @@ export default function ComparativoTable({
                     <td className="py-3.5 px-5 text-neutral-500 font-medium">{item.supervisor}</td>
                     <td className="py-3.5 px-5 text-neutral-500 font-medium">{item.coordenador}</td>
                     <td className="py-3.5 px-5 text-center font-mono">{item.uf}</td>
-                    <td className="py-3.5 px-5 text-neutral-500 font-medium">{item.competencia_label}</td>
                     <td className="py-3.5 px-5 text-right font-mono text-neutral-500">{formatCurrency(item.orcado)}</td>
                     <td className="py-3.5 px-5 text-right font-mono text-neutral-850 dark:text-neutral-200">{formatCurrency(item.realizado)}</td>
                     <td className="py-3.5 px-5 text-center font-mono">

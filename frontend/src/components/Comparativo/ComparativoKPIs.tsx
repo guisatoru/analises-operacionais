@@ -54,12 +54,12 @@ export default function ComparativoKPIs({ kpis, loadingData }: ComparativoKPIsPr
       </div>
 
       {/* Desvio Geral (Custo Real - Orçado) */}
-      <div className={`border rounded-2xl p-5 shadow-sm space-y-3 relative overflow-hidden text-white ${
+      <div className={`border rounded-2xl p-5 shadow-xs shadow-sm space-y-3 relative overflow-hidden ${
         isDesvioPositivo 
-          ? 'bg-red-650 border-red-700 dark:bg-red-950/20 dark:border-red-900 dark:text-red-300' 
-          : 'bg-emerald-650 border-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-900 dark:text-emerald-300'
+          ? 'bg-red-50 border-red-200 text-red-700 dark:bg-red-950/20 dark:border-red-900/40 dark:text-red-300' 
+          : 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-900/40 dark:text-emerald-300'
       }`}>
-        <div className="flex items-center justify-between opacity-80">
+        <div className="flex items-center justify-between">
           <span className="text-[10px] font-bold uppercase tracking-wider">Desvio Acumulado</span>
           <Scale className="h-4 w-4" />
         </div>
@@ -67,7 +67,7 @@ export default function ComparativoKPIs({ kpis, loadingData }: ComparativoKPIsPr
           <span className="text-xl font-extrabold font-mono block">
             {loadingData ? '...' : (isDesvioPositivo ? '+' : '') + formatCurrency(kpis.desvio_total)}
           </span>
-          <span className="text-[10px] opacity-80 font-medium block">
+          <span className="text-[10px] font-medium block">
             {isDesvioPositivo 
               ? 'Gasto acima do orçado planejado' 
               : 'Economia gerada em relação ao escopo'
