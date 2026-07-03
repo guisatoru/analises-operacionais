@@ -268,3 +268,19 @@ def cargo_list(request):
     cargos = Cargo.objects.all().order_by("nome")
     serializer = CargoSerializer(cargos, many=True)
     return Response(serializer.data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsAdministrador])
+def lojas_sem_escopo(request):
+    """
+    Por que existe: Esta view retorna a listagem de todas as lojas que estão com o status ATIVA,
+    mas que ainda não possuem nenhum planejamento de escopo mensal cadastrado no sistema.
+    Isso serve para ajudar o usuário a identificar lojas recém-criadas que precisam de atenção.
+    """
+    lojas = Loja.objects.filter(status="ATIVA").exclude(
+        escopos_mensais__isnull=False
+    ).order_by("nome_referencia")
+    data = [{"id": str(l.id), "nome_referencia": l.nome_referencia} for l in lojas]
+    return Response(data)
+

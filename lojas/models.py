@@ -456,6 +456,13 @@ class ConfiguracaoInsalubridadeLoja(models.Model):
 
 
 def obter_ou_criar_config_insalubridade_loja(loja):
+    """
+    Obtém a configuração de insalubridade da loja, buscando do cache do objeto
+    caso já tenha sido pré-carregada para evitar o gargalo N+1.
+    """
+    if hasattr(loja, "_cached_config_insalubridade") and loja._cached_config_insalubridade is not None:
+        return loja._cached_config_insalubridade
+
     fixa_padrao, ban_padrao = percentuais_insalubridade_padrao_para_loja(loja)
     cfg, _ = ConfiguracaoInsalubridadeLoja.objects.get_or_create(
         loja=loja,
@@ -469,6 +476,7 @@ def obter_ou_criar_config_insalubridade_loja(loja):
             "insalubridade_fixa_recebedores_quantidade": None,
         },
     )
+    loja._cached_config_insalubridade = cfg
     return cfg
 
 
@@ -516,8 +524,14 @@ def escala_insalubridade_fixa_para_escopo(escopo_mensal):
     TODOS → 1. PERSONALIZADO → min(H / soma_quantidades, 1).
     """
     cfg = obter_ou_criar_config_insalubridade_loja(escopo_mensal.loja)
-    agregado = escopo_mensal.itens.aggregate(s=Sum("quantidade"))
-    total_pessoas = agregado["s"] or 0
+    
+    # Se os itens já foram prefetched, somamos em memória para evitar outra query de agregação no banco.
+    if hasattr(escopo_mensal, "_prefetched_objects_cache") and "itens" in escopo_mensal._prefetched_objects_cache:
+        total_pessoas = sum(i.quantidade for i in escopo_mensal.itens.all())
+    else:
+        agregado = escopo_mensal.itens.aggregate(s=Sum("quantidade"))
+        total_pessoas = agregado["s"] or 0
+        
     if total_pessoas == 0:
         return Decimal("0")
     if cfg.insalubridade_fixa_recebedores_modo != INSALUBRIDADE_FIXA_RECEBEDORES_PERSONALIZADO:
@@ -739,61 +753,6 @@ class LinhaFolha(models.Model):
 
     def __str__(self):
         return f"{self.matricula} / {self.codigo_verba} / {self.dt_arq}"
-
-
-MOTIVO_DUPLICATA_FOLHA_CHOICES = [
-    ("REPETIDA_NO_ARQUIVO", "Repetida no mesmo arquivo"),
-    ("JA_EXISTIA_NO_BANCO", "Já existia na folha gravada"),
-]
-
-
-class LinhaFolhaDuplicada(models.Model):
-    """
-    Histórico de linhas da folha que NÃO entram na contagem oficial (LinhaFolha),
-    mas ficam guardadas para auditoria e visualização.
-    """
-
-    motivo = models.CharField(
-        "Motivo",
-        max_length=32,
-        choices=MOTIVO_DUPLICATA_FOLHA_CHOICES,
-    )
-    matricula = models.CharField("Matrícula", max_length=64)
-    verba = models.ForeignKey(
-        Verba,
-        on_delete=models.PROTECT,
-        related_name="linhas_folha_duplicadas",
-        verbose_name="Verba",
-    )
-    codigo_verba = models.CharField("Código da verba (cópia)", max_length=20)
-    valor = models.DecimalField("Valor", max_digits=14, decimal_places=2)
-    dt_arq = models.DateField("Data ARQ (competência)")
-    dt_pagamento = models.DateField("Data pagamento")
-    centro_custo = models.CharField("Centro de custo (folha)", max_length=12)
-    centro_custo_real = models.CharField("Centro de custo real", max_length=12)
-    loja = models.ForeignKey(
-        Loja,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="linhas_folha_duplicadas",
-        verbose_name="Loja",
-    )
-    categoria = models.CharField("Categoria", max_length=120, blank=True)
-    arquivo_origem = models.CharField("Arquivo de origem", max_length=255, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        verbose_name = "Linha de folha duplicada"
-        verbose_name_plural = "Linhas de folha duplicadas (histórico)"
-        ordering = ["-created_at", "matricula"]
-        indexes = [
-            models.Index(fields=["dt_arq", "motivo"]),
-            models.Index(fields=["matricula", "dt_arq"]),
-        ]
-
-    def __str__(self):
-        return f"{self.motivo} — {self.matricula} / {self.codigo_verba} / {self.dt_arq}"
 
 
 def montar_caches_salario_para_itens(itens):

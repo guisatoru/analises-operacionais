@@ -1,126 +1,194 @@
-import { Loader2, CheckSquare, Square } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { RotateCcw } from 'lucide-react';
+import api from '../../api/client';
 import SearchableSelect from '../ui/searchable-select';
+
+interface FiltroOpcoes {
+  supervisores: string[];
+  coordenadores: string[];
+  ufs: string[];
+  competencias: { value: string; label: string }[];
+}
 
 interface LojaRef {
   id: string;
   nome_referencia: string;
 }
 
-interface CompetenciaOpcao {
-  ano: number;
-  mes: number;
-  value: string;
-  label: string;
-  checked: boolean;
-}
-
 interface ComparativoFilterProps {
+  filtroPeriodo: string;
+  setFiltroPeriodo: (val: string) => void;
+  filtroLoja: string;
+  setFiltroLoja: (val: string) => void;
+  filtroSupervisor: string;
+  setFiltroSupervisor: (val: string) => void;
+  filtroCoordenador: string;
+  setFiltroCoordenador: (val: string) => void;
+  filtroUf: string;
+  setFiltroUf: (val: string) => void;
   lojasOpcoes: LojaRef[];
-  selectedLoja: string;
-  setSelectedLoja: (val: string) => void;
-  loadingLojas: boolean;
-  competenciasOpcoes: CompetenciaOpcao[];
-  selectedCompetencias: string[];
-  handleToggleCompetencia: (compValue: string) => void;
-  onClearCompetencias: () => void;
+  onClear: () => void;
+  onError: (msg: string | null) => void;
 }
 
 /**
- * Filtro Lateral de Comparativo de Custos (Orçado vs Real).
+ * Painel de Filtros para o Relatório de Comparativo (Raio-X).
  * 
- * Por que existe: Separa a seleção lateral de Loja Física e a lista dinâmica de 
- * competências de datas disponíveis no banco de dados, permitindo a seleção múltipla.
+ * Por que existe: Permite a filtragem dinâmica de competências, lojas,
+ * supervisores, coordenadores e estados (UF) para consolidar a análise
+ * de desvios orçamentários no estilo BI.
  */
 export default function ComparativoFilter({
+  filtroPeriodo,
+  setFiltroPeriodo,
+  filtroLoja,
+  setFiltroLoja,
+  filtroSupervisor,
+  setFiltroSupervisor,
+  filtroCoordenador,
+  setFiltroCoordenador,
+  filtroUf,
+  setFiltroUf,
   lojasOpcoes,
-  selectedLoja,
-  setSelectedLoja,
-  loadingLojas,
-  competenciasOpcoes,
-  selectedCompetencias,
-  handleToggleCompetencia,
-  onClearCompetencias,
+  onClear,
+  onError,
 }: ComparativoFilterProps) {
+  const [opcoes, setOpcoes] = useState<FiltroOpcoes>({
+    supervisores: [],
+    coordenadores: [],
+    ufs: [],
+    competencias: [],
+  });
+  const [loading, setLoading] = useState(true);
+
+  // Carrega as opções válidas dos filtros ao montar o componente
+  useEffect(() => {
+    const fetchFiltros = async () => {
+      try {
+        const response = await api.get('/comparativo/filtro-opcoes/');
+        setOpcoes(response.data);
+      } catch (err) {
+        console.error('Erro ao buscar filtros de comparativo:', err);
+        onError('Erro ao obter os filtros de dados do comparativo de custos.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFiltros();
+  }, [onError]);
+
   return (
-    <aside className="lg:col-span-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-xs shadow-sm space-y-6">
-      {/* Seleção de Loja */}
-      <div>
-        <h2 className="text-sm font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider mb-3">
-          Filtros
+    <form onSubmit={(e) => e.preventDefault()} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-xs shadow-sm space-y-4">
+      <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3">
+        <h2 className="text-xs font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
+          Filtros do Raio-X
         </h2>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-neutral-600 uppercase mb-2">
-              Loja Física
-            </label>
-            {loadingLojas ? (
-              <div className="flex items-center gap-2 text-xs text-neutral-400">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Carregando lojas...
-              </div>
-            ) : (
-              <SearchableSelect
-                options={lojasOpcoes.map((l) => ({ value: String(l.id), label: l.nome_referencia }))}
-                value={selectedLoja}
-                onChange={setSelectedLoja}
-                placeholder="Selecione uma loja..."
-              />
-            )}
-          </div>
-        </div>
+        <button 
+          type="button"
+          onClick={onClear}
+          className="text-[10px] text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 font-semibold flex items-center gap-1 cursor-pointer"
+        >
+          <RotateCcw className="h-3 w-3" />
+          Limpar filtros
+        </button>
       </div>
 
-      {/* Seleção de Competências dinâmicas */}
-      {selectedLoja && (
-        <div className="pt-5 border-t border-neutral-100 dark:border-neutral-850 space-y-3.5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
-              Competências (data ARQ)
-            </h3>
-            {selectedCompetencias.length > 0 && (
-              <button 
-                type="button"
-                onClick={onClearCompetencias}
-                className="text-[10px] text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 font-semibold cursor-pointer"
-              >
-                Limpar seleções
-              </button>
-            )}
-          </div>
-
-          {competenciasOpcoes.length === 0 ? (
-            <p className="text-xs text-neutral-450 italic">
-              Nenhuma competência de folha encontrada para esta loja no banco de dados.
-            </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        {/* Período */}
+        <div className="space-y-1.5">
+          <label className="block text-[10px] font-bold text-neutral-500 uppercase">Período / Competência</label>
+          {loading ? (
+            <div className="text-xs text-neutral-400">Carregando...</div>
           ) : (
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-              {competenciasOpcoes.map((op) => {
-                const isChecked = selectedCompetencias.includes(op.value);
-                return (
-                  <button
-                    key={op.value}
-                    type="button"
-                    onClick={() => handleToggleCompetencia(op.value)}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border text-left text-xs font-bold transition-all cursor-pointer ${
-                      isChecked
-                        ? 'bg-neutral-900 border-neutral-900 text-white dark:bg-white dark:border-white dark:text-neutral-900 shadow-xs'
-                        : 'bg-white border-neutral-200 hover:bg-neutral-50 text-neutral-700 dark:bg-neutral-900 dark:border-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-850'
-                    }`}
-                  >
-                    {isChecked ? (
-                      <CheckSquare className="h-4 w-4 shrink-0" />
-                    ) : (
-                      <Square className="h-4 w-4 shrink-0 text-neutral-400" />
-                    )}
-                    <span>{op.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+            <SearchableSelect
+              options={[
+                { value: "", label: "Todas as Competências" },
+                ...opcoes.competencias
+              ]}
+              value={filtroPeriodo}
+              onChange={setFiltroPeriodo}
+              placeholder="Todas as competências..."
+              multiple={true}
+            />
           )}
         </div>
-      )}
-    </aside>
+
+        {/* Loja Física */}
+        <div className="space-y-1.5">
+          <label className="block text-[10px] font-bold text-neutral-500 uppercase">Loja Física</label>
+          {loading ? (
+            <div className="text-xs text-neutral-400">Carregando...</div>
+          ) : (
+            <SearchableSelect
+              options={[
+                { value: "", label: "Todas as Lojas" },
+                ...lojasOpcoes.map((l) => ({ value: String(l.id), label: l.nome_referencia }))
+              ]}
+              value={filtroLoja}
+              onChange={setFiltroLoja}
+              placeholder="Todas as lojas..."
+              multiple={true}
+            />
+          )}
+        </div>
+
+        {/* Supervisor */}
+        <div className="space-y-1.5">
+          <label className="block text-[10px] font-bold text-neutral-500 uppercase">Supervisor</label>
+          {loading ? (
+            <div className="text-xs text-neutral-400">Carregando...</div>
+          ) : (
+            <SearchableSelect
+              options={[
+                { value: "", label: "Todos os Supervisores" },
+                ...opcoes.supervisores.map((s) => ({ value: s, label: s }))
+              ]}
+              value={filtroSupervisor}
+              onChange={setFiltroSupervisor}
+              placeholder="Todos os supervisores..."
+              multiple={true}
+            />
+          )}
+        </div>
+
+        {/* Coordenador */}
+        <div className="space-y-1.5">
+          <label className="block text-[10px] font-bold text-neutral-500 uppercase">Coordenador</label>
+          {loading ? (
+            <div className="text-xs text-neutral-400">Carregando...</div>
+          ) : (
+            <SearchableSelect
+              options={[
+                { value: "", label: "Todos os Coordenadores" },
+                ...opcoes.coordenadores.map((c) => ({ value: c, label: c }))
+              ]}
+              value={filtroCoordenador}
+              onChange={setFiltroCoordenador}
+              placeholder="Todos os coordenadores..."
+              multiple={true}
+            />
+          )}
+        </div>
+
+        {/* UF */}
+        <div className="space-y-1.5">
+          <label className="block text-[10px] font-bold text-neutral-500 uppercase">UF / Estado</label>
+          {loading ? (
+            <div className="text-xs text-neutral-400">Carregando...</div>
+          ) : (
+            <SearchableSelect
+              options={[
+                { value: "", label: "Todas as UFs" },
+                ...opcoes.ufs.map((u) => ({ value: u, label: u }))
+              ]}
+              value={filtroUf}
+              onChange={setFiltroUf}
+              placeholder="Todas as UFs..."
+              multiple={true}
+            />
+          )}
+        </div>
+      </div>
+    </form>
   );
 }

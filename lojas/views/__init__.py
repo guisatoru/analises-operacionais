@@ -13,6 +13,7 @@ from .escopos import (
     escopo_duplicar_proximo_mes,
     escopo_list,
     cargo_list,
+    lojas_sem_escopo,
 )
 from .configuracoes import importacoes
 from .loja_insalubridade import loja_config_insalubridade
@@ -30,7 +31,7 @@ from .stores import (
 )
 
 from .comparativo import comparativo_loja
-from .folha_duplicadas import folha_duplicadas_list
+from .comparativo_relatorio import comparativo_relatorio_api, comparativo_filtro_opcoes_api
 from .diarias import diarias_list_api, diarias_filtro_opcoes_api
 from .premios import premios_list_api, premios_filtro_opcoes_api
 from .headcount import headcount_analise_api, headcount_loja_colaboradores_api
@@ -41,6 +42,8 @@ __all__ = [
     "api_item_escopo_save",
     "cargo_list",
     "comparativo_loja",
+    "comparativo_relatorio_api",
+    "comparativo_filtro_opcoes_api",
     "competencia_anterior",
     "escopo_create",
     "escopo_delete",
@@ -54,8 +57,8 @@ __all__ = [
     "store_detail",
     "store_list",
     "store_update",
-    "folha_duplicadas_list",
     "escopo_duplicar_proximo_mes",
+    "lojas_sem_escopo",
     "loja_config_insalubridade",
     "coordenador_list_create",
     "supervisor_list_create",

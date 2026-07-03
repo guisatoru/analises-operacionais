@@ -1,44 +1,64 @@
-import { useEffect, useState } from 'react';
-import { AlertCircle } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { AlertCircle, FileText } from 'lucide-react';
 import api from '../api/client';
 import ComparativoFilter from '../components/Comparativo/ComparativoFilter';
-import ComparativoTable, { type ResultadoComparativo } from '../components/Comparativo/ComparativoTable';
+import ComparativoTable, { type ComparativoLinhaData } from '../components/Comparativo/ComparativoTable';
+import ComparativoKPIs from '../components/Comparativo/ComparativoKPIs';
+import ComparativoCharts from '../components/Comparativo/ComparativoCharts';
+import ComparativoDetalheModal from '../components/Comparativo/ComparativoDetalheModal';
 
 interface LojaRef {
   id: string;
   nome_referencia: string;
 }
 
-interface CompetenciaOpcao {
-  ano: number;
-  mes: number;
-  value: string;
-  label: string;
-  checked: boolean;
-}
-
 /**
  * Página de Comparativo de Custos Orçado vs Real (Raio-X).
  * 
- * Por que existe: Gerencia o fluxo de seleção de filiais físicas e cálculo
- * consolidado de desvios orçamentários. Organiza as chamadas de API do Django
- * e delega as visões de filtro lateral e tabela comparativa para subcomponentes menores.
+ * Por que existe: Gerencia a análise integrada e auditoria de despesas.
+ * Centraliza KPIs financeiros consolidando estimativas contra folha,
+ * gráficos do BI, filtros reativos e a listagem de filiais com paginação.
  */
 export default function Comparativo() {
   const [lojasOpcoes, setLojasOpcoes] = useState<LojaRef[]>([]);
-  const [selectedLoja, setSelectedLoja] = useState('');
-  
-  // Lista de competências disponíveis para a loja selecionada
-  const [competenciasOpcoes, setCompetenciasOpcoes] = useState<CompetenciaOpcao[]>([]);
-  const [selectedCompetencias, setSelectedCompetencias] = useState<string[]>([]);
-  
-  // Dados do comparativo orçado vs real
-  const [resultado, setResultado] = useState<ResultadoComparativo | null>(null);
   const [loadingLojas, setLoadingLojas] = useState(true);
-  const [loadingComparativo, setLoadingComparativo] = useState(false);
+
+  // Estados dos filtros reativos
+  const [filtroPeriodo, setFiltroPeriodo] = useState('');
+  const [filtroLoja, setFiltroLoja] = useState('');
+  const [filtroSupervisor, setFiltroSupervisor] = useState('');
+  const [filtroCoordenador, setFiltroCoordenador] = useState('');
+  const [filtroUf, setFiltroUf] = useState('');
+
+  // Estados de dados da API paginada
+  const [resultados, setResultados] = useState<ComparativoLinhaData[]>([]);
+  const [kpis, setKpis] = useState({
+    orcado_total: 0,
+    realizado_total: 0,
+    desvio_total: 0
+  });
+  const [graficos, setGraficos] = useState({
+    mensal: [] as { mes: string; orcado: number; realizado: number; desvio: number }[],
+    coordenador: [] as { coordenador: string; desvio: number }[],
+    uf: [] as { uf: string; desvio: number }[]
+  });
+
+  // Paginação e UI
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loadingData, setLoadingData] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Carrega a listagem de lojas ao inicializar a tela
+  // Estados do Modal de Detalhes de uma Filial
+  const [detailModal, setDetailModal] = useState({
+    isOpen: false,
+    lojaId: 0,
+    lojaNome: '',
+    competencia: '',
+    competenciaLabel: ''
+  });
+
+  // Busca lojas físicas para preencher o filtro na carga inicial
   useEffect(() => {
     const fetchLojas = async () => {
       try {
@@ -48,7 +68,7 @@ export default function Comparativo() {
         }
       } catch (err) {
         console.error('Erro ao buscar lojas:', err);
-        setErrorMsg('Erro ao conectar com a tabela de lojas.');
+        setErrorMsg('Erro ao carregar a listagem de lojas físicas.');
       } finally {
         setLoadingLojas(false);
       }
@@ -56,87 +76,83 @@ export default function Comparativo() {
     fetchLojas();
   }, []);
 
-  // Monitora a seleção de loja para buscar as competências válidas daquela unidade
+  // Handler para capturar erro enviado pelos filhos
+  const handleFilterError = useCallback((msg: string | null) => {
+    setErrorMsg(msg);
+  }, []);
+
+  // Recarrega os dados agregados e a tabela ao alterar filtros ou paginação
   useEffect(() => {
-    if (!selectedLoja) {
-      setCompetenciasOpcoes([]);
-      setSelectedCompetencias([]);
-      setResultado(null);
-      return;
-    }
-
-    const fetchCompetencias = async () => {
-      setLoadingComparativo(true);
-      setErrorMsg(null);
-      try {
-        // Chamada sem competências apenas para listar as opções disponíveis
-        const response = await api.get('/comparativo/', {
-          params: { loja: selectedLoja }
-        });
-        
-        if (response.data) {
-          setCompetenciasOpcoes(response.data.competencias_opcoes || []);
-          setSelectedCompetencias([]); // Limpa as selecionadas anteriormente
-          setResultado(null);
-        }
-      } catch (err) {
-        console.error('Erro ao buscar competências:', err);
-        setErrorMsg('Não foi possível obter as competências de dados desta loja.');
-      } finally {
-        setLoadingComparativo(false);
-      }
-    };
-
-    fetchCompetencias();
-  }, [selectedLoja]);
-
-  // Monitora a mudança nos checkboxes de competências para recalcular os desvios
-  const handleToggleCompetencia = (compValue: string) => {
-    setSelectedCompetencias(prev => {
-      if (prev.includes(compValue)) {
-        return prev.filter(c => c !== compValue);
-      } else {
-        return [...prev, compValue];
-      }
-    });
-  };
-
-  // Dispara a consulta consolidada do comparativo com base nas seleções de filtros
-  useEffect(() => {
-    if (!selectedLoja || selectedCompetencias.length === 0) {
-      setResultado(null);
-      return;
-    }
-
     const fetchComparativoData = async () => {
-      setLoadingComparativo(true);
+      setLoadingData(true);
       setErrorMsg(null);
       try {
         const params = new URLSearchParams();
-        params.append('loja', selectedLoja);
-        selectedCompetencias.forEach(comp => params.append('c', comp));
+        params.append('page', String(currentPage));
 
-        const response = await api.get(`/comparativo/?${params.toString()}`);
+        if (filtroPeriodo) params.append('period', filtroPeriodo);
+        if (filtroLoja) params.append('loja', filtroLoja);
+        if (filtroSupervisor) params.append('supervisor', filtroSupervisor);
+        if (filtroCoordenador) params.append('coordenador', filtroCoordenador);
+        if (filtroUf) params.append('uf', filtroUf);
+
+        const response = await api.get(`/comparativo/relatorio/?${params.toString()}`);
         if (response.data) {
-          setResultado(response.data.resultado || null);
+          const results = response.data.results || {};
+          setResultados(results.resultados || []);
+          setKpis(results.kpis || { orcado_total: 0, realizado_total: 0, desvio_total: 0 });
+          setGraficos(results.graficos || { mensal: [], coordenador: [], uf: [] });
+          
+          const count = response.data.count || 0;
+          setTotalPages(Math.ceil(count / 20) || 1);
         }
       } catch (err) {
-        console.error('Erro ao buscar comparativo:', err);
+        console.error('Erro ao buscar comparativo consolidado:', err);
         setErrorMsg('Erro ao calcular as estimativas e processar os dados da folha.');
       } finally {
-        setLoadingComparativo(false);
+        setLoadingData(false);
       }
     };
 
     fetchComparativoData();
-  }, [selectedCompetencias, selectedLoja]);
+  }, [
+    currentPage,
+    filtroPeriodo,
+    filtroLoja,
+    filtroSupervisor,
+    filtroCoordenador,
+    filtroUf
+  ]);
+
+  const handleLimparFiltros = () => {
+    setFiltroPeriodo('');
+    setFiltroLoja('');
+    setFiltroSupervisor('');
+    setFiltroCoordenador('');
+    setFiltroUf('');
+    setCurrentPage(1);
+  };
+
+  const handleVerDetalhes = (lojaId: number, lojaNome: string, competencia: string, competenciaLabel: string) => {
+    setDetailModal({
+      isOpen: true,
+      lojaId,
+      lojaNome,
+      competencia,
+      competenciaLabel
+    });
+  };
+
+  const handleCloseDetailModal = () => {
+    setDetailModal(prev => ({ ...prev, isOpen: false }));
+  };
 
   return (
     <div className="space-y-6">
       {/* Cabeçalho */}
       <div>
         <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-50">Raio-X (Comparativo de Custos)</h1>
-        <p className="text-sm text-neutral-500 font-medium">Análise de custos orçados pelo escopo contra os dados reais importados da folha</p>
+        <p className="text-sm text-neutral-500 font-medium">Análise consolidada de custos orçados pelo escopo contra os dados reais da folha de pagamento</p>
       </div>
 
       {errorMsg && (
@@ -146,32 +162,57 @@ export default function Comparativo() {
         </div>
       )}
 
-      {/* Grid de 2 Colunas */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
-        {/* Coluna da Esquerda: Filtro Lateral */}
-        <ComparativoFilter
-          lojasOpcoes={lojasOpcoes}
-          selectedLoja={selectedLoja}
-          setSelectedLoja={setSelectedLoja}
-          loadingLojas={loadingLojas}
-          competenciasOpcoes={competenciasOpcoes}
-          selectedCompetencias={selectedCompetencias}
-          handleToggleCompetencia={handleToggleCompetencia}
-          onClearCompetencias={() => setSelectedCompetencias([])}
+      {/* Seção de Filtros */}
+      <ComparativoFilter
+        filtroPeriodo={filtroPeriodo}
+        setFiltroPeriodo={(val) => { setFiltroPeriodo(val); setCurrentPage(1); }}
+        filtroLoja={filtroLoja}
+        setFiltroLoja={(val) => { setFiltroLoja(val); setCurrentPage(1); }}
+        filtroSupervisor={filtroSupervisor}
+        setFiltroSupervisor={(val) => { setFiltroSupervisor(val); setCurrentPage(1); }}
+        filtroCoordenador={filtroCoordenador}
+        setFiltroCoordenador={(val) => { setFiltroCoordenador(val); setCurrentPage(1); }}
+        filtroUf={filtroUf}
+        setFiltroUf={(val) => { setFiltroUf(val); setCurrentPage(1); }}
+        lojasOpcoes={lojasOpcoes}
+        onClear={handleLimparFiltros}
+        onError={handleFilterError}
+      />
+
+      {/* Relatório e Gráficos */}
+      <main className="space-y-6">
+        {/* KPIs */}
+        <ComparativoKPIs kpis={kpis} loadingData={loadingData} />
+
+        {/* Gráficos de Evolução, Coordenador e UF */}
+        <ComparativoCharts
+          loadingData={loadingData}
+          graficos={graficos}
+          setFiltroCoordenador={setFiltroCoordenador}
+          setFiltroUf={setFiltroUf}
+          setCurrentPage={setCurrentPage}
         />
 
-        {/* Coluna da Direita: Painel de Resultados Comparativos */}
-        <main className="lg:col-span-8">
-          <ComparativoTable
-            resultado={resultado}
-            loading={loadingComparativo}
-            selectedLoja={selectedLoja}
-            selectedCompetencias={selectedCompetencias}
-          />
-        </main>
+        {/* Tabela de Dados Paginada */}
+        <ComparativoTable
+          resultados={resultados}
+          loading={loadingData}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          setCurrentPage={setCurrentPage}
+          onVerDetalhes={handleVerDetalhes}
+        />
+      </main>
 
-      </div>
+      {/* Modal de Detalhes do Custo da Loja */}
+      <ComparativoDetalheModal
+        isOpen={detailModal.isOpen}
+        onClose={handleCloseDetailModal}
+        lojaId={detailModal.lojaId}
+        lojaNome={detailModal.lojaNome}
+        competencia={detailModal.competencia}
+        competenciaLabel={detailModal.competenciaLabel}
+      />
     </div>
   );
 }

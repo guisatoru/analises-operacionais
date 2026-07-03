@@ -49,7 +49,7 @@ def diarias_list_api(request):
         lojas_ids = [l.strip() for l in loja_id.split(",") if l.strip()]
         if lojas_ids:
             has_null = "null" in lojas_ids
-            vals = [l for l in lojas_ids if l != "null"]
+            vals = [int(l) for l in lojas_ids if l != "null" and l.isdigit()]
             q_obj = Q()
             if vals:
                 q_obj = Q(loja_id__in=vals)

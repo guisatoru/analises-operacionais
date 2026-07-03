@@ -6,7 +6,6 @@ from .models import (
     ConfiguracaoInsalubridadeLoja,
     EscopoMensal,
     ItemEscopoMensal,
-    LinhaFolhaDuplicada,
     escala_insalubridade_fixa_para_escopo,
     montar_caches_salario_para_itens,
     Coordenador,
@@ -259,40 +258,6 @@ class EscopoMensalSerializer(serializers.ModelSerializer):
             data["id"] = str(data["id"])
         if "loja" in data and data["loja"] is not None:
             data["loja"] = str(data["loja"])
-        return data
-
-class LinhaFolhaDuplicadaSerializer(serializers.ModelSerializer):
-    """
-    Este serializer existe para expor de forma estruturada as linhas duplicadas da folha de pagamento
-    que foram registradas para fins de auditoria no RH corporativo.
-    """
-    verba_descricao = serializers.CharField(source="verba.descricao", read_only=True)
-    loja_nome = serializers.CharField(source="loja.nome_referencia", read_only=True)
-
-    class Meta:
-        model = LinhaFolhaDuplicada
-        fields = "__all__"
-
-    def to_representation(self, instance):
-        """
-        Garante que matrícula, verbas, IDs e centros de custo sejam convertidos
-        a string pura na resposta JSON para evitar desconfigurações ou perdas de zeros no frontend.
-        """
-        data = super().to_representation(instance)
-        if "id" in data and data["id"] is not None:
-            data["id"] = str(data["id"])
-        if "verba" in data and data["verba"] is not None:
-            data["verba"] = str(data["verba"])
-        if "loja" in data and data["loja"] is not None:
-            data["loja"] = str(data["loja"])
-        if "matricula" in data and data["matricula"] is not None:
-            data["matricula"] = str(data["matricula"])
-        if "codigo_verba" in data and data["codigo_verba"] is not None:
-            data["codigo_verba"] = str(data["codigo_verba"])
-        if "centro_custo" in data and data["centro_custo"] is not None:
-            data["centro_custo"] = str(data["centro_custo"])
-        if "centro_custo_real" in data and data["centro_custo_real"] is not None:
-            data["centro_custo_real"] = str(data["centro_custo_real"])
         return data
 
 

@@ -40,6 +40,19 @@ export default function Escopos() {
 
   // Controle de exibição do Modal de Criação
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [lojasSemEscopo, setLojasSemEscopo] = useState<LojaRef[]>([]);
+
+  // Busca a lista de lojas ativas que não têm nenhum escopo cadastrado
+  const fetchLojasSemEscopo = async () => {
+    try {
+      const response = await api.get('/escopos/lojas-sem-escopo/');
+      if (response.data) {
+        setLojasSemEscopo(response.data);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar lojas sem escopo:', err);
+    }
+  };
 
   // Carrega as dependências necessárias para filtros e modais ao montar a página
   useEffect(() => {
@@ -47,7 +60,8 @@ export default function Escopos() {
       try {
         const [lojasRes, cargosRes] = await Promise.all([
           api.get('/lojas/', { params: { sem_paginacao: 'true' } }),
-          api.get('/cargos/')
+          api.get('/cargos/'),
+          fetchLojasSemEscopo()
         ]);
 
         if (lojasRes.data) {
@@ -93,6 +107,9 @@ export default function Escopos() {
         setCount(response.data ? response.data.length : 0);
         setTotalPages(1);
       }
+      
+      // Atualiza também as lojas sem escopo em segundo plano
+      fetchLojasSemEscopo();
     } catch (err) {
       console.error('Erro ao buscar escopos:', err);
       setErrorMsg('Não foi possível carregar os escopos mensais das lojas.');
@@ -185,6 +202,26 @@ export default function Escopos() {
           </button>
         </div>
       </div>
+
+      {/* Demonstrativo de lojas sem escopo cadastrado */}
+      {lojasSemEscopo.length > 0 && (
+        <div className="p-4 bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 dark:border-amber-500/30 rounded-xl space-y-2.5 animate-fade-in shadow-xs">
+          <div className="flex items-center gap-2 font-bold text-xs text-amber-800 dark:text-amber-300">
+            <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+            <span>Demonstrativo: Lojas Ativas sem nenhum escopo criado</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5 pt-0.5">
+            {lojasSemEscopo.map((loja) => (
+              <span 
+                key={loja.id} 
+                className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-500/10 dark:bg-amber-500/20 text-amber-800 dark:text-amber-350 border border-amber-500/20 dark:border-amber-550/30"
+              >
+                {loja.nome_referencia}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Painel de Filtros */}
       <EscoposFilter

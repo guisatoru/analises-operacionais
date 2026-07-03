@@ -55,15 +55,14 @@ def competencias_distintas_para_loja(loja_id: int) -> List[Tuple[int, int]]:
     ):
         pares.add((int(ano), int(mes)))
 
-    for y, m in (
-        LinhaFolha.objects.filter(loja_id=loja_id)
-        .annotate(y=ExtractYear("dt_arq"), mm=ExtractMonth("dt_arq"))
-        .values_list("y", "mm")
-        .distinct()
-    ):
-        pares.add((int(y), int(m)))
+    # Otimizado: Busca as datas direto e faz a extração de ano/mês em Python
+    # para evitar consultas funcionais lentas de banco de dados no SQLite.
+    for dt_arq in LinhaFolha.objects.filter(loja_id=loja_id).values_list("dt_arq", flat=True).distinct():
+        if dt_arq:
+            pares.add((dt_arq.year, dt_arq.month))
 
     return sorted(pares, reverse=True)
+
 
 
 def _parse_competencia_param(texto: str) -> Optional[Tuple[int, int]]:
@@ -184,6 +183,9 @@ def montar_resultado_comparativo(
     Agrega escopo + folha para a loja e lista de (ano, mês) de competência (DT ARQ na folha).
     Retorna None se a loja não existir.
     """
+    import datetime
+    from lojas.models import ConfiguracaoInsalubridadeLoja, obter_ou_criar_config_insalubridade_loja
+
     loja = Loja.objects.filter(pk=loja_id).first()
     if loja is None:
         return None
@@ -193,15 +195,13 @@ def montar_resultado_comparativo(
     if not competencias:
         return resultado
 
-    # --- Folha: soma valor onde dt_arq cai em algum (ano, mês) selecionado
-    q_data = Q()
-    for ano, mes in competencias:
-        q_data |= Q(dt_arq__year=ano, dt_arq__month=mes)
+    # Otimização de data: Converte competências (ano, mês) para datas exatas (sempre dia 1º).
+    # Isso permite que o SQLite utilize o índice no campo dt_arq e evite full table scans.
+    datas_exatas = [datetime.date(ano, mes, 1) for ano, mes in competencias]
 
     # Filtra apenas verbas marcadas para entrar na conta (Provento e Considerar)
     folha_qs = (
-        LinhaFolha.objects.filter(loja_id=loja_id)
-        .filter(q_data)
+        LinhaFolha.objects.filter(loja_id=loja_id, dt_arq__in=datas_exatas)
         .filter(verba__tipo_codigo="PROVENTO", verba__considerar_na_contagem=True)
     )
     folha_total = folha_qs.aggregate(s=Sum("valor"))["s"] or Decimal("0.00")
@@ -224,17 +224,71 @@ def montar_resultado_comparativo(
     meses_sem_escopo: List[Tuple[int, int]] = []
     escala_por_escopo_id: Dict[int, Decimal] = {}
 
+    # Pré-carrega a configuração de insalubridade para evitar queries N+1 no loop
+    cfg_insalubridade = ConfiguracaoInsalubridadeLoja.objects.filter(loja_id=loja_id).first()
+    if cfg_insalubridade:
+        loja._cached_config_insalubridade = cfg_insalubridade
+    else:
+        obter_ou_criar_config_insalubridade_loja(loja)
+
+    # Busca todos os escopos das competências desejadas de uma vez
+    q_escopos = Q()
     for ano, mes in competencias:
-        escopo = (
-            EscopoMensal.objects.filter(loja_id=loja_id, ano=ano, mes=mes)
-            .prefetch_related("itens", "itens__cargo")
-            .first()
-        )
+        q_escopos |= Q(ano=ano, mes=mes)
+
+    escopos = (
+        EscopoMensal.objects.filter(loja_id=loja_id)
+        .filter(q_escopos)
+        .prefetch_related("itens", "itens__cargo")
+    )
+    escopos_dict = {(esc.ano, esc.mes): esc for esc in escopos}
+
+    for ano, mes in competencias:
+        escopo = escopos_dict.get((ano, mes))
         if escopo is None:
-            meses_sem_escopo.append((ano, mes))
-            continue
-        escala_por_escopo_id[escopo.pk] = escala_insalubridade_fixa_para_escopo(escopo)
-        itens_todos.extend(list(escopo.itens.all()))
+            # EXPLICAÇÃO DO PORQUÊ EXISTE (Docstring de suporte em português):
+            # Esta busca de fallback serve para encontrar o último escopo planejado ativo
+            # da loja em competências passadas, evitando a necessidade do usuário cadastrar
+            # registros idênticos todo mês.
+            escopo_fallback = (
+                EscopoMensal.objects.filter(loja_id=loja_id)
+                .filter(Q(ano__lt=ano) | Q(ano=ano, mes__lt=mes))
+                .order_by("-ano", "-mes")
+                .prefetch_related("itens", "itens__cargo")
+                .first()
+            )
+            if escopo_fallback is None:
+                # Caso realmente não exista planejamento atual nem anterior
+                meses_sem_escopo.append((ano, mes))
+                continue
+            
+            # Criamos uma instância temporária em memória do EscopoMensal para a competência
+            # analisada. Isso garante que a estimativa salarial utilize as tabelas salariais
+            # correspondentes ao ano do comparativo (ano), e não ao ano do escopo de origem.
+            escopo = EscopoMensal(
+                id=escopo_fallback.id,
+                loja=loja,
+                ano=ano,
+                mes=mes,
+            )
+            escopo.loja = loja
+            escala_por_escopo_id[escopo_fallback.pk] = escala_insalubridade_fixa_para_escopo(escopo_fallback)
+            
+            # Cria cópias dos itens em memória vinculados ao escopo virtual
+            for item_orig in escopo_fallback.itens.all():
+                item_fake = ItemEscopoMensal(
+                    id=item_orig.id,
+                    escopo_mensal=escopo,
+                    cargo=item_orig.cargo,
+                    turno=item_orig.turno,
+                    quantidade=item_orig.quantidade,
+                )
+                itens_todos.append(item_fake)
+        else:
+            # Garante que a loja pré-carregada seja usada nos métodos internos
+            escopo.loja = loja
+            escala_por_escopo_id[escopo.pk] = escala_insalubridade_fixa_para_escopo(escopo)
+            itens_todos.extend(list(escopo.itens.all()))
 
     resultado.escopo_meses_sem_registro = meses_sem_escopo
 

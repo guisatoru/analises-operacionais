@@ -84,7 +84,7 @@ def store_list(request):
         supervisor_list = [s.strip() for s in supervisor_val.split(",") if s.strip()]
         if supervisor_list:
             has_null = "null" in supervisor_list
-            vals = [s for s in supervisor_list if s != "null"]
+            vals = [int(s) for s in supervisor_list if s != "null" and s.isdigit()]
             q_obj = Q()
             if vals:
                 q_obj = Q(supervisor_id__in=vals)
@@ -96,7 +96,7 @@ def store_list(request):
         coordenador_list = [c.strip() for c in coordenador_val.split(",") if c.strip()]
         if coordenador_list:
             has_null = "null" in coordenador_list
-            vals = [c for c in coordenador_list if c != "null"]
+            vals = [int(c) for c in coordenador_list if c != "null" and c.isdigit()]
             q_obj = Q()
             if vals:
                 q_obj = Q(coordenador_id__in=vals)
@@ -313,7 +313,7 @@ def store_filtro_opcoes(request):
             svl = [s.strip() for s in supervisor_val.split(",") if s.strip()]
             if svl:
                 has_null = "null" in svl
-                vals = [s for s in svl if s != "null"]
+                vals = [int(s) for s in svl if s != "null" and s.isdigit()]
                 q_obj = Q()
                 if vals:
                     q_obj = Q(supervisor_id__in=vals)
@@ -324,7 +324,7 @@ def store_filtro_opcoes(request):
             cvl = [c.strip() for c in coordenador_val.split(",") if c.strip()]
             if cvl:
                 has_null = "null" in cvl
-                vals = [c for c in cvl if c != "null"]
+                vals = [int(c) for c in cvl if c != "null" and c.isdigit()]
                 q_obj = Q()
                 if vals:
                     q_obj = Q(coordenador_id__in=vals)

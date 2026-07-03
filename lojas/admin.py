@@ -12,7 +12,6 @@ from .models import (
     Loja,
     Salario,
     Verba,
-    LinhaFolhaDuplicada,
     Coordenador,
     Supervisor,
 )
@@ -195,19 +194,3 @@ class LinhaFolhaAdmin(admin.ModelAdmin):
     ordering = ("-dt_arq", "matricula")
 
 
-@admin.register(LinhaFolhaDuplicada)
-class LinhaFolhaDuplicadaAdmin(admin.ModelAdmin):
-    list_display = (
-        "created_at",
-        "motivo",
-        "matricula",
-        "codigo_verba",
-        "valor",
-        "dt_arq",
-        "centro_custo_real",
-        "arquivo_origem",
-    )
-    list_filter = ("motivo", "dt_arq")
-    search_fields = ("matricula", "codigo_verba", "arquivo_origem")
-    readonly_fields = ("created_at",)
-    ordering = ("-created_at",)
