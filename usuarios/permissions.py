@@ -1,39 +1,138 @@
 from rest_framework.permissions import BasePermission
-from .decorators import usuario_e_administrador
 from .constants import ADMINISTRADOR_ROLE, GESTAO_ROLE
+
+def obter_modulo_por_view(view_name, path):
+    """
+    Identifica qual módulo do sistema está sendo acessado com base na URL (path).
+    
+    Docstring explicativa em português:
+    Esta função auxiliar analisa o caminho (URL) da requisição HTTP recebida e determina
+    a qual módulo lógico do sistema ela pertence. Esse mapeamento permite que a validação 
+    de permissões ocorra de forma genérica e automatizada sem precisar alterar as views.
+    """
+    path_lower = path.lower()
+    
+    if "usuarios" in path_lower:
+        return "usuarios"
+    elif "comparativo" in path_lower or "relatorio" in path_lower:
+        return "comparativo"
+    elif "premios" in path_lower:
+        return "premios"
+    elif "diarias" in path_lower:
+        return "diarias"
+    elif "escopos" in path_lower:
+        return "escopos"
+    elif "presencas" in path_lower:
+        return "presencas"
+    elif "colaboradores" in path_lower:
+        return "colaboradores"
+    elif "headcount" in path_lower:
+        return "headcount"
+    elif "importacoes" in path_lower:
+        return "importacoes"
+    elif "lojas" in path_lower or "stores" in path_lower:
+        return "lojas"
+        
+    return "dashboard"
+
 
 class IsAdministrador(BasePermission):
     """
     Esta classe de permissão existe para restringir o acesso a endpoints específicos
-    do Django REST Framework apenas a usuários que possuem o papel de administrador,
-    retornando uma mensagem personalizada caso o acesso não seja autorizado.
+    do Django REST Framework apenas a usuários que possuem o papel de administrador
+    ativo no banco de dados.
     """
     message = "O que você ta fazendo aqui ein espertinho? Não vai achar nada"
 
     def has_permission(self, request, view):
         """
-        Verifica se o usuário atual está autenticado e atende aos critérios
-        de administrador corporativo definidos na regra de negócio centralizada.
+        Verifica dinamicamente se o usuário tem a permissão de acordo com o módulo.
         """
-        return usuario_e_administrador(request.user)
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+            
+        if user.is_superuser:
+            return True
+            
+        group = user.groups.first()
+        if not group:
+            return False
+            
+        # Determina o módulo e a ação (view, create, edit, delete)
+        modulo = obter_modulo_por_view(view.__class__.__name__, request.path)
+        
+        action = "view"
+        if request.method in ["POST"]:
+            action = "create"
+        elif request.method in ["PUT", "PATCH"]:
+            action = "edit"
+        elif request.method in ["DELETE"]:
+            action = "delete"
+            
+        from .models import RolePermission
+        try:
+            perm = RolePermission.objects.get(group=group, module=modulo)
+            if action == "view":
+                return perm.can_view
+            elif action == "create":
+                return perm.can_create
+            elif action == "edit":
+                return perm.can_edit
+            elif action == "delete":
+                return perm.can_delete
+        except RolePermission.DoesNotExist:
+            return False
+            
+        return False
 
 
 class IsGestaoOrAdministrador(BasePermission):
     """
     Esta classe de permissão existe para permitir o acesso a endpoints operacionais
-    apenas a usuários com o papel de Gestão ou Administrador, evitando que usuários
-    sem papel associado visualizem dados do sistema e exibindo uma mensagem personalizada.
+    de acordo com as permissões cadastradas no banco de dados para a role do usuário.
     """
     message = "O que você ta fazendo aqui ein espertinho? Não vai achar nada"
 
     def has_permission(self, request, view):
         """
-        Verifica se o usuário possui pelo menos o papel de Gestão ou Administrador.
+        Verifica no banco de dados se o grupo (role) do usuário logado possui
+        permissão para executar a ação correspondente no módulo.
         """
         user = request.user
         if not user or not user.is_authenticated:
             return False
+            
         if user.is_superuser:
             return True
-        return user.groups.filter(name__in=[ADMINISTRADOR_ROLE, GESTAO_ROLE]).exists()
-
+            
+        group = user.groups.first()
+        if not group:
+            return False
+            
+        # Determina o módulo e a ação correspondente
+        modulo = obter_modulo_por_view(view.__class__.__name__, request.path)
+        
+        action = "view"
+        if request.method in ["POST"]:
+            action = "create"
+        elif request.method in ["PUT", "PATCH"]:
+            action = "edit"
+        elif request.method in ["DELETE"]:
+            action = "delete"
+            
+        from .models import RolePermission
+        try:
+            perm = RolePermission.objects.get(group=group, module=modulo)
+            if action == "view":
+                return perm.can_view
+            elif action == "create":
+                return perm.can_create
+            elif action == "edit":
+                return perm.can_edit
+            elif action == "delete":
+                return perm.can_delete
+        except RolePermission.DoesNotExist:
+            return False
+            
+        return False

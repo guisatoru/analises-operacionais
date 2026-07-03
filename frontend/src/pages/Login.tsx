@@ -7,7 +7,7 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from '../components/ui/i
 import { toast } from 'sonner';
 
 interface LoginProps {
-  onLoginSuccess: (username: string, role: string, email: string) => void;
+  onLoginSuccess: (username: string, role: string, email: string, permissions: any) => void;
 }
 
 /**
@@ -49,7 +49,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         onLoginSuccess(
           response.data.user.username,
           response.data.user.role,
-          response.data.user.email || ''
+          response.data.user.email || '',
+          response.data.user.permissions || {}
         );
         toast.success(`Bem-vindo, ${response.data.user.username}!`);
         navigate('/');

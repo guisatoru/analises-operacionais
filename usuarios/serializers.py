@@ -1,6 +1,16 @@
 from django.contrib.auth.models import User, Group
 from rest_framework import serializers
 from .constants import ADMINISTRADOR_ROLE, GESTAO_ROLE
+from .models import RolePermission
+
+class RolePermissionSerializer(serializers.ModelSerializer):
+    """
+    Este serializer serve para formatar as permissões de cada módulo em formato JSON
+    para que o frontend consiga listá-las e editá-las na matriz de permissões.
+    """
+    class Meta:
+        model = RolePermission
+        fields = ["id", "module", "can_view", "can_create", "can_edit", "can_delete"]
 
 class UsuarioSerializer(serializers.ModelSerializer):
     """
@@ -9,10 +19,11 @@ class UsuarioSerializer(serializers.ModelSerializer):
     inclusive papéis de acesso calculados de forma transparente.
     """
     role = serializers.SerializerMethodField()
+    permissions = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ["id", "username", "first_name", "last_name", "email", "role", "is_active"]
+        fields = ["id", "username", "first_name", "last_name", "email", "role", "is_active", "permissions"]
 
     def get_role(self, obj):
         """
@@ -24,6 +35,41 @@ class UsuarioSerializer(serializers.ModelSerializer):
         if obj.groups.filter(name=GESTAO_ROLE).exists():
             return "Gestão"
         return "Sem role"
+
+    def get_permissions(self, obj):
+        """
+        Retorna as permissões do usuário agrupadas por módulo de forma dinâmica,
+        lendo a tabela RolePermission baseada na role (grupo) atual do usuário.
+        """
+        permissions_dict = {}
+        
+        # Superusuário (admin raiz) sempre tem permissão completa para tudo
+        if obj.is_superuser:
+            modulos = [
+                "dashboard", "lojas", "apoio", "colaboradores", "presencas",
+                "escopos", "comparativo", "headcount", "diarias", "premios",
+                "importacoes", "usuarios"
+            ]
+            for modulo in modulos:
+                permissions_dict[modulo] = {
+                    "view": True,
+                    "create": True,
+                    "edit": True,
+                    "delete": True
+                }
+            return permissions_dict
+
+        group = obj.groups.first()
+        if group:
+            perms = RolePermission.objects.filter(group=group)
+            for perm in perms:
+                permissions_dict[perm.module] = {
+                    "view": perm.can_view,
+                    "create": perm.can_create,
+                    "edit": perm.can_edit,
+                    "delete": perm.can_delete
+                }
+        return permissions_dict
 
     def to_representation(self, instance):
         """

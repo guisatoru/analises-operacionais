@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { AlertCircle, FileText } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import api from '../api/client';
 import ComparativoFilter from '../components/Comparativo/ComparativoFilter';
 import ComparativoTable, { type ComparativoLinhaData } from '../components/Comparativo/ComparativoTable';
@@ -21,7 +21,6 @@ interface LojaRef {
  */
 export default function Comparativo() {
   const [lojasOpcoes, setLojasOpcoes] = useState<LojaRef[]>([]);
-  const [loadingLojas, setLoadingLojas] = useState(true);
 
   // Estados dos filtros reativos
   const [filtroPeriodo, setFiltroPeriodo] = useState('');
@@ -70,7 +69,7 @@ export default function Comparativo() {
         console.error('Erro ao buscar lojas:', err);
         setErrorMsg('Erro ao carregar a listagem de lojas físicas.');
       } finally {
-        setLoadingLojas(false);
+        // Carregamento concluído
       }
     };
     fetchLojas();

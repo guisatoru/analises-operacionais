@@ -236,3 +236,95 @@ def usuario_update(request, pk):
         "message": f"Usuário {usuario.username} atualizado com sucesso.",
         "usuario": UsuarioSerializer(usuario).data
     })
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsAdministrador])
+def role_list(request):
+    """
+    Retorna a lista de roles (grupos) e as permissões de acesso associadas a cada um.
+    
+    Docstring explicativa em português:
+    Esta view serve para listar todas as roles (auth.Group) no sistema e recuperar suas respectivas
+    permissões de acesso cadastradas na tabela RolePermission. Se algum módulo não tiver registro
+    ainda para o grupo, criamos com permissão inativa por segurança.
+    """
+    from django.contrib.auth.models import Group
+    from .models import RolePermission
+    from .serializers import RolePermissionSerializer
+    
+    groups = Group.objects.all().order_by("name")
+    data = []
+    
+    modulos = [
+        "dashboard", "lojas", "apoio", "colaboradores", "presencas",
+        "escopos", "comparativo", "headcount", "diarias", "premios",
+        "importacoes", "usuarios"
+    ]
+    
+    for group in groups:
+        group_perms = []
+        for modulo in modulos:
+            perm, _ = RolePermission.objects.get_or_create(
+                group=group,
+                module=modulo,
+                defaults={
+                    "can_view": False,
+                    "can_create": False,
+                    "can_edit": False,
+                    "can_delete": False
+                }
+            )
+            group_perms.append(perm)
+            
+        serializer = RolePermissionSerializer(group_perms, many=True)
+        data.append({
+            "id": str(group.id),
+            "name": group.name.capitalize() if group.name else "",
+            "permissions": serializer.data
+        })
+        
+    return Response(data)
+
+@api_view(["PUT"])
+@permission_classes([IsAuthenticated, IsAdministrador])
+def role_permissions_update(request, group_id):
+    """
+    Atualiza as permissões de acesso por módulo de um determinado grupo de usuário.
+    
+    Docstring explicativa em português:
+    Esta view permite que administradores atualizem em lote as permissões (can_view, can_create, etc)
+    dos módulos para um determinado grupo (Role), salvando essas alterações diretamente no banco.
+    """
+    from django.contrib.auth.models import Group
+    from .models import RolePermission
+    
+    try:
+        group = Group.objects.get(pk=group_id)
+    except Group.DoesNotExist:
+        return Response({
+            "success": False,
+            "error": "Grupo não encontrado."
+        }, status=status.HTTP_404_NOT_FOUND)
+        
+    permissions_data = request.data.get("permissions", [])
+    
+    for perm_data in permissions_data:
+        module = perm_data.get("module")
+        if not module:
+            continue
+            
+        RolePermission.objects.update_or_create(
+            group=group,
+            module=module,
+            defaults={
+                "can_view": bool(perm_data.get("can_view", False)),
+                "can_create": bool(perm_data.get("can_create", False)),
+                "can_edit": bool(perm_data.get("can_edit", False)),
+                "can_delete": bool(perm_data.get("can_delete", False))
+            }
+        )
+        
+    return Response({
+        "success": True,
+        "message": f"Permissões do grupo {group.name} atualizadas com sucesso."
+    })

@@ -17,6 +17,7 @@ interface LayoutProps {
   email?: string;
   onLogout: () => void;
   role?: string;
+  permissions: Record<string, { view: boolean; create: boolean; edit: boolean; delete: boolean }>;
   onUpdateProfile?: (username: string, email: string) => void;
 }
 
@@ -29,7 +30,7 @@ interface LayoutProps {
  * de conteúdo ao lado da barra lateral. Inclui também o cabeçalho com o sistema
  * de breadcrumbs dinâmicos para facilitar a navegação do usuário.
  */
-export default function Layout({ isAuthenticated, username, email, onLogout, role, onUpdateProfile }: LayoutProps) {
+export default function Layout({ isAuthenticated, username, email, onLogout, role, permissions, onUpdateProfile }: LayoutProps) {
   const location = useLocation();
   const [profileModalOpen, setProfileModalOpen] = useState(false);
 
@@ -99,6 +100,7 @@ export default function Layout({ isAuthenticated, username, email, onLogout, rol
         email={email}
         onLogout={onLogout} 
         role={role} 
+        permissions={permissions}
         onOpenProfile={() => setProfileModalOpen(true)} 
       />
 
@@ -128,13 +130,13 @@ export default function Layout({ isAuthenticated, username, email, onLogout, rol
             </Breadcrumb>
           </div>
           <div className="text-xs text-neutral-500 dark:text-neutral-400">
-            Sessão ativa como: <span className="font-semibold text-neutral-800 dark:text-neutral-200">{username}</span>
+            Sessão active como: <span className="font-semibold text-neutral-800 dark:text-neutral-200">{username}</span>
           </div>
         </header>
 
         {/* Local onde a rota ativa será renderizada */}
         <div className="p-6 md:p-8 flex-1 overflow-y-auto">
-          <Outlet context={{ role }} />
+          <Outlet context={{ role, permissions }} />
         </div>
       </SidebarInset>
 

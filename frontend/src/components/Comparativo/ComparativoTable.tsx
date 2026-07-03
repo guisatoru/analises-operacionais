@@ -1,4 +1,4 @@
-import { Eye, ChevronLeft, ChevronRight, Scale, DollarSign, ArrowUpDown } from 'lucide-react';
+import { Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
 
 export interface ComparativoLinhaData {

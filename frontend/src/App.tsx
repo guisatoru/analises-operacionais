@@ -36,6 +36,7 @@ function App() {
   const [username, setUsername] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [role, setRole] = useState<string>('');
+  const [permissions, setPermissions] = useState<Record<string, { view: boolean; create: boolean; edit: boolean; delete: boolean }>>({});
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
 
   // Verifica o status do login no backend ao montar a aplicação
@@ -48,17 +49,20 @@ function App() {
           setUsername(response.data.user.username);
           setEmail(response.data.user.email || '');
           setRole(response.data.user.role || '');
+          setPermissions(response.data.user.permissions || {});
         } else {
           setIsAuthenticated(false);
           setUsername('');
           setEmail('');
           setRole('');
+          setPermissions({});
         }
       } catch (error) {
         console.error('Erro ao verificar sessão ativa no backend:', error);
         setIsAuthenticated(false);
         setEmail('');
         setRole('');
+        setPermissions({});
       } finally {
         setCheckingAuth(false);
       }
@@ -67,11 +71,12 @@ function App() {
     verifyAuth();
   }, []);
 
-  const handleLoginSuccess = (userLogin: string, userRole: string, userEmail: string) => {
+  const handleLoginSuccess = (userLogin: string, userRole: string, userEmail: string, userPermissions: any) => {
     setIsAuthenticated(true);
     setUsername(userLogin);
     setRole(userRole);
     setEmail(userEmail);
+    setPermissions(userPermissions || {});
   };
 
   const handleLogout = () => {
@@ -79,6 +84,7 @@ function App() {
     setUsername('');
     setEmail('');
     setRole('');
+    setPermissions({});
   };
 
   const handleProfileUpdate = (newUsername: string, newEmail: string) => {
@@ -120,45 +126,64 @@ function App() {
               email={email}
               onLogout={handleLogout} 
               role={role}
+              permissions={permissions}
               onUpdateProfile={handleProfileUpdate}
             />
           }
         >
           <Route path="/" element={<Dashboard />} />
-          <Route path="/lojas" element={<Lojas />} />
+          <Route 
+            path="/lojas" 
+            element={permissions.lojas?.view === false ? <Navigate to="/" replace /> : <Lojas />} 
+          />
           <Route 
             path="/agenda" 
-            element={role === 'Gestão' ? <Navigate to="/lojas" replace /> : <Agenda />} 
+            element={permissions.apoio?.view === false ? <Navigate to="/lojas" replace /> : <Agenda />} 
           />
           <Route 
             path="/agenda/historico" 
-            element={role === 'Gestão' ? <Navigate to="/lojas" replace /> : <HistoricoAgenda />} 
+            element={permissions.apoio?.view === false ? <Navigate to="/lojas" replace /> : <HistoricoAgenda />} 
           />
           <Route 
             path="/escopos" 
-            element={role === 'Gestão' ? <Navigate to="/lojas" replace /> : <Escopos />} 
+            element={permissions.escopos?.view === false ? <Navigate to="/lojas" replace /> : <Escopos />} 
           />
           <Route 
             path="/comparativo" 
-            element={role === 'Gestão' ? <Navigate to="/lojas" replace /> : <Comparativo />} 
+            element={permissions.comparativo?.view === false ? <Navigate to="/lojas" replace /> : <Comparativo />} 
           />
-          <Route path="/headcount" element={<Headcount />} />
+          <Route 
+            path="/headcount" 
+            element={permissions.headcount?.view === false ? <Navigate to="/lojas" replace /> : <Headcount />} 
+          />
           <Route 
             path="/diarias" 
-            element={role === 'Gestão' ? <Navigate to="/lojas" replace /> : <Diarias />} 
+            element={permissions.diarias?.view === false ? <Navigate to="/lojas" replace /> : <Diarias />} 
           />
           <Route 
             path="/premios" 
-            element={role === 'Gestão' ? <Navigate to="/lojas" replace /> : <Premios />} 
+            element={permissions.premios?.view === false ? <Navigate to="/lojas" replace /> : <Premios />} 
           />
-          <Route path="/colaboradores" element={<Colaboradores />} />
-          <Route path="/terminos" element={<Terminos />} />
-          <Route path="/importacoes" element={<Importacoes />} />
-          <Route path="/presencas" element={<Presencas />} />
+          <Route 
+            path="/colaboradores" 
+            element={permissions.colaboradores?.view === false ? <Navigate to="/" replace /> : <Colaboradores />} 
+          />
+          <Route 
+            path="/terminos" 
+            element={permissions.colaboradores?.view === false ? <Navigate to="/" replace /> : <Terminos />} 
+          />
+          <Route 
+            path="/importacoes" 
+            element={permissions.importacoes?.view === false ? <Navigate to="/" replace /> : <Importacoes />} 
+          />
+          <Route 
+            path="/presencas" 
+            element={permissions.presencas?.view === false ? <Navigate to="/" replace /> : <Presencas />} 
+          />
           <Route 
             path="/usuarios" 
             element={
-              role === 'Administrador' ? (
+              permissions.usuarios?.view ? (
                 <Usuarios />
               ) : (
                 <Navigate to="/" replace />
@@ -173,7 +198,7 @@ function App() {
           path="/premios/relatorio" 
           element={
             isAuthenticated ? (
-              role === 'Gestão' ? (
+              permissions.premios?.view === false ? (
                 <Navigate to="/lojas" replace />
               ) : (
                 <RelatorioPremios />

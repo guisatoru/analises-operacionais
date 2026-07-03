@@ -38,6 +38,7 @@ interface SidebarProps {
   email?: string;
   onLogout: () => void;
   role?: string;
+  permissions?: Record<string, { view: boolean; create: boolean; edit: boolean; delete: boolean }>;
   onOpenProfile?: () => void;
 }
 
@@ -48,7 +49,7 @@ interface SidebarProps {
  * Utiliza o visual e componentes oficiais do Shadcn UI (grupos, switcher de workspace,
  * rodapé com dados do perfil e submenus colapsáveis).
  */
-export default function Sidebar({ username = 'Usuário', email = '', onLogout, role, onOpenProfile }: SidebarProps) {
+export default function Sidebar({ username = 'Usuário', email = '', onLogout, permissions, onOpenProfile }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { open } = useSidebar();
@@ -122,21 +123,23 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, r
           <SidebarGroupContent>
             <SidebarMenu>
               {/* Lojas */}
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  asChild 
-                  isActive={location.pathname === '/lojas'}
-                  title={!open ? "Lojas" : undefined}
-                >
-                  <Link to="/lojas">
-                    <Store className="h-5 w-5 shrink-0" />
-                    {open && <span className="truncate">Lojas</span>}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {permissions?.lojas?.view !== false && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={location.pathname === '/lojas'}
+                    title={!open ? "Lojas" : undefined}
+                  >
+                    <Link to="/lojas">
+                      <Store className="h-5 w-5 shrink-0" />
+                      {open && <span className="truncate">Lojas</span>}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
 
               {/* Apoio com Submenu Colapsável */}
-              {role !== 'Gestão' && (
+              {permissions?.apoio?.view !== false && (
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     onClick={() => setApoioSubOpen(!apoioSubOpen)}
@@ -184,7 +187,8 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, r
               )}
 
               {/* Colaboradores com Submenu Colapsável */}
-              <SidebarMenuItem>
+              {permissions?.colaboradores?.view !== false && (
+                <SidebarMenuItem>
                 <SidebarMenuButton 
                   onClick={() => setColabSubOpen(!colabSubOpen)}
                   isActive={location.pathname === '/colaboradores' || location.pathname === '/terminos'}
@@ -228,9 +232,11 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, r
                   </SidebarMenuSub>
                 )}
               </SidebarMenuItem>
+              )}
 
               {/* Presenças */}
-              <SidebarMenuItem>
+              {permissions?.presencas?.view !== false && (
+                <SidebarMenuItem>
                 <SidebarMenuButton 
                   asChild 
                   isActive={location.pathname === '/presencas'}
@@ -242,6 +248,7 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, r
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -251,7 +258,7 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, r
           <SidebarGroupLabel>Análises</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {role !== 'Gestão' && (
+              {permissions?.escopos?.view !== false && (
                 <>
                   <SidebarMenuItem>
                     <SidebarMenuButton 
@@ -281,47 +288,49 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, r
                 </>
               )}
 
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  asChild 
-                  isActive={location.pathname === '/headcount'}
-                  title={!open ? "Headcount" : undefined}
-                >
+              {permissions?.headcount?.view !== false && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={location.pathname === '/headcount'}
+                    title={!open ? "Headcount" : undefined}
+                  >
                   <Link to="/headcount">
                     <Users className="h-5 w-5 shrink-0" />
                     {open && <span className="truncate">Headcount</span>}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              )}
 
-              {role !== 'Gestão' && (
-                <>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={location.pathname === '/diarias'}
-                      title={!open ? "Diárias" : undefined}
-                    >
-                      <Link to="/diarias">
-                        <CalendarCheck className="h-5 w-5 shrink-0" />
-                        {open && <span className="truncate">Diárias</span>}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+              {permissions?.diarias?.view !== false && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={location.pathname === '/diarias'}
+                    title={!open ? "Diárias" : undefined}
+                  >
+                    <Link to="/diarias">
+                      <CalendarCheck className="h-5 w-5 shrink-0" />
+                      {open && <span className="truncate">Diárias</span>}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
 
-                  <SidebarMenuItem>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={location.pathname === '/premios'}
-                      title={!open ? "Prêmios" : undefined}
-                    >
-                      <Link to="/premios">
-                        <Coins className="h-5 w-5 shrink-0" />
-                        {open && <span className="truncate">Prêmios</span>}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </>
+              {permissions?.premios?.view !== false && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={location.pathname === '/premios'}
+                    title={!open ? "Prêmios" : undefined}
+                  >
+                    <Link to="/premios">
+                      <Coins className="h-5 w-5 shrink-0" />
+                      {open && <span className="truncate">Prêmios</span>}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               )}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -332,7 +341,7 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, r
           <SidebarGroupLabel>Configurações</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {role === 'Administrador' && (
+              {permissions?.usuarios?.view !== false && (
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     asChild 
@@ -347,8 +356,9 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, r
                 </SidebarMenuItem>
               )}
 
-              <SidebarMenuItem>
-                <SidebarMenuButton 
+              {permissions?.importacoes?.view !== false && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
                   asChild 
                   isActive={location.pathname === '/importacoes'}
                   title={!open ? "Importações" : undefined}
@@ -359,6 +369,7 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, r
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
