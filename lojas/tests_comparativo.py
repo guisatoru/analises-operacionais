@@ -253,5 +253,63 @@ class ComparativoViewsTests(TestCase):
         self.assertEqual(kpis["realizado_total"], 4600.0)
         self.assertEqual(kpis["orcado_total"], 3600.0)
 
+    def test_exclusao_lojas_inativas(self):
+        """
+        Por que existe: Garante que lojas com status='INATIVA' sejam excluídas das análises do Raio-X,
+        mesmo que possuam lançamentos de folha de pagamento por qualquer motivo residual.
+        """
+        # Cria uma loja inativa
+        loja_inativa = Loja.objects.create(
+            nome_referencia="LOJA ANTIGA INATIVA",
+            centro_de_custo="987654321098",
+            quadro="2",
+            uf="RJ",  # UF exclusiva para testar o filtro
+            status="INATIVA"
+        )
+
+        # Adiciona folha de pagamento para esta loja inativa
+        LinhaFolha.objects.create(
+            matricula="RE098",
+            verba=self.verba,
+            codigo_verba="001",
+            valor=Decimal("4000.00"),
+            dt_arq=date(2026, 3, 1),
+            dt_pagamento=date(2026, 3, 30),
+            centro_custo="987654321098",
+            centro_custo_real="987654321098",
+            loja=loja_inativa,
+            categoria="SALÁRIO",
+        )
+
+        # Força o recálculo dos resumos de folha para incluir a nova linha
+        from lojas.services.folha_importacao import recalcular_resumos_folha
+        recalcular_resumos_folha([
+            (loja_inativa.id, date(2026, 3, 1))
+        ])
+
+        # Limpa o cache global dos filtros para forçar a leitura do banco
+        import lojas.views.comparativo_relatorio
+        lojas.views.comparativo_relatorio._FILTROS_CACHE = None
+
+        # Chama a API de opções de filtros e garante que a UF da loja inativa ('RJ') não esteja disponível
+        response_filtros = self.client.get("/comparativo/filtro-opcoes/")
+        self.assertEqual(response_filtros.status_code, status.HTTP_200_OK)
+        self.assertNotIn("RJ", response_filtros.data["ufs"])
+
+        # Chama a API de comparativo e garante que os desvios e resultados não incluam os 4000.00 da loja inativa
+        response = self.client.get("/comparativo/relatorio/", {"period": "2026-03"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.data["results"]
+        
+        # Garante que os resultados da tabela paginada não contêm "LOJA ANTIGA INATIVA"
+        nomes_lojas = [r["loja_nome"] for r in data["resultados"]]
+        self.assertNotIn("LOJA ANTIGA INATIVA", nomes_lojas)
+
+        # Os KPIs consolidados devem permanecer apenas com a soma da loja modelo (1600.0)
+        # Os 4000.00 da loja inativa devem ser ignorados.
+        kpis = data["kpis"]
+        self.assertEqual(kpis["realizado_total"], 1600.0)
+
+
 
 

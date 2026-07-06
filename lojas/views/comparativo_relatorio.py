@@ -80,9 +80,10 @@ def comparativo_filtro_opcoes_api(request):
     # Coleta supervisores e coordenadores ativos nas lojas
     # Por que existe: Centros de custo específicos do escritório não possuem orçamento planejado no escopo. 
     # Portanto, são desconsiderados do Comparativo (Raio-X) para evitar falsos desvios acumulados e inconsistências nos filtros.
-    supervisores = list(Loja.objects.exclude(centro_de_custo__in=CENTROS_CUSTO_ESCRITORIO).exclude(supervisor__isnull=True).values_list("supervisor__nome", flat=True).distinct().order_by("supervisor__nome"))
-    coordenadores = list(Loja.objects.exclude(centro_de_custo__in=CENTROS_CUSTO_ESCRITORIO).exclude(coordenador__isnull=True).values_list("coordenador__nome", flat=True).distinct().order_by("coordenador__nome"))
-    ufs = list(Loja.objects.exclude(centro_de_custo__in=CENTROS_CUSTO_ESCRITORIO).exclude(uf="").exclude(uf__isnull=True).values_list("uf", flat=True).distinct().order_by("uf"))
+    # Lojas inativas também são excluídas para evitar que lançamentos residuais entrem no cálculo.
+    supervisores = list(Loja.objects.exclude(centro_de_custo__in=CENTROS_CUSTO_ESCRITORIO).exclude(status="INATIVA").exclude(supervisor__isnull=True).values_list("supervisor__nome", flat=True).distinct().order_by("supervisor__nome"))
+    coordenadores = list(Loja.objects.exclude(centro_de_custo__in=CENTROS_CUSTO_ESCRITORIO).exclude(status="INATIVA").exclude(coordenador__isnull=True).values_list("coordenador__nome", flat=True).distinct().order_by("coordenador__nome"))
+    ufs = list(Loja.objects.exclude(centro_de_custo__in=CENTROS_CUSTO_ESCRITORIO).exclude(status="INATIVA").exclude(uf="").exclude(uf__isnull=True).values_list("uf", flat=True).distinct().order_by("uf"))
     
     # Coleta competências distintas (de escopo ou folha)
     competencias_set = set()
@@ -146,7 +147,8 @@ def comparativo_relatorio_api(request):
     # 1. Filtros das Lojas
     # Por que existe: Centros de custo específicos do escritório não possuem orçamento planejado no escopo.
     # Portanto, são desconsiderados do Comparativo (Raio-X) para evitar falsos desvios acumulados na análise consolidada de custos.
-    lojas_qs = Loja.objects.exclude(centro_de_custo__in=CENTROS_CUSTO_ESCRITORIO).select_related("supervisor", "coordenador")
+    # Lojas inativas também são excluídas das análises do Raio-X por apresentarem desvios indevidos devido a pagamentos residuais.
+    lojas_qs = Loja.objects.exclude(centro_de_custo__in=CENTROS_CUSTO_ESCRITORIO).exclude(status="INATIVA").select_related("supervisor", "coordenador")
     
     lojas_selecionadas = obter_parametro_lista(request, "loja")
     if lojas_selecionadas:

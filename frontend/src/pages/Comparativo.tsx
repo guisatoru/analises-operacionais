@@ -93,7 +93,7 @@ export default function Comparativo() {
     const carregarDadosIniciais = async () => {
       try {
         const [resLojas, resFiltros] = await Promise.all([
-          api.get('/lojas/', { params: { sem_paginacao: 'true' } }),
+          api.get('/lojas/', { params: { sem_paginacao: 'true', status: 'ATIVA' } }),
           api.get('/comparativo/filtro-opcoes/')
         ]);
 
