@@ -59,7 +59,7 @@ export default function Escopos() {
     const loadDependencies = async () => {
       try {
         const [lojasRes, cargosRes] = await Promise.all([
-          api.get('/lojas/', { params: { sem_paginacao: 'true' } }),
+          api.get('/lojas/', { params: { sem_paginacao: 'true', status: 'ATIVA' } }),
           api.get('/cargos/'),
           fetchLojasSemEscopo()
         ]);

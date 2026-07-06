@@ -28,7 +28,8 @@ def diarias_list_api(request):
     cálculos agregados (Valor Total, Preço Médio e distribuições por Status, Turno,
     Motivo, UF e Coordenador) para alimentar os gráficos no estilo PowerBI.
     """
-    queryset = Diaria.objects.all().select_related("loja")
+    # Por que existe: Exclui lojas inativas para não distorcer as análises e o painel operacional de diárias.
+    queryset = Diaria.objects.all().select_related("loja").exclude(loja__status="INATIVA")
 
     # Filtros textuais / exatos suportando múltiplos separados por vírgula
     diarista = request.query_params.get("diarista")
@@ -357,28 +358,28 @@ def diarias_filtro_opcoes_api(request):
     if has_null_status:
         status_opcoes_list.append("null")
 
-    # Filtros de supervisores, coordenadores e UFs a partir do cadastro das Lojas
-    supervisores = Diaria.objects.filter(loja__supervisor__isnull=False).values_list("loja__supervisor__nome", flat=True).distinct()
+    # Filtros de supervisores, coordenadores e UFs a partir do cadastro das Lojas (excluindo inativas)
+    supervisores = Diaria.objects.filter(loja__supervisor__isnull=False).exclude(loja__status="INATIVA").values_list("loja__supervisor__nome", flat=True).distinct()
     supervisores_list = sorted(list(set(s.strip().upper() for s in supervisores if s and s.strip())))
     has_null_supervisor = Diaria.objects.filter(Q(loja__isnull=True) | Q(loja__supervisor__isnull=True)).exists()
     if has_null_supervisor:
         supervisores_list.append("null")
 
-    coordenadores = Diaria.objects.filter(loja__coordenador__isnull=False).values_list("loja__coordenador__nome", flat=True).distinct()
+    coordenadores = Diaria.objects.filter(loja__coordenador__isnull=False).exclude(loja__status="INATIVA").values_list("loja__coordenador__nome", flat=True).distinct()
     coordenadores_list = sorted(list(set(c.strip().upper() for c in coordenadores if c and c.strip())))
     has_null_coordenador = Diaria.objects.filter(Q(loja__isnull=True) | Q(loja__coordenador__isnull=True)).exists()
     if has_null_coordenador:
         coordenadores_list.append("null")
 
-    ufs = Diaria.objects.filter(loja__isnull=False).values_list("loja__uf", flat=True).distinct()
+    ufs = Diaria.objects.filter(loja__isnull=False).exclude(loja__status="INATIVA").values_list("loja__uf", flat=True).distinct()
     ufs_list = sorted(list(set(u.strip().upper() for u in ufs if u and u.strip())))
     has_null_uf = Diaria.objects.filter(Q(loja__isnull=True) | Q(loja__uf="")).exists()
     if has_null_uf:
         ufs_list.append("null")
  
-    # Mapeia as lojas associadas que possuem diárias cadastradas
-    lojas_ids = Diaria.objects.filter(loja__isnull=False).values_list("loja_id", flat=True).distinct()
-    lojas = Loja.objects.filter(id__in=lojas_ids).values("id", "nome_referencia")
+    # Mapeia as lojas associadas que possuem diárias cadastradas (excluindo inativas)
+    lojas_ids = Diaria.objects.filter(loja__isnull=False).exclude(loja__status="INATIVA").values_list("loja_id", flat=True).distinct()
+    lojas = Loja.objects.filter(id__in=lojas_ids).exclude(status="INATIVA").values("id", "nome_referencia")
     lojas_lista = [{"value": str(l["id"]), "label": l["nome_referencia"]} for l in lojas]
     has_null_loja = Diaria.objects.filter(loja__isnull=True).exists()
     if has_null_loja:

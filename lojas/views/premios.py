@@ -27,7 +27,8 @@ def premios_list_api(request):
     supervisor, coordenador, status, tipo de prêmio, roteiro e tipo de pedido) e
     calcula as métricas financeiras consolidadas (Valor Gasto, Quantidade e Preço Médio).
     """
-    queryset = Premio.objects.all().select_related("loja", "coordenador", "supervisor")
+    # Por que existe: Exclui lojas inativas para não distorcer as análises e o painel operacional de prêmios.
+    queryset = Premio.objects.all().select_related("loja", "coordenador", "supervisor").exclude(loja__status="INATIVA")
 
     # Filtro de Período (separado por vírgula, ex: 202605)
     periodo_val = request.query_params.get("period")
@@ -375,27 +376,27 @@ def premios_filtro_opcoes_api(request):
     roteiros_list = sorted(list(set(r.strip().upper() for r in roteiros if r and r.strip())))
 
     # Filtros do próprio prêmio
-    supervisores = Premio.objects.filter(supervisor__isnull=False).values_list("supervisor__nome", flat=True).distinct()
+    supervisores = Premio.objects.filter(supervisor__isnull=False).exclude(loja__status="INATIVA").values_list("supervisor__nome", flat=True).distinct()
     supervisores_list = sorted(list(set(s.strip() for s in supervisores if s and s.strip())))
     has_null_supervisor = Premio.objects.filter(supervisor__isnull=True).exists()
     if has_null_supervisor:
         supervisores_list.append("null")
 
-    coordenadores = Premio.objects.filter(coordenador__isnull=False).values_list("coordenador__nome", flat=True).distinct()
+    coordenadores = Premio.objects.filter(coordenador__isnull=False).exclude(loja__status="INATIVA").values_list("coordenador__nome", flat=True).distinct()
     coordenadores_list = sorted(list(set(c.strip() for c in coordenadores if c and c.strip())))
     has_null_coordenador = Premio.objects.filter(coordenador__isnull=True).exists()
     if has_null_coordenador:
         coordenadores_list.append("null")
 
-    ufs = Premio.objects.filter(uf__isnull=False).exclude(uf="").values_list("uf", flat=True).distinct()
+    ufs = Premio.objects.filter(uf__isnull=False).exclude(uf="").exclude(loja__status="INATIVA").values_list("uf", flat=True).distinct()
     ufs_list = sorted(list(set(u.strip().upper() for u in ufs if u and u.strip())))
     has_null_uf = Premio.objects.filter(Q(uf__isnull=True) | Q(uf="")).exists()
     if has_null_uf:
         ufs_list.append("null")
 
-    # Mapeia as lojas associadas
-    lojas_ids = Premio.objects.filter(loja__isnull=False).values_list("loja_id", flat=True).distinct()
-    lojas = Loja.objects.filter(id__in=lojas_ids).values("id", "nome_referencia")
+    # Mapeia as lojas associadas (excluindo inativas)
+    lojas_ids = Premio.objects.filter(loja__isnull=False).exclude(loja__status="INATIVA").values_list("loja_id", flat=True).distinct()
+    lojas = Loja.objects.filter(id__in=lojas_ids).exclude(status="INATIVA").values("id", "nome_referencia")
     lojas_lista = [{"value": str(l["id"]), "label": l["nome_referencia"]} for l in lojas]
     has_null_loja = Premio.objects.filter(loja__isnull=True).exists()
     if has_null_loja:

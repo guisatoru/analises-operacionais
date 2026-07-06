@@ -76,7 +76,7 @@ export default function Agenda() {
         setErrorMsg(null);
         
         const [lojasRes] = await Promise.all([
-          api.get('/lojas/?sem_paginacao=true'),
+          api.get('/lojas/?sem_paginacao=true&status=ATIVA'),
         ]);
         
         setLojas(lojasRes.data || []);
