@@ -168,3 +168,90 @@ class ComparativoViewsTests(TestCase):
         # O mês (2026, 2) deve estar na lista de meses sem registro
         self.assertIn((2026, 2), res.escopo_meses_sem_registro)
 
+    def test_exclusao_centros_de_custo_escritorio(self):
+        """
+        Por que existe: Garante que lojas com centro de custo de escritório central
+        (como 999999990020) sejam excluídas das análises do Raio-X, mas equipes de apoio
+        (como 999999990051) sejam mantidas.
+        """
+        # Cria uma loja com centro de custo de escritório
+        loja_escritorio = Loja.objects.create(
+            nome_referencia="ESCRITORIO CENTRAL",
+            centro_de_custo="999999990020",
+            quadro="1",
+            uf="BR",
+        )
+
+        # Cria uma loja com centro de custo de apoio operacional (não deve ser excluída)
+        loja_apoio = Loja.objects.create(
+            nome_referencia="APOIO REGIONAL SP",
+            centro_de_custo="999999990051",
+            quadro="1",
+            uf="SP",
+        )
+
+        # Adiciona folha de pagamento para esta loja de escritório
+        LinhaFolha.objects.create(
+            matricula="RE099",
+            verba=self.verba,
+            codigo_verba="001",
+            valor=Decimal("5000.00"),
+            dt_arq=date(2026, 3, 1),
+            dt_pagamento=date(2026, 3, 30),
+            centro_custo="999999990020",
+            centro_custo_real="999999990020",
+            loja=loja_escritorio,
+            categoria="SALÁRIO",
+        )
+
+        # Adiciona folha de pagamento para o apoio
+        LinhaFolha.objects.create(
+            matricula="RE100",
+            verba=self.verba,
+            codigo_verba="001",
+            valor=Decimal("3000.00"),
+            dt_arq=date(2026, 3, 1),
+            dt_pagamento=date(2026, 3, 30),
+            centro_custo="999999990051",
+            centro_custo_real="999999990051",
+            loja=loja_apoio,
+            categoria="SALÁRIO",
+        )
+
+        # Força o recálculo dos resumos de folha para incluir as novas linhas
+        from lojas.services.folha_importacao import recalcular_resumos_folha
+        recalcular_resumos_folha([
+            (loja_escritorio.id, date(2026, 3, 1)),
+            (loja_apoio.id, date(2026, 3, 1))
+        ])
+
+        # Limpa o cache global dos filtros para forçar a leitura do banco
+        import lojas.views.comparativo_relatorio
+        lojas.views.comparativo_relatorio._FILTROS_CACHE = None
+
+        # Chama a API de opções de filtros e garante que essa UF/loja não esteja disponível
+        response_filtros = self.client.get("/comparativo/filtro-opcoes/")
+        self.assertEqual(response_filtros.status_code, status.HTTP_200_OK)
+        # 'BR' não deve estar nas UFs porque a única loja com 'BR' é o escritório, que foi filtrado
+        self.assertNotIn("BR", response_filtros.data["ufs"])
+        # 'SP' deve estar nas UFs (loja modelo e loja_apoio)
+        self.assertIn("SP", response_filtros.data["ufs"])
+
+        # Chama a API de comparativo e garante que os desvios e resultados não incluam os 5000.00 do escritório, mas incluam o apoio
+        response = self.client.get("/comparativo/relatorio/", {"period": "2026-03"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.data["results"]
+        
+        # Garante que os resultados da tabela paginada não contêm "ESCRITORIO CENTRAL"
+        nomes_lojas = [r["loja_nome"] for r in data["resultados"]]
+        self.assertNotIn("ESCRITORIO CENTRAL", nomes_lojas)
+        # Garante que contêm "APOIO REGIONAL SP"
+        self.assertIn("APOIO REGIONAL SP", nomes_lojas)
+
+        # Os KPIs consolidados devem permanecer com a soma da loja modelo (1600.0) e do apoio (3000.0) = 4600.0
+        kpis = data["kpis"]
+        self.assertEqual(kpis["realizado_total"], 4600.0)
+        self.assertEqual(kpis["orcado_total"], 3600.0)
+
+
+

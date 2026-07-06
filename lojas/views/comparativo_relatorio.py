@@ -30,6 +30,16 @@ _FILTROS_CACHE = None
 _FILTROS_CACHE_TIME = 0.0
 CACHE_EXPIRATION_SECONDS = 300.0  # 5 minutos
 
+# Lista de centros de custo que pertencem ao escritório central e não possuem orçamento (escopo) planejado.
+# Por que existe: Permite desconsiderar apenas estes 3 centros específicos do escritório na análise de custos (Raio-X),
+# mantendo as demais equipes de apoio e volantes que também têm centro de custo iniciado em 99999999.
+CENTROS_CUSTO_ESCRITORIO = [
+    "999999990010",  # ADMINISTRATIVO & FINANCEIRO
+    "999999990020",  # RECURSOS HUMANOS
+    "999999990050",  # OPERACIONAL (Escritório)
+]
+
+
 
 def _nome_mes(mes: int) -> str:
     """Retorna o nome por extenso do mês."""
@@ -68,9 +78,11 @@ def comparativo_filtro_opcoes_api(request):
         return Response(_FILTROS_CACHE)
 
     # Coleta supervisores e coordenadores ativos nas lojas
-    supervisores = list(Loja.objects.exclude(supervisor__isnull=True).values_list("supervisor__nome", flat=True).distinct().order_by("supervisor__nome"))
-    coordenadores = list(Loja.objects.exclude(coordenador__isnull=True).values_list("coordenador__nome", flat=True).distinct().order_by("coordenador__nome"))
-    ufs = list(Loja.objects.exclude(uf="").exclude(uf__isnull=True).values_list("uf", flat=True).distinct().order_by("uf"))
+    # Por que existe: Centros de custo específicos do escritório não possuem orçamento planejado no escopo. 
+    # Portanto, são desconsiderados do Comparativo (Raio-X) para evitar falsos desvios acumulados e inconsistências nos filtros.
+    supervisores = list(Loja.objects.exclude(centro_de_custo__in=CENTROS_CUSTO_ESCRITORIO).exclude(supervisor__isnull=True).values_list("supervisor__nome", flat=True).distinct().order_by("supervisor__nome"))
+    coordenadores = list(Loja.objects.exclude(centro_de_custo__in=CENTROS_CUSTO_ESCRITORIO).exclude(coordenador__isnull=True).values_list("coordenador__nome", flat=True).distinct().order_by("coordenador__nome"))
+    ufs = list(Loja.objects.exclude(centro_de_custo__in=CENTROS_CUSTO_ESCRITORIO).exclude(uf="").exclude(uf__isnull=True).values_list("uf", flat=True).distinct().order_by("uf"))
     
     # Coleta competências distintas (de escopo ou folha)
     competencias_set = set()
@@ -132,7 +144,9 @@ def comparativo_relatorio_api(request):
     e retorna a tabela paginada com o comparativo orçado vs real por filial física.
     """
     # 1. Filtros das Lojas
-    lojas_qs = Loja.objects.all().select_related("supervisor", "coordenador")
+    # Por que existe: Centros de custo específicos do escritório não possuem orçamento planejado no escopo.
+    # Portanto, são desconsiderados do Comparativo (Raio-X) para evitar falsos desvios acumulados na análise consolidada de custos.
+    lojas_qs = Loja.objects.exclude(centro_de_custo__in=CENTROS_CUSTO_ESCRITORIO).select_related("supervisor", "coordenador")
     
     lojas_selecionadas = obter_parametro_lista(request, "loja")
     if lojas_selecionadas:
