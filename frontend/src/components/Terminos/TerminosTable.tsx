@@ -1,4 +1,4 @@
-import { Edit, Copy } from 'lucide-react';
+import { Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '../ui/skeleton';
 import {
@@ -66,6 +66,54 @@ interface TerminosTableProps {
  * Por que existe: Economiza espaço na coluna de Ação substituindo badges de texto
  * longos por bolinhas coloridas discretas com tooltip informativo.
  */
+/**
+ * Ícone do WhatsApp no estilo Lucide (desenho de contorno).
+ * 
+ * Por que existe: Exibe a identidade do WhatsApp de forma limpa e harmônica 
+ * com o restante dos ícones da tabela.
+ */
+function WhatsAppIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </svg>
+  );
+}
+
+/**
+ * Ícone do Trello no estilo Lucide (desenho de contorno).
+ * 
+ * Por que existe: Representa visualmente o Trello para identificar que a ação
+ * irá copiar os dados formatados para colar na ferramenta Trello.
+ */
+function TrelloIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+      <path d="M7 7h3v10H7z" />
+      <path d="M14 7h3v6h-3z" />
+    </svg>
+  );
+}
+
 /**
  * Renderiza os status das decisões de término como duas bolinhas coloridas (uma para cada etapa) com tooltips em português.
  * 
@@ -145,27 +193,22 @@ export default function TerminosTable({
 }: TerminosTableProps) {
 
   /**
-   * Copia as informações de nome, RE e data de término vigente do colaborador.
+   * Copia um texto para a área de transferência do usuário com fallback de segurança.
    * 
-   * Por que existe: Facilita a cópia rápida e padronizada dessas informações para
-   * a área de transferência do usuário.
+   * Por que existe: Evita duplicação de lógica complexa de cópia segura que lida
+   * com diferentes contextos do navegador (HTTP/HTTPS).
    */
-  const handleCopyFormattedInfo = (item: TerminoItem) => {
-    const formattedDate = formatDate(item.relevant_date);
-    const text = `Colaborador: ${item.colaborador.nome}\nRE: ${item.colaborador.re}\nData de Término Vigente: ${formattedDate}`;
-    
-    // Por que existe: Verifica se a API moderna de clipboard está disponível (geralmente restrita a HTTPS ou localhost)
+  const copyToClipboard = (text: string, successMessage: string) => {
     if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
       navigator.clipboard.writeText(text)
         .then(() => {
-          toast.success(`Informações de ${item.colaborador.nome} copiadas!`);
+          toast.success(successMessage);
         })
         .catch((err) => {
           console.error('Erro ao copiar informações via Clipboard API:', err);
           toast.error('Erro ao copiar informações.');
         });
     } else {
-      // Por que existe: Fallback para contextos não-seguros (HTTP) utilizando a técnica de área de texto temporária
       try {
         const textarea = document.createElement('textarea');
         textarea.value = text;
@@ -181,7 +224,7 @@ export default function TerminosTable({
         document.body.removeChild(textarea);
         
         if (success) {
-          toast.success(`Informações de ${item.colaborador.nome} copiadas!`);
+          toast.success(successMessage);
         } else {
           toast.error('Não foi possível copiar as informações.');
         }
@@ -190,6 +233,29 @@ export default function TerminosTable({
         toast.error('Erro ao copiar informações.');
       }
     }
+  };
+
+  /**
+   * Copia as informações do colaborador formatadas para envio via WhatsApp.
+   * 
+   * Por que existe: Facilita o envio rápido de dados formatados no padrão do WhatsApp.
+   */
+  const handleCopyWhatsApp = (item: TerminoItem) => {
+    const formattedDate = formatDate(item.relevant_date);
+    const text = `*Colaborador:* ${item.colaborador.nome}\n*RE:* ${item.colaborador.re}\n*Data de Término Vigente:* ${formattedDate}`;
+    copyToClipboard(text, `Informações de ${item.colaborador.nome} copiadas para WhatsApp!`);
+  };
+
+  /**
+   * Copia as informações do colaborador formatadas para inclusão no Trello.
+   * 
+   * Por que existe: Facilita a colagem rápida no Trello seguindo o padrão "[RE] [NOME] [DATA_LIMITE]".
+   */
+  const handleCopyTrello = (item: TerminoItem) => {
+    const formattedDate = formatDate(item.relevant_date);
+    const cleanName = (item.colaborador.nome || '').trim().toUpperCase();
+    const text = `${item.colaborador.re} ${cleanName} ${formattedDate}`;
+    copyToClipboard(text, `Informações de ${item.colaborador.nome} copiadas no formato Trello!`);
   };
 
   return (
@@ -262,14 +328,24 @@ export default function TerminosTable({
                       <span className="font-semibold text-neutral-900 dark:text-neutral-100">
                         {item.colaborador.nome}
                       </span>
-                      <button
-                        onClick={() => handleCopyFormattedInfo(item)}
-                        title="Copiar informações"
-                        className="text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors p-0.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                        aria-label={`Copiar dados de ${item.colaborador.nome}`}
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => handleCopyWhatsApp(item)}
+                          title="Copiar para WhatsApp"
+                          className="text-neutral-400 hover:text-emerald-600 dark:text-neutral-500 dark:hover:text-emerald-400 transition-colors p-0.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
+                          aria-label={`Copiar dados de ${item.colaborador.nome} para WhatsApp`}
+                        >
+                          <WhatsAppIcon className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleCopyTrello(item)}
+                          title="Copiar para o Trello"
+                          className="text-neutral-400 hover:text-blue-500 dark:text-neutral-500 dark:hover:text-blue-400 transition-colors p-0.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
+                          aria-label={`Copiar dados de ${item.colaborador.nome} para o Trello`}
+                        >
+                          <TrelloIcon className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
                     <div className="text-xs text-neutral-400 font-mono">
                       RE: {item.colaborador.re}
