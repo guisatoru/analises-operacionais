@@ -33,7 +33,6 @@ interface ComparativoFilterProps {
   opcoesFiltros: FiltroOpcoes;
   loadingFiltros: boolean;
   onClear: () => void;
-  onError: (msg: string | null) => void;
 }
 
 /**
@@ -50,7 +49,6 @@ export default function ComparativoFilter({
   opcoesFiltros,
   loadingFiltros,
   onClear,
-  onError,
 }: ComparativoFilterProps) {
   // Estados locais temporários para digitação/seleção do usuário antes de clicar em buscar
   const [tempPeriodo, setTempPeriodo] = useState(filtros.periodo);

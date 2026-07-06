@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 import api from '../api/client';
 import ComparativoFilter from '../components/Comparativo/ComparativoFilter';
@@ -125,10 +125,7 @@ export default function Comparativo() {
     carregarDadosIniciais();
   }, []);
 
-  // Handler para capturar erro enviado pelos filhos
-  const handleFilterError = useCallback((msg: string | null) => {
-    setErrorMsg(msg);
-  }, []);
+
 
   // Recarrega os dados agregados e a tabela ao alterar os filtros aplicados ou a paginação
   useEffect(() => {
@@ -186,14 +183,20 @@ export default function Comparativo() {
     setCurrentPage(1);
   };
 
-  // Handler para clicar num coordenador ou UF nos gráficos e aplicar como filtro na tabela
+  // Handler para clicar num coordenador ou UF nos gráficos e aplicar como filtro na tabela (alternando a seleção se clicar no mesmo)
   const handleSetFiltroCoordenador = (nome: string) => {
-    setFiltros(prev => ({ ...prev, coordenador: nome }));
+    setFiltros(prev => ({ 
+      ...prev, 
+      coordenador: prev.coordenador === nome ? '' : nome 
+    }));
     setCurrentPage(1);
   };
 
   const handleSetFiltroUf = (sigla: string) => {
-    setFiltros(prev => ({ ...prev, uf: sigla }));
+    setFiltros(prev => ({ 
+      ...prev, 
+      uf: prev.uf === sigla ? '' : sigla 
+    }));
     setCurrentPage(1);
   };
 
@@ -234,7 +237,6 @@ export default function Comparativo() {
         opcoesFiltros={opcoesFiltros}
         loadingFiltros={loadingFiltros}
         onClear={handleLimparFiltros}
-        onError={handleFilterError}
       />
 
       {/* Relatório e Gráficos */}

@@ -22,8 +22,8 @@ interface ComparativoChartsProps {
     coordenador: { coordenador: string; desvio: number }[];
     uf: { uf: string; desvio: number }[];
   };
-  setFiltroCoordenador: React.Dispatch<React.SetStateAction<string>>;
-  setFiltroUf: React.Dispatch<React.SetStateAction<string>>;
+  setFiltroCoordenador: (nome: string) => void;
+  setFiltroUf: (sigla: string) => void;
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
 }
 
@@ -128,7 +128,7 @@ export default function ComparativoCharts({
                     style={{ cursor: 'pointer' }}
                     onClick={(data: any) => {
                       if (data && data.coordenador && data.coordenador !== '-') {
-                        setFiltroCoordenador((prev) => (prev === data.coordenador ? '' : data.coordenador));
+                        setFiltroCoordenador(data.coordenador);
                         setCurrentPage(1);
                       }
                     }}
@@ -176,7 +176,7 @@ export default function ComparativoCharts({
                     style={{ cursor: 'pointer' }}
                     onClick={(data: any) => {
                       if (data && data.uf && data.uf !== '-') {
-                        setFiltroUf((prev) => (prev === data.uf ? '' : data.uf));
+                        setFiltroUf(data.uf);
                         setCurrentPage(1);
                       }
                     }}

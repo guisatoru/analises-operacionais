@@ -1,83 +1,15 @@
 from django import forms
-from django.forms import inlineformset_factory
+from .models import EscopoMensal
 
-from .models import (
-    ConfiguracaoInsalubridadeLoja,
-    EscopoMensal,
-    ItemEscopoMensal,
-    Loja,
-)
-
-class LojaForm(forms.ModelForm):
-    """Formulário do cadastro inicial — mostra todos os campos da loja."""
-
-    class Meta:
-        model = Loja
-        fields = [
-            "nome_referencia",
-            "centro_de_custo",
-            "quadro",
-            "status",
-            "cliente",
-            "cnpj",
-            "codigo_loja",
-            "nome_metricas",
-            "nome_geovictoria",
-            "nome_gestao",
-            "dispensa_gestao_pessoas",
-            "nome_totvs",
-            "nome_financeiro",
-            "nome_findme",
-            "cep",
-            "rua",
-            "bairro",
-            "municipio",
-            "uf",
-            "sub_regiao",
-            "coordenador",
-            "supervisor",
-        ]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["nome_referencia"].required = True
-        self.fields["centro_de_custo"].required = True
-        self.fields["quadro"].required = True
-
-
-class LojaUpdateForm(forms.ModelForm):
-    """Formulário de edição — permite editar todos os campos da loja."""
-
-    class Meta:
-        model = Loja
-        fields = [
-            "nome_referencia",
-            "centro_de_custo",
-            "quadro",
-            "status",
-            "cliente",
-            "cnpj",
-            "codigo_loja",
-            "nome_metricas",
-            "nome_geovictoria",
-            "nome_gestao",
-            "dispensa_gestao_pessoas",
-            "nome_totvs",
-            "nome_financeiro",
-            "nome_findme",
-            "cep",
-            "rua",
-            "bairro",
-            "municipio",
-            "uf",
-            "sub_regiao",
-            "coordenador",
-            "supervisor",
-        ]
-
+# lojas/forms.py
 
 class EscopoMensalForm(forms.ModelForm):
-    """Usa Select2 para facilitar a busca de lojas em listas grandes."""
+    """
+    Formulário customizado para o Escopo Mensal no Django Admin.
+    
+    Por que existe: Facilita a busca de lojas em listas extensas através de um
+    widget Select2 e trata o campo composto de Competência (Ano/Mês) de forma amigável.
+    """
 
     competencia = forms.CharField(
         label="Competência",
@@ -121,62 +53,3 @@ class EscopoMensalForm(forms.ModelForm):
 
         return cleaned_data
 
-
-class ItemEscopoMensalForm(forms.ModelForm):
-    """Usa Select2 para facilitar a busca de cargos em listas grandes."""
-
-    class Meta:
-        model = ItemEscopoMensal
-        fields = ["cargo", "turno", "quantidade"]
-
-        widgets = {
-            "cargo": forms.Select(
-                attrs={
-                    "class": "django-select2 searchable-select",
-                    "data-placeholder": "Digite para buscar um cargo",
-                }
-            ),
-        }
-
-class ConfiguracaoInsalubridadeLojaForm(forms.ModelForm):
-    """Tela de insalubridade por loja (convênção)."""
-
-    class Meta:
-        model = ConfiguracaoInsalubridadeLoja
-        fields = [
-            "insalubridade_fixa_percentual",
-            "insalubridade_fixa_base",
-            "insalubridade_fixa_recebedores_modo",
-            "insalubridade_fixa_recebedores_quantidade",
-            "insalubridade_banheirista_percentual",
-            "insalubridade_banheirista_base",
-            "calcular_diferenca_banheirista",
-        ]
-
-
-class FolhaImportForm(forms.Form):
-    """Upload de um único CSV de folha (export TOTVS)."""
-
-    arquivo = forms.FileField(
-        label="Arquivo CSV",
-        help_text="Um arquivo por importação. Encoding UTF-8.",
-        widget=forms.ClearableFileInput(attrs={"accept": ".csv,text/csv"}),
-    )
-
-    def clean_arquivo(self):
-        f = self.cleaned_data.get("arquivo")
-        if not f:
-            return f
-        nome = (f.name or "").lower()
-        if not nome.endswith(".csv"):
-            raise forms.ValidationError("Envie um arquivo com extensão .csv.")
-        return f
-
-
-ItemEscopoMensalFormSet = inlineformset_factory(
-    EscopoMensal,
-    ItemEscopoMensal,
-    form=ItemEscopoMensalForm,
-    extra=1,
-    can_delete=True,
-)

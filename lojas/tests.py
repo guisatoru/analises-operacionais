@@ -18,7 +18,7 @@ class HeadcountViewsTests(TestCase):
 
     def setUp(self):
         # Cria um usuário de teste e configura o cliente da API
-        self.user = User.objects.create_user(username="testanalista", password="password123")
+        self.user = User.objects.create_superuser(username="testanalista", password="password123")
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
 
