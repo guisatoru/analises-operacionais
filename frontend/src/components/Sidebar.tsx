@@ -230,6 +230,18 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, p
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuSubItem>
+                    {permissions?.testes_promocao?.view !== false && (
+                      <SidebarMenuSubItem>
+                        <SidebarMenuButton 
+                          asChild 
+                          isActive={location.pathname === '/testes'}
+                        >
+                          <Link to="/testes">
+                            <span className="truncate">Testes de Promoção</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuSubItem>
+                    )}
                   </SidebarMenuSub>
                 )}
               </SidebarMenuItem>

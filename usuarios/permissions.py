@@ -13,7 +13,9 @@ def obter_modulo_por_view(view_name, path):
     """
     path_lower = path.lower()
     
-    if "usuarios" in path_lower:
+    if "testes" in path_lower:
+        return "testes_promocao"
+    elif "usuarios" in path_lower:
         return "usuarios"
     elif "comparativo" in path_lower or "relatorio" in path_lower:
         return "comparativo"

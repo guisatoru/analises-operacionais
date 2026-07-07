@@ -2,6 +2,7 @@ from django.urls import path
 from lojas.views import configuracoes
 from . import views
 from . import views_agenda
+from . import views_testes
 
 app_name = 'colaboradores'
 
@@ -25,6 +26,13 @@ urlpatterns = [
     path('agendamentos/<int:pk>/excluir/', views_agenda.agendamento_delete, name='agendamento_delete'),
     path('agendamentos/colaboradores-ativos/', views_agenda.colaborador_ativos_completo, name='colaborador_ativos_completo'),
     path('agendamentos/historico-limpeza/', views_agenda.historico_limpeza_vidros, name='historico_limpeza_vidros'),
+    path('testes/', views_testes.testes_list, name='testes_list'),
+    path('testes/cargos/', views_testes.cargos_unicos_list, name='cargos_unicos_list'),
+    path('testes/<int:pk>/ausencias/', views_testes.colaborador_ausencias_summary, name='colaborador_ausencias_summary'),
+    path('testes/colaborador/<int:colaborador_id>/ausencias/', views_testes.colaborador_ausencias_avulso, name='colaborador_ausencias_avulso'),
+    path('testes/<int:pk>/aprovar/', views_testes.teste_aprovar, name='teste_aprovar'),
+    path('testes/<int:pk>/registrar-acao/', views_testes.teste_registrar_acao, name='teste_registrar_acao'),
+    path('testes/<int:pk>/download/', views_testes.teste_anexo_download, name='teste_anexo_download'),
 ]
 
 

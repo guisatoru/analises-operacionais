@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Colaborador, ControleTermino, Agendamento
+from .models import Colaborador, ControleTermino, Agendamento, TestePromocao, HistoricoAcaoTeste
 from .view_utils import funcao_esta_divergente
 
 class ColaboradorSerializer(serializers.ModelSerializer):
@@ -16,6 +16,7 @@ class ColaboradorSerializer(serializers.ModelSerializer):
     
     loja_nome = serializers.SerializerMethodField()
     loja_coordenador = serializers.CharField(source="loja.coordenador.nome", read_only=True)
+    loja_supervisor = serializers.SerializerMethodField()
     loja_gestao_nome = serializers.SerializerMethodField()
     loja_geo_nome = serializers.SerializerMethodField()
 
@@ -29,6 +30,14 @@ class ColaboradorSerializer(serializers.ModelSerializer):
         """
         if obj.loja:
             return obj.loja.nome_totvs or obj.loja.nome_referencia
+        return None
+
+    def get_loja_supervisor(self, obj):
+        """
+        Retorna o nome do supervisor associado à loja do colaborador.
+        """
+        if obj.loja and obj.loja.supervisor:
+            return obj.loja.supervisor.nome
         return None
 
     def get_loja_gestao_nome(self, obj):
@@ -184,5 +193,77 @@ class ColaboradorLightSerializer(serializers.ModelSerializer):
         if "cpf" in data and data["cpf"] is not None:
             data["cpf"] = str(data["cpf"])
         return data
+
+
+class HistoricoAcaoTesteSerializer(serializers.ModelSerializer):
+    """
+    Serializer para o histórico de ações do teste de promoção.
+    
+    Por que existe: Formata o histórico de ações em JSON, fornecendo os detalhes das ações
+    tomadas em cada mês, as observações correspondentes e o nome amigável da ação.
+    """
+    acao_display = serializers.CharField(source="get_acao_display", read_only=True)
+
+    class Meta:
+        model = HistoricoAcaoTeste
+        fields = "__all__"
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if "id" in data and data["id"] is not None:
+            data["id"] = str(data["id"])
+        if "teste" in data and data["teste"] is not None:
+            data["teste"] = str(data["teste"])
+        return data
+
+
+class TestePromocaoSerializer(serializers.ModelSerializer):
+    """
+    Serializer principal para testes de promoção.
+    
+    Por que existe: Agrupa as informações da solicitação de teste de promoção, 
+    incluindo detalhes ricos sobre o colaborador (loja, supervisor, admissão, RE),
+    e anexa a listagem de histórico de ações do teste.
+    """
+    colaborador_nome = serializers.CharField(source="colaborador.nome", read_only=True)
+    colaborador_re = serializers.CharField(source="colaborador.re", read_only=True)
+    colaborador_cargo = serializers.CharField(source="colaborador.cargo", read_only=True)
+    colaborador_admissao = serializers.DateField(source="colaborador.data_admissao", read_only=True)
+    colaborador_status_gestao = serializers.CharField(source="colaborador.status_gestao", read_only=True)
+    
+    loja_nome = serializers.SerializerMethodField()
+    supervisor_nome = serializers.SerializerMethodField()
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    
+    historico_acoes = HistoricoAcaoTesteSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = TestePromocao
+        fields = "__all__"
+
+    def get_loja_nome(self, obj):
+        """
+        Retorna o nome da loja de referência associada ao colaborador do teste.
+        """
+        if obj.colaborador.loja:
+            return obj.colaborador.loja.nome_referencia
+        return obj.colaborador.centro_custo
+
+    def get_supervisor_nome(self, obj):
+        """
+        Retorna o nome do supervisor associado à loja do colaborador do teste.
+        """
+        if obj.colaborador.loja and obj.colaborador.loja.supervisor:
+            return obj.colaborador.loja.supervisor.nome
+        return "-"
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if "id" in data and data["id"] is not None:
+            data["id"] = str(data["id"])
+        if "colaborador" in data and data["colaborador"] is not None:
+            data["colaborador"] = str(data["colaborador"])
+        return data
+
 
 

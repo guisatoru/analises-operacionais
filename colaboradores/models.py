@@ -1,5 +1,12 @@
 from django.db import models
 from lojas.models import Loja
+from django.core.files.storage import FileSystemStorage
+from decouple import config
+
+# Por que existe: Instancia o storage customizado para salvar arquivos na pasta escolhida no .env.
+testes_anexos_path = config("TESTES_ANEXOS_PATH", default=None)
+testes_storage = FileSystemStorage(location=testes_anexos_path) if testes_anexos_path else None
+
 
 class Colaborador(models.Model):
     """
@@ -174,4 +181,92 @@ class Agendamento(models.Model):
     def __str__(self):
         dest = self.loja.nome_referencia if self.loja else (self.loja_manual or "Sem Loja")
         return f"{self.colaborador.nome} em {self.data} - {dest}"
+
+
+class TestePromocao(models.Model):
+    """
+    Representa uma solicitação de teste de promoção de um colaborador.
+    
+    Por que existe: Registra os dados da solicitação do teste, incluindo a data de início,
+    o colaborador envolvido, o anexo da folha de teste e o status atual da aprovação/ciclo.
+    """
+    STATUS_CHOICES = [
+        ("pendente", "Pendente de Aprovação"),
+        ("ativo", "Ativo"),
+        ("promovido", "Promovido"),
+        ("cancelado", "Cancelado"),
+    ]
+
+    colaborador = models.ForeignKey(
+        Colaborador,
+        on_delete=models.CASCADE,
+        related_name="testes_promocao",
+        verbose_name="Colaborador",
+    )
+    data_inicio = models.DateField("Data de Início")
+    cargo_teste = models.CharField("Cargo em Teste", max_length=150, blank=True, null=True)
+    status = models.CharField(
+        "Status",
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="pendente",
+        db_index=True,
+    )
+    anexo = models.FileField(
+        "Anexo da Folha de Teste",
+        storage=testes_storage,
+        upload_to="",
+        null=True,
+        blank=True,
+    )
+    criado_por = models.CharField("Criado Por", max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Teste de Promoção"
+        verbose_name_plural = "Testes de Promoção"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.colaborador.nome} - Início: {self.data_inicio} - {self.get_status_display()}"
+
+
+class HistoricoAcaoTeste(models.Model):
+    """
+    Registra as decisões e o andamento mensal dos testes de promoção.
+    
+    Por que existe: Mantém um histórico detalhado e auditável de cada ação tomada pelo
+    usuário durante o controle mensal (Aprovar, Pagar Prêmio, Promover, Cancelar), incluindo
+    a observação com a data/autor da solicitação e quem realizou o lançamento no sistema.
+    """
+    ACOES = [
+        ("ativar", "Aprovar/Ativar"),
+        ("pagar_premio", "Pagar Prêmio"),
+        ("promover", "Promover"),
+        ("cancelar", "Cancelar"),
+    ]
+
+    teste = models.ForeignKey(
+        TestePromocao,
+        on_delete=models.CASCADE,
+        related_name="historico_acoes",
+        verbose_name="Teste de Promoção",
+    )
+    acao = models.CharField("Ação", max_length=20, choices=ACOES)
+    mes_referencia = models.IntegerField("Mês de Referência")
+    observacao = models.TextField("Observação", blank=True)
+    solicitado_por = models.CharField("Solicitado Por", max_length=255, blank=True)
+    realizado_por = models.CharField("Realizado Por", max_length=255, blank=True)
+    data_acao = models.DateField("Data da Ação")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Histórico de Ação do Teste"
+        verbose_name_plural = "Históricos de Ações dos Testes"
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.teste.colaborador.nome} - {self.get_acao_display()} (Mês {self.mes_referencia})"
+
 

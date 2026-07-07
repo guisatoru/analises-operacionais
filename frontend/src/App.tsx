@@ -21,6 +21,7 @@ import Agenda from './pages/Agenda';
 import HistoricoAgenda from './pages/HistoricoAgenda';
 import Headcount from './pages/Headcount';
 import Salarios from './pages/Salarios';
+import TestesPromocao from './pages/TestesPromocao';
 import { Toaster } from './components/ui/sonner';
 
 
@@ -172,6 +173,10 @@ function App() {
           <Route 
             path="/terminos" 
             element={permissions.colaboradores?.view === false ? <Navigate to="/" replace /> : <Terminos />} 
+          />
+          <Route 
+            path="/testes" 
+            element={permissions.testes_promocao?.view === false ? <Navigate to="/" replace /> : <TestesPromocao />} 
           />
           <Route 
             path="/importacoes" 

@@ -54,6 +54,9 @@ export default function Layout({ isAuthenticated, username, email, onLogout, rol
   } else if (path === 'terminos') {
     sector = 'Operação';
     pageName = 'Términos de Exp.';
+  } else if (path === 'testes') {
+    sector = 'Operação';
+    pageName = 'Testes de Promoção';
   } else if (path === 'presencas') {
     sector = 'Operação';
     pageName = 'Presenças';

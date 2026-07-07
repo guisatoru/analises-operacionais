@@ -46,6 +46,7 @@ const MODULE_CONFIG: Record<string, { label: string; icon: any; desc: string }> 
   importacoes: { label: 'Importações', icon: Database, desc: 'Upload de planilhas para consolidação de dados' },
   usuarios: { label: 'Usuários & Permissões', icon: Users, desc: 'Controle de acessos e configurações de usuários' },
   salarios: { label: 'Salários de Dissídios', icon: CircleDollarSign, desc: 'Configuração de salários base por cargo e região (UF)' },
+  testes_promocao: { label: 'Testes de Promoção', icon: Users, desc: 'Controle de testes de promoção e acompanhamento mensal' },
 };
 
 /**
