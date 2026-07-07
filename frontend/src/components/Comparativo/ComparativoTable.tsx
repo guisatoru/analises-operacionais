@@ -86,8 +86,8 @@ export default function ComparativoTable({
             ) : (
               resultados.map((item, idx) => {
                 const desvioClass = item.desvio > 0 
-                  ? 'text-red-650 bg-red-50 dark:bg-red-950/20 dark:text-red-400' 
-                  : 'text-emerald-650 bg-emerald-50 dark:bg-emerald-950/20 dark:text-emerald-400';
+                  ? 'text-red-650 bg-red-200 dark:bg-red-950/20 dark:text-red-400' 
+                  : 'text-emerald-650 bg-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400';
                 
                 return (
                   <tr key={`${item.loja_id}-${item.competencia}-${idx}`} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-850/20 transition-colors">
@@ -100,8 +100,8 @@ export default function ComparativoTable({
                     <td className="py-3.5 px-5 text-right font-mono text-neutral-500">{formatCurrency(item.orcado)}</td>
                     <td className="py-3.5 px-5 text-right font-mono text-neutral-850 dark:text-neutral-200">{formatCurrency(item.realizado)}</td>
                     <td className="py-3.5 px-5 text-center font-mono">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${desvioClass}`}>
-                        {item.desvio > 0 ? '+' : ''}{formatCurrency(item.desvio)}
+                      <span className={`inline-flex items-center px-2 py-0.5 w-24 h-8 justify-center whitespace-nowrap rounded text-[10px] font-bold ${desvioClass}`}>
+                        {item.desvio > 0}{formatCurrency(item.desvio)}
                       </span>
                     </td>
                     <td className="py-3.5 px-5 text-center">

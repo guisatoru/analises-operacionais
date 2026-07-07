@@ -130,7 +130,7 @@ export default function Layout({ isAuthenticated, username, email, onLogout, rol
             </Breadcrumb>
           </div>
           <div className="text-xs text-neutral-500 dark:text-neutral-400">
-            Sessão active como: <span className="font-semibold text-neutral-800 dark:text-neutral-200">{username}</span>
+            Logado como: <span className="font-semibold text-neutral-800 dark:text-neutral-200">{username}</span>
           </div>
         </header>
 
