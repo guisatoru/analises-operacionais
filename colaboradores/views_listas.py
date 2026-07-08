@@ -1,7 +1,7 @@
 from django.core.paginator import Paginator
 from django.db.models import Q
 from rest_framework.decorators import api_view, permission_classes
-import unicodedata
+import re
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from usuarios.permissions import IsGestaoOrAdministrador
@@ -79,19 +79,34 @@ def status_gestao_opcoes(request):
     return Response(opcoes)
 
 
-def _normalizar_termo_busca(txt):
+def _termo_para_regex(termo):
     """
-    Por que existe: Esta funcao normaliza o texto digitado pelo usuario,
-    removendo acentos e cedilhas. Isso eh necessario porque o banco de dados
-    SQLite nao possui suporte nativo a buscas insensiveis a acentuacao (accent-insensitive),
-    e os nomes no banco de dados muitas vezes estao cadastrados sem acentos (ex: CONCEICAO).
-    Normalizando o termo da busca, conseguimos encontrar os nomes mesmo se o usuario
-    digitar acentos ou cedilha (como conceição).
+    Por que existe: Converte um termo de busca textual em uma expressao regular
+    flexivel que aceita variacoes de acentuacao e cedilhas. Isso eh necessario
+    porque o SQLite nao suporta buscas insensiveis a acentos e cedilhas de forma nativa,
+    e os dados no banco de dados muitas vezes possuem acentos mistos ou estao normalizados.
     """
-    if not txt:
+    if not termo:
         return ""
-    nfkd_form = unicodedata.normalize('NFKD', txt)
-    return "".join([c for c in nfkd_form if not unicodedata.combining(c)])
+    
+    mapeamento = {
+        'a': '[aáàãâäAÁÀÃÂÄ]', 'á': '[aáàãâäAÁÀÃÂÄ]', 'à': '[aáàãâäAÁÀÃÂÄ]', 'ã': '[aáàãâäAÁÀÃÂÄ]', 'â': '[aáàãâäAÁÀÃÂÄ]', 'ä': '[aáàãâäAÁÀÃÂÄ]',
+        'e': '[eéèêëEÉÈÊË]', 'é': '[eéèêëEÉÈÊË]', 'è': '[eéèêëEÉÈÊË]', 'ê': '[eéèêëEÉÈÊË]', 'ë': '[eéèêëEÉÈÊË]',
+        'i': '[iíìîïIÍÌÎÏ]', 'í': '[iíìîïIÍÌÎÏ]', 'ì': '[iíìîïIÍÌÎÏ]', 'î': '[iíìîïIÍÌÎÏ]', 'ï': '[iíìîïIÍÌÎÏ]',
+        'o': '[oóòõôöOÓÒÕÔÖ]', 'ó': '[oóòõôöOÓÒÕÔÖ]', 'ò': '[oóòõôöOÓÒÕÔÖ]', 'õ': '[oóòõôöOÓÒÕÔÖ]', 'ô': '[oóòõôöOÓÒÕÔÖ]', 'ö': '[oóòõôöOÓÒÕÔÖ]',
+        'u': '[uúùûüUÚÙÛÜ]', 'ú': '[uúùûüUÚÙÛÜ]', 'ù': '[uúùûüUÚÙÛÜ]', 'û': '[uúùûüUÚÙÛÜ]', 'ü': '[uúùûüUÚÙÛÜ]',
+        'c': '[cçCÇ]', 'ç': '[cçCÇ]'
+    }
+    
+    resultado = []
+    for char in termo:
+        char_lower = char.lower()
+        if char_lower in mapeamento:
+            resultado.append(mapeamento[char_lower])
+        else:
+            resultado.append(re.escape(char))
+            
+    return "".join(resultado)
 
 
 def _ler_filtros_colaboradores(params):
@@ -183,19 +198,16 @@ def _aplicar_filtros_colaboradores(colaboradores_qs, filtros):
             vals = [n for n in nome_list if n != "null"]
             q_obj = Q()
             if vals:
-                # Modificado para busca parcial com icontains de forma simples e legível.
+                # Modificado para busca parcial flexível usando regex para ignorar acentos e cedilhas.
                 # Como Nome agora é um input de texto simples, permitimos ao usuário digitar partes do nome.
-                # Também normalizamos acentos e cedilhas para cobrir bancos SQLite sem suporte nativo
-                # e fazemos busca concorrente no RE para atender pesquisas unificadas.
+                # Também fazemos busca concorrente no RE para atender pesquisas unificadas.
                 q_vals = Q()
                 for val in vals:
-                    val_norm = _normalizar_termo_busca(val)
+                    val_regex = _termo_para_regex(val)
                     q_vals = (
                         q_vals
-                        | Q(nome__icontains=val)
-                        | Q(nome__icontains=val_norm)
+                        | Q(nome__iregex=val_regex)
                         | Q(re__icontains=val)
-                        | Q(re__icontains=val_norm)
                     )
                 q_obj = q_vals
             if has_null:
@@ -308,19 +320,16 @@ def _aplicar_filtros_demitidos(colaboradores_qs, filtros):
             vals = [n for n in nome_list if n != "null"]
             q_obj = Q()
             if vals:
-                # Modificado para busca parcial com icontains de forma simples e legível.
+                # Modificado para busca parcial flexível usando regex para ignorar acentos e cedilhas.
                 # Como Nome agora é um input de texto simples, permitimos ao usuário digitar partes do nome.
-                # Também normalizamos acentos e cedilhas para cobrir bancos SQLite sem suporte nativo
-                # e fazemos busca concorrente no RE para atender pesquisas unificadas.
+                # Também fazemos busca concorrente no RE para atender pesquisas unificadas.
                 q_vals = Q()
                 for val in vals:
-                    val_norm = _normalizar_termo_busca(val)
+                    val_regex = _termo_para_regex(val)
                     q_vals = (
                         q_vals
-                        | Q(nome__icontains=val)
-                        | Q(nome__icontains=val_norm)
+                        | Q(nome__iregex=val_regex)
                         | Q(re__icontains=val)
-                        | Q(re__icontains=val_norm)
                     )
                 q_obj = q_vals
             if has_null:
