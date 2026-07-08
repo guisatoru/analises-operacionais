@@ -35,7 +35,12 @@ from .comparativo_relatorio import comparativo_relatorio_api, comparativo_filtro
 from .diarias import diarias_list_api, diarias_filtro_opcoes_api
 from .premios import premios_list_api, premios_filtro_opcoes_api
 from .headcount import headcount_analise_api, headcount_loja_colaboradores_api
-from .presencas import importar_presencas_api
+from .presencas import (
+    loja_presencas_calendario_api,
+    loja_presencas_dia_api,
+    loja_presencas_sincronizar_recente_api,
+    loja_presencas_sincronizar_progresso_api,
+)
 from .salarios import (
     salario_list_create_api,
     salario_detail_update_delete_api,
@@ -73,7 +78,10 @@ __all__ = [
     "diarias_filtro_opcoes_api",
     "premios_list_api",
     "premios_filtro_opcoes_api",
-    "importar_presencas_api",
+    "loja_presencas_calendario_api",
+    "loja_presencas_dia_api",
+    "loja_presencas_sincronizar_recente_api",
+    "loja_presencas_sincronizar_progresso_api",
     "salario_list_create_api",
     "salario_detail_update_delete_api",
 ]

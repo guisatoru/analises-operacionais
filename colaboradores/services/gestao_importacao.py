@@ -179,7 +179,7 @@ def importar_gestao_pessoas(arquivo_excel, progress_callback=None):
         pass
 
     # Por que existe: Calcula o headcount real por loja a partir da planilha de funcionários (df_unico).
-    # De acordo com os requisitos, conta apenas status "ATIVO", e também status "FÉRIAS" caso a loja seja Atacadão.
+    # De acordo com os requisitos, conta status "ATIVO" ou "AVISO", e também status "FÉRIAS" caso a loja seja Atacadão.
     headcount_real_por_loja = {}
     for _, row in df_unico.iterrows():
         loja_val = row[col_loja]
@@ -196,7 +196,7 @@ def importar_gestao_pessoas(arquivo_excel, progress_callback=None):
                 if "ATACADAO" in cliente_normalized:
                     is_atacadao = True
             
-            if status_clean == "ATIVO" or (is_atacadao and "FERIA" in status_clean):
+            if status_clean == "ATIVO" or "AVISO" in status_clean or (is_atacadao and "FERIA" in status_clean):
                 headcount_real_por_loja[loja.id] = headcount_real_por_loja.get(loja.id, 0) + 1
 
     stats = {

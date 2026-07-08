@@ -124,7 +124,7 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, p
           <SidebarGroupContent>
             <SidebarMenu>
               {/* Lojas */}
-              {permissions?.lojas?.view !== false && (
+              {permissions?.lojas?.view === true && (
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     asChild 
@@ -140,7 +140,7 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, p
               )}
 
               {/* Apoio com Submenu Colapsável */}
-              {permissions?.apoio?.view !== false && (
+              {permissions?.apoio?.view === true && (
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     onClick={() => setApoioSubOpen(!apoioSubOpen)}
@@ -188,11 +188,11 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, p
               )}
 
               {/* Colaboradores com Submenu Colapsável */}
-              {permissions?.colaboradores?.view !== false && (
+              {permissions?.colaboradores?.view === true && (
                 <SidebarMenuItem>
                 <SidebarMenuButton 
                   onClick={() => setColabSubOpen(!colabSubOpen)}
-                  isActive={location.pathname === '/colaboradores' || location.pathname === '/terminos'}
+                  isActive={location.pathname === '/colaboradores' || location.pathname === '/terminos' || location.pathname === '/testes'}
                   title={!open ? "Colaboradores" : undefined}
                 >
                   <Users className="h-5 w-5 shrink-0" />
@@ -230,7 +230,7 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, p
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuSubItem>
-                    {permissions?.testes_promocao?.view !== false && (
+                    {permissions?.testes_promocao?.view === true && (
                       <SidebarMenuSubItem>
                         <SidebarMenuButton 
                           asChild 
@@ -246,22 +246,6 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, p
                 )}
               </SidebarMenuItem>
               )}
-
-              {/* Presenças */}
-              {permissions?.presencas?.view !== false && (
-                <SidebarMenuItem>
-                <SidebarMenuButton 
-                  asChild 
-                  isActive={location.pathname === '/presencas'}
-                  title={!open ? "Presenças" : undefined}
-                >
-                  <Link to="/presencas">
-                    <CalendarCheck className="h-5 w-5 shrink-0" />
-                    {open && <span className="truncate">Presenças</span>}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -271,52 +255,52 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, p
           <SidebarGroupLabel>Análises</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {permissions?.escopos?.view !== false && (
-                <>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={location.pathname === '/escopos'}
-                      title={!open ? "Escopos" : undefined}
-                    >
-                      <Link to="/escopos">
-                        <Layers className="h-5 w-5 shrink-0" />
-                        {open && <span className="truncate">Escopos</span>}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-
-                  <SidebarMenuItem>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={location.pathname === '/comparativo'}
-                      title={!open ? "Raio-X" : undefined}
-                    >
-                      <Link to="/comparativo">
-                        <TrendingUp className="h-5 w-5 shrink-0" />
-                        {open && <span className="truncate">Raio-X</span>}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </>
+              {permissions?.escopos?.view === true && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={location.pathname === '/escopos'}
+                    title={!open ? "Escopos" : undefined}
+                  >
+                    <Link to="/escopos">
+                      <Layers className="h-5 w-5 shrink-0" />
+                      {open && <span className="truncate">Escopos</span>}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               )}
 
-              {permissions?.headcount?.view !== false && (
+              {permissions?.comparativo?.view === true && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={location.pathname === '/comparativo'}
+                    title={!open ? "Raio-X" : undefined}
+                  >
+                    <Link to="/comparativo">
+                      <TrendingUp className="h-5 w-5 shrink-0" />
+                      {open && <span className="truncate">Raio-X</span>}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+
+              {permissions?.headcount?.view === true && (
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     asChild 
                     isActive={location.pathname === '/headcount'}
                     title={!open ? "Headcount" : undefined}
                   >
-                  <Link to="/headcount">
-                    <Users className="h-5 w-5 shrink-0" />
-                    {open && <span className="truncate">Headcount</span>}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+                    <Link to="/headcount">
+                      <Users className="h-5 w-5 shrink-0" />
+                      {open && <span className="truncate">Headcount</span>}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               )}
 
-              {permissions?.diarias?.view !== false && (
+              {permissions?.diarias?.view === true && (
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     asChild 
@@ -331,7 +315,7 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, p
                 </SidebarMenuItem>
               )}
 
-              {permissions?.premios?.view !== false && (
+              {permissions?.premios?.view === true && (
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     asChild 
@@ -354,7 +338,7 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, p
           <SidebarGroupLabel>Configurações</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {permissions?.usuarios?.view !== false && (
+              {permissions?.usuarios?.view === true && (
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     asChild 
@@ -369,7 +353,7 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, p
                 </SidebarMenuItem>
               )}
 
-              {permissions?.salarios?.view !== false && (
+              {permissions?.salarios?.view === true && (
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     asChild 
@@ -384,19 +368,19 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, p
                 </SidebarMenuItem>
               )}
 
-              {permissions?.importacoes?.view !== false && (
+              {permissions?.importacoes?.view === true && (
                 <SidebarMenuItem>
                   <SidebarMenuButton 
-                  asChild 
-                  isActive={location.pathname === '/importacoes'}
-                  title={!open ? "Importações" : undefined}
-                >
-                  <Link to="/importacoes">
-                    <Database className="h-5 w-5 shrink-0" />
-                    {open && <span className="truncate">Importações</span>}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+                    asChild 
+                    isActive={location.pathname === '/importacoes'}
+                    title={!open ? "Importações" : undefined}
+                  >
+                    <Link to="/importacoes">
+                      <Database className="h-5 w-5 shrink-0" />
+                      {open && <span className="truncate">Importações</span>}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               )}
             </SidebarMenu>
           </SidebarGroupContent>

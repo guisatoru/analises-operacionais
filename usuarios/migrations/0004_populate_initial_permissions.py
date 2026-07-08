@@ -13,7 +13,7 @@ def popular_permissoes_iniciais(apps, schema_editor):
     RolePermission = apps.get_model("usuarios", "RolePermission")
     
     modulos = [
-        "dashboard", "lojas", "apoio", "colaboradores", "presencas",
+        "dashboard", "lojas", "apoio", "colaboradores",
         "escopos", "comparativo", "headcount", "diarias", "premios",
         "importacoes", "usuarios"
     ]
@@ -34,7 +34,7 @@ def popular_permissoes_iniciais(apps, schema_editor):
         
     # 2. Gestão (Acesso limitado baseado no fluxo legado)
     gestao_group, _ = Group.objects.get_or_create(name="gestao")
-    modulos_gestao = ["dashboard", "lojas", "colaboradores", "presencas", "headcount", "importacoes"]
+    modulos_gestao = ["dashboard", "lojas", "colaboradores", "headcount", "importacoes"]
     for modulo in modulos:
         liberado = (modulo in modulos_gestao)
         # Por padrão, gestores podem visualizar e editar esses recursos, mas não usuários/diárias/prêmios/etc.

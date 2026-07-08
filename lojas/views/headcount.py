@@ -29,20 +29,29 @@ def headcount_analise_api(request):
     # Filtra apenas lojas ativas com headcount real maior que zero
     lojas = Loja.objects.filter(status="ATIVA").exclude(headcount_real=0).order_by("nome_referencia")
 
-
-    # Aplica busca textual se informada
+    # Aplica busca textual se informada usando unidecode (para ser insensível a acentuações e case-insensitive)
     search_text = request.GET.get("busca", "").strip()
     if search_text:
-        lojas = lojas.filter(
-            Q(nome_referencia__icontains=search_text)
-            | Q(cliente__icontains=search_text)
-            | Q(centro_de_custo__icontains=search_text)
-        )
+        search_norm = unidecode(search_text).lower()
+        lojas_filtradas = []
+        for loja in lojas:
+            nome_norm = unidecode(loja.nome_referencia or "").lower()
+            cliente_norm = unidecode(loja.cliente or "").lower()
+            cc_norm = unidecode(loja.centro_de_custo or "").lower()
+            if (
+                search_norm in nome_norm
+                or search_norm in cliente_norm
+                or search_norm in cc_norm
+            ):
+                lojas_filtradas.append(loja)
+        lojas_list = lojas_filtradas
+    else:
+        lojas_list = list(lojas)
 
-    # Calcula KPIs Globais sobre o queryset filtrado inteiro (antes da paginação)
+    # Calcula KPIs Globais sobre a lista inteira filtrada
     total_planejado = 0
     total_real_acumulado = 0
-    for loja in lojas:
+    for loja in lojas_list:
         quadro_val = 0
         try:
             quadro_val = int(float(str(loja.quadro).strip()))
@@ -51,13 +60,13 @@ def headcount_analise_api(request):
         total_planejado += quadro_val
         total_real_acumulado += loja.headcount_real
 
-    # Aplica a paginação de lojas
+    # Aplica a paginação de lojas na lista
     paginator = HeadcountPaginacao()
-    page = paginator.paginate_queryset(lojas, request)
+    page = paginator.paginate_queryset(lojas_list, request)
 
     # Monta os resultados da página
     resultado = []
-    lojas_pagina = page if page is not None else lojas
+    lojas_pagina = page if page is not None else lojas_list
     for loja in lojas_pagina:
         quadro_planejado = 0
         try:
@@ -84,7 +93,7 @@ def headcount_analise_api(request):
             "total_planejado": total_planejado,
             "total_real": total_real_acumulado,
             "desvio_geral": total_real_acumulado - total_planejado,
-            "total_lojas": lojas.count(),
+            "total_lojas": len(lojas_list),
         },
         "resultados": resultado,
     }
@@ -110,7 +119,7 @@ def headcount_loja_colaboradores_api(request, loja_id):
     ids_validos = []
     for c in colabs_qs:
         status_clean = unidecode((c.status_gestao or "").strip().upper())
-        if status_clean == "ATIVO" or (is_atacadao and "FERIA" in status_clean):
+        if status_clean == "ATIVO" or "AVISO" in status_clean or (is_atacadao and "FERIA" in status_clean):
             ids_validos.append(c.id)
 
     colabs_filtrados = Colaborador.objects.filter(id__in=ids_validos).order_by("nome")

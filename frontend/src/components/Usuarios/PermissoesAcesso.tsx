@@ -37,7 +37,6 @@ const MODULE_CONFIG: Record<string, { label: string; icon: any; desc: string }> 
   lojas: { label: 'Lojas', icon: Store, desc: 'Gerenciamento de unidades e regras operacionais' },
   apoio: { label: 'Apoio (Limpeza)', icon: CalendarCheck, desc: 'Lançamentos de agenda e histórico de limpeza' },
   colaboradores: { label: 'Colaboradores', icon: Users, desc: 'Base de funcionários e acompanhamento de términos de exp.' },
-  presencas: { label: 'Presenças', icon: CalendarCheck, desc: 'Registro de frequência diária de analistas' },
   escopos: { label: 'Escopos', icon: Layers, desc: 'Visualização e definição dos escopos de atendimento' },
   comparativo: { label: 'Raio-X (Comparativo)', icon: TrendingUp, desc: 'Relatório comparativo de indicadores por loja' },
   headcount: { label: 'Headcount', icon: Users, desc: 'Quadro de lotação e metas de pessoal por unidade' },

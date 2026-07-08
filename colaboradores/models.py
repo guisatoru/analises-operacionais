@@ -270,3 +270,39 @@ class HistoricoAcaoTeste(models.Model):
         return f"{self.teste.colaborador.nome} - {self.get_acao_display()} (Mês {self.mes_referencia})"
 
 
+class PresencaRelogio(models.Model):
+    """
+    Por que existe: Armazena as batidas de entrada presenciais importadas da GeoVictoria.
+    Evita chamadas em tempo real na API externa durante a navegação, permitindo renderizar
+    o calendário de presenças por loja em milissegundos.
+    """
+    punch_id = models.CharField("ID da Batida", max_length=100, unique=True, db_index=True)
+    colaborador = models.ForeignKey(
+        Colaborador,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="presencias_relogio",
+        verbose_name="Colaborador Resolvido"
+    )
+    cpf_original = models.CharField("CPF da Batida", max_length=15, db_index=True)
+    loja = models.ForeignKey(
+        Loja,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="presencias_relogio",
+        verbose_name="Loja Resolvida"
+    )
+    grupo_geovictoria = models.CharField("Grupo Original GeoVictoria", max_length=255)
+    data = models.DateField("Data da Batida", db_index=True)
+    data_hora = models.DateTimeField("Data e Hora da Entrada")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Presença do Relógio"
+        verbose_name_plural = "Presenças do Relógio"
+        ordering = ["-data_hora"]
+
+
+

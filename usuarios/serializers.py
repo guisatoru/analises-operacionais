@@ -46,7 +46,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
         # Superusuário (admin raiz) sempre tem permissão completa para tudo
         if obj.is_superuser:
             modulos = [
-                "dashboard", "lojas", "apoio", "colaboradores", "presencas",
+                "dashboard", "lojas", "apoio", "colaboradores",
                 "escopos", "comparativo", "headcount", "diarias", "premios",
                 "importacoes", "usuarios", "salarios", "testes_promocao"
             ]

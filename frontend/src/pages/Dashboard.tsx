@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Store, 
@@ -10,9 +9,13 @@ import {
   TrendingUp,
   Database,
   CalendarCheck,
-  Coins
+  Coins,
+  CircleDollarSign
 } from 'lucide-react';
-import api from '../api/client';
+
+interface DashboardProps {
+  permissions?: Record<string, { view: boolean; create: boolean; edit: boolean; delete: boolean }>;
+}
 
 /**
  * Página de Início da Plataforma (Painel Principal).
@@ -21,24 +24,7 @@ import api from '../api/client';
  * fornecendo um panorama geral da plataforma com atalhos para todas as seções
  * operacionais e financeiras do Sistema Operacional.
  */
-export default function Dashboard() {
-  const [userRole, setUserRole] = useState<string>('');
-
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const meResponse = await api.get('/usuarios/api/me/');
-        if (meResponse.data && meResponse.data.user) {
-          setUserRole(meResponse.data.user.role || '');
-        }
-      } catch (error) {
-        console.error('Erro ao verificar perfil do usuário:', error);
-      }
-    };
-
-    fetchUserRole();
-  }, []);
-
+export default function Dashboard({ permissions }: DashboardProps) {
   // Lista de cards para os atalhos da tela inicial, com acesso rápido a todas as seções do sistema.
   const cards = [
     {
@@ -72,6 +58,12 @@ export default function Dashboard() {
       icon: Clock,
     },
     {
+      title: 'Testes de Promoção',
+      description: 'Controle o fluxo mensal de testes de promoção e avaliações práticas de auxiliares e operadores.',
+      path: '/testes',
+      icon: Users,
+    },
+    {
       title: 'Escopos Mensais',
       description: 'Defina o quadro planejado de funcionários por loja, cargos e turnos com estimativa orçamentária.',
       path: '/escopos',
@@ -102,35 +94,52 @@ export default function Dashboard() {
       icon: Coins,
     },
     {
+      title: 'Salários de Dissídios',
+      description: 'Configure e gerencie salários base por cargo e por estado (UF) para auditar desvios de folha.',
+      path: '/salarios',
+      icon: CircleDollarSign,
+    },
+    {
       title: 'Central de Importações',
       description: 'Realize o upload dos arquivos SRA (TOTVS), SRD (Folha) e planilhas de Gestão de Pessoas.',
       path: '/importacoes',
       icon: Database,
     },
-    ...(userRole === 'Administrador' ? [
-      {
-        title: 'Controle de Usuários',
-        description: 'Gerencie os usuários do sistema, permissões de acesso e perfis administrativos.',
-        path: '/usuarios',
-        icon: Users,
-      }
-    ] : []),
+    {
+      title: 'Controle de Usuários',
+      description: 'Gerencie os usuários do sistema, permissões de acesso e perfis administrativos.',
+      path: '/usuarios',
+      icon: Users,
+    },
   ];
 
-  // Filtra os atalhos exibidos na página inicial se a role for Gestão
-  const allowedPathsForGestao = [
-    '/lojas',
-    '/colaboradores',
-    '/terminos',
-    '/headcount',
-    '/importacoes'
-  ];
-
+  // Filtra os atalhos exibidos na página inicial com base no objeto de permissões do usuário
   const filteredCards = cards.filter(card => {
-    if (userRole === 'Gestão') {
-      return allowedPathsForGestao.includes(card.path);
+    if (!permissions) return false;
+
+    // Mapeamento dos caminhos das rotas para as chaves correspondentes de permissão
+    const pathMap: Record<string, string> = {
+      '/lojas': 'lojas',
+      '/agenda': 'apoio',
+      '/agenda/historico': 'apoio',
+      '/colaboradores': 'colaboradores',
+      '/terminos': 'colaboradores',
+      '/testes': 'testes_promocao',
+      '/escopos': 'escopos',
+      '/comparativo': 'comparativo',
+      '/headcount': 'headcount',
+      '/diarias': 'diarias',
+      '/premios': 'premios',
+      '/salarios': 'salarios',
+      '/importacoes': 'importacoes',
+      '/usuarios': 'usuarios',
+    };
+
+    const modulo = pathMap[card.path];
+    if (modulo) {
+      return permissions[modulo]?.view === true;
     }
-    return true;
+    return true; // Se for alguma rota livre ou não mapeada
   });
 
   return (

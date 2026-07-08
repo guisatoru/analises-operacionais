@@ -26,7 +26,7 @@ def obter_modulo_por_view(view_name, path):
     elif "escopos" in path_lower:
         return "escopos"
     elif "presencas" in path_lower:
-        return "presencas"
+        return "headcount"
     elif "colaboradores" in path_lower:
         return "colaboradores"
     elif "headcount" in path_lower:

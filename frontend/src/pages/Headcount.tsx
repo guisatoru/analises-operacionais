@@ -8,9 +8,15 @@ import {
   Briefcase,
   CheckCircle2,
   TrendingDown,
-  TrendingUp
+  TrendingUp,
+  Calendar,
+  X,
+  RefreshCw,
+  Clock,
+  UserCheck
 } from 'lucide-react';
 import api from '../api/client';
+import { toast } from 'sonner';
 
 interface HeadcountRow {
   loja_id: string;
@@ -45,6 +51,132 @@ export default function Headcount() {
   const [busca, setBusca] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Estados do Modal de Calendário de Presenças GeoVictoria
+  interface ColaboradorPresenca {
+    punch_id: string;
+    cpf: string;
+    nome: string;
+    re: string;
+    cargo: string;
+    horario_entrada: string;
+  }
+  const [selectedLoja, setSelectedLoja] = useState<{ id: string; nome: string } | null>(null);
+  const [anoMes, setAnoMes] = useState('2026-05'); // Inicializa no mês de início sugerido (Maio de 2026)
+  const [calendarioDados, setCalendarioDados] = useState<{ [dataStr: string]: number }>({});
+  const [loadingCalendario, setLoadingCalendario] = useState(false);
+  const [errorCalendario, setErrorCalendario] = useState<string | null>(null);
+  const [selectedDia, setSelectedDia] = useState<string | null>(null);
+  const [colaboradoresDia, setColaboradoresDia] = useState<ColaboradorPresenca[]>([]);
+  const [loadingColaboradores, setLoadingColaboradores] = useState(false);
+  const [syncingRecente, setSyncingRecente] = useState(false);
+
+  // Busca as quantidades agregadas do calendário
+  const fetchCalendario = async (lojaId: string, mesAno: string) => {
+    setLoadingCalendario(true);
+    setErrorCalendario(null);
+    try {
+      const response = await api.get(`/lojas/api/presencas/calendario/${lojaId}/`, {
+        params: { ano_mes: mesAno }
+      });
+      setCalendarioDados(response.data || {});
+    } catch (err) {
+      console.error('Erro ao buscar calendário:', err);
+      setErrorCalendario('Não foi possível carregar os dados de presenças.');
+    } finally {
+      setLoadingCalendario(false);
+    }
+  };
+
+  // Busca a listagem detalhada de colaboradores do dia clicado
+  const fetchColaboradoresDia = async (lojaId: string, dataStr: string) => {
+    setLoadingColaboradores(true);
+    try {
+      const response = await api.get(`/lojas/api/presencas/dia/${lojaId}/`, {
+        params: { data: dataStr }
+      });
+      setColaboradoresDia(response.data || []);
+    } catch (err) {
+      console.error('Erro ao buscar colaboradores do dia:', err);
+    } finally {
+      setLoadingColaboradores(false);
+    }
+  };
+
+  // Dispara a sincronização recente da GeoVictoria
+  const handleSyncRecente = async () => {
+    setSyncingRecente(true);
+    const toastId = toast.loading('Sincronizando batidas da GeoVictoria (últimos 3 dias)...');
+    
+    // Inicia o polling do progresso
+    const interval = setInterval(async () => {
+      try {
+        const res = await api.get('/lojas/api/presencas/sincronizar-progresso/');
+        if (res.data && res.data.page > 0) {
+          const totalStr = res.data.total_pages > 0 ? ` de ${res.data.total_pages}` : '';
+          toast.loading(`Sincronizando GeoVictoria: Lendo página ${res.data.page}${totalStr}...`, { id: toastId });
+        }
+      } catch (err) {
+        console.error('Erro ao consultar progresso:', err);
+      }
+    }, 800);
+
+    try {
+      await api.post('/lojas/api/presencas/sincronizar-recente/');
+      clearInterval(interval);
+      toast.success('Sincronização concluída com sucesso!', { id: toastId });
+      if (selectedLoja) {
+        fetchCalendario(selectedLoja.id, anoMes);
+        if (selectedDia) {
+          fetchColaboradoresDia(selectedLoja.id, selectedDia);
+        }
+      }
+    } catch (err) {
+      clearInterval(interval);
+      console.error('Erro ao disparar sincronização recente:', err);
+      toast.error('Falha ao sincronizar batidas recentes da GeoVictoria.', { id: toastId });
+    } finally {
+      setSyncingRecente(false);
+    }
+  };
+
+  // Carrega os dados do calendário sempre que o modal é aberto ou o mês selecionado muda
+  useEffect(() => {
+    if (selectedLoja) {
+      fetchCalendario(selectedLoja.id, anoMes);
+      setSelectedDia(null);
+      setColaboradoresDia([]);
+    }
+  }, [selectedLoja, anoMes]);
+
+  // Carrega os detalhes do dia quando o usuário clica em um dia
+  useEffect(() => {
+    if (selectedLoja && selectedDia) {
+      fetchColaboradoresDia(selectedLoja.id, selectedDia);
+    }
+  }, [selectedDia]);
+
+  // Função auxiliar para calcular e gerar a grade de dias do mês
+  const obterDiasDoMes = (mesAnoStr: string) => {
+    const [ano, mes] = mesAnoStr.split('-').map(Number);
+    const dataInicial = new Date(ano, mes - 1, 1);
+    const dataFinal = new Date(ano, mes, 0); // Dia 0 é o último dia do mês anterior
+
+    const totalDias = dataFinal.getDate();
+    const diaInicioSemana = dataInicial.getDay(); // 0 = Domingo, 1 = Segunda, etc.
+
+    const diasArr = [];
+    // Preenche com nulos os espaços anteriores ao primeiro dia do mês
+    for (let i = 0; i < diaInicioSemana; i++) {
+      diasArr.push(null);
+    }
+    // Dias reais
+    for (let d = 1; d <= totalDias; d++) {
+      const dataStr = `${ano}-${String(mes).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      diasArr.push({ dia: d, dataStr });
+    }
+    return diasArr;
+  };
 
 
 
@@ -102,7 +234,7 @@ export default function Headcount() {
 
       {/* Barra de Busca e Filtros */}
       <div className="p-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
-        <div className="flex flex-col gap-1 w-full">
+        <div className="flex flex-col gap-1 w-full md:max-w-xl">
           <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Buscar Loja / Cliente / CC</span>
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-neutral-400" />
@@ -117,6 +249,18 @@ export default function Headcount() {
               className="w-full pl-9 pr-4 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-850 text-neutral-800 dark:text-neutral-100 rounded-xl text-xs placeholder:text-neutral-400 focus:outline-none focus:border-primary"
             />
           </div>
+        </div>
+
+        <div className="flex items-center gap-2 self-end md:self-auto">
+          <button
+            onClick={handleSyncRecente}
+            disabled={syncingRecente}
+            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-active text-white text-xs font-bold rounded-xl disabled:opacity-50 transition-all shadow-xs cursor-pointer disabled:cursor-not-allowed"
+            title="Sincroniza as batidas de entrada de todas as filiais nos últimos 3 dias"
+          >
+            <RefreshCw className={`h-4 w-4 ${syncingRecente ? 'animate-spin' : ''}`} />
+            {syncingRecente ? 'Sincronizando GeoVictoria...' : 'Sincronizar GeoVictoria'}
+          </button>
         </div>
       </div>
 
@@ -233,7 +377,13 @@ export default function Headcount() {
                   <tr key={row.loja_id} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-850/20 transition-colors">
                     <td className="py-4 px-6 font-bold text-neutral-850 dark:text-neutral-200">
                       <div className="flex flex-col gap-0.5">
-                        <span>{row.nome_referencia}</span>
+                        <button
+                          onClick={() => setSelectedLoja({ id: row.loja_id, nome: row.nome_referencia })}
+                          className="text-left font-bold text-primary hover:underline hover:text-primary-active focus:outline-none transition-colors"
+                          title="Clique para ver o calendário de presenças reais"
+                        >
+                          {row.nome_referencia}
+                        </button>
                         {row.is_atacadao && (
                           <span className="inline-flex self-start px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-primary/10 text-primary border border-primary/20">
                             Férias Contam
@@ -286,6 +436,182 @@ export default function Headcount() {
           </button>
         </div>
       )}
+
+      {/* Modal do Calendário de Presenças GeoVictoria */}
+      {selectedLoja && (
+        <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto transition-opacity duration-200">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl w-full max-w-4xl p-6 shadow-2xl flex flex-col gap-6 relative max-h-[90vh]">
+            
+            {/* Cabeçalho do Modal */}
+            <div className="flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800 pb-4">
+              <div className="flex items-center gap-3">
+                <Calendar className="h-6 w-6 text-primary" />
+                <div>
+                  <h2 className="text-lg font-bold text-neutral-900 dark:text-neutral-50">
+                    Histórico de Presenças Reais — GeoVictoria
+                  </h2>
+                  <p className="text-xs text-neutral-500 font-medium">
+                    Loja: <span className="text-neutral-800 dark:text-neutral-300 font-bold">{selectedLoja.nome}</span>
+                  </p>
+                </div>
+              </div>
+              
+              <button
+                onClick={() => setSelectedLoja(null)}
+                className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Sub-Cabeçalho com Controles */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-neutral-450 uppercase">Mês de Referência:</span>
+                <input
+                  type="month"
+                  value={anoMes}
+                  onChange={(e) => setAnoMes(e.target.value)}
+                  className="bg-neutral-55 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-850 text-neutral-800 dark:text-neutral-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-primary font-bold"
+                />
+              </div>
+            </div>
+
+            {/* Corpo do Modal em Duas Colunas */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-y-auto pr-1">
+              
+              {/* Calendário (Col 1 a 7) */}
+              <div className="lg:col-span-7 flex flex-col gap-4 border border-neutral-200 dark:border-neutral-800 p-4 rounded-xl">
+                <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block border-b border-neutral-100 dark:border-neutral-850 pb-1.5">
+                  Calendário Mensal
+                </span>
+
+                {loadingCalendario ? (
+                  <div className="py-20 flex flex-col items-center justify-center gap-2">
+                    <RefreshCw className="h-8 w-8 text-neutral-400 animate-spin" />
+                    <span className="text-xs text-neutral-550 italic">Carregando dados do relógio...</span>
+                  </div>
+                ) : errorCalendario ? (
+                  <div className="p-4 bg-red-50 dark:bg-red-950/20 text-red-650 rounded-lg text-xs flex gap-2 items-center">
+                    <AlertCircle className="h-4.5 w-4.5" />
+                    <span>{errorCalendario}</span>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {/* Dias da Semana */}
+                    <div className="grid grid-cols-7 gap-1 text-center font-bold text-neutral-400 text-[10px] uppercase">
+                      <div>Dom</div>
+                      <div>Seg</div>
+                      <div>Ter</div>
+                      <div>Qua</div>
+                      <div>Qui</div>
+                      <div>Sex</div>
+                      <div>Sáb</div>
+                    </div>
+
+                    {/* Grade de Dias */}
+                    <div className="grid grid-cols-7 gap-1.5">
+                      {obterDiasDoMes(anoMes).map((item, idx) => {
+                        if (!item) {
+                          return <div key={`empty-${idx}`} className="aspect-square bg-neutral-50/20 dark:bg-neutral-900/10 rounded-lg" />;
+                        }
+
+                        const presencas = calendarioDados[item.dataStr] || 0;
+                        const isSelected = selectedDia === item.dataStr;
+                        const temPresencas = presencas > 0;
+
+                        return (
+                          <button
+                            key={item.dataStr}
+                            onClick={() => setSelectedDia(item.dataStr)}
+                            className={`aspect-square p-1.5 flex flex-col justify-between border rounded-xl hover:border-primary transition-all text-left relative ${
+                              isSelected 
+                                ? 'bg-primary/10 border-primary ring-2 ring-primary/20' 
+                                : temPresencas
+                                ? 'bg-green-500/5 dark:bg-green-500/10 border-green-500/20 hover:bg-green-500/10'
+                                : 'bg-neutral-50/50 dark:bg-neutral-950/30 border-neutral-150 dark:border-neutral-850 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                            }`}
+                          >
+                            <span className={`text-xs font-bold ${
+                              isSelected ? 'text-primary' : 'text-neutral-700 dark:text-neutral-350'
+                            }`}>
+                              {item.dia}
+                            </span>
+                            {temPresencas && (
+                              <span className="px-1 py-0.5 rounded-md text-[9px] font-extrabold bg-green-500/10 text-green-700 dark:text-green-400 self-end">
+                                {presencas}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Detalhes do Dia Selecionado (Col 8 a 12) */}
+              <div className="lg:col-span-5 flex flex-col gap-4 border border-neutral-200 dark:border-neutral-800 p-4 rounded-xl max-h-[50vh] lg:max-h-none overflow-y-auto">
+                <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block border-b border-neutral-100 dark:border-neutral-850 pb-1.5">
+                  Detalhamento de Entrada
+                </span>
+
+                {!selectedDia ? (
+                  <div className="py-20 flex flex-col items-center justify-center text-center gap-3 text-neutral-400 dark:text-neutral-500 italic">
+                    <UserCheck className="h-10 w-10 text-neutral-300 dark:text-neutral-700" />
+                    <span className="text-xs">Selecione um dia no calendário para visualizar as presenças físicas detalhadas.</span>
+                  </div>
+                ) : loadingColaboradores ? (
+                  <div className="py-20 flex flex-col items-center justify-center gap-2">
+                    <RefreshCw className="h-6 w-6 text-neutral-400 animate-spin" />
+                    <span className="text-xs text-neutral-550 italic">Buscando batidas do dia...</span>
+                  </div>
+                ) : colaboradoresDia.length === 0 ? (
+                  <div className="py-20 flex flex-col items-center justify-center text-center gap-2 text-neutral-400 italic">
+                    <Clock className="h-8 w-8 text-neutral-300 dark:text-neutral-800" />
+                    <span className="text-xs">Nenhuma presença física registrada nesta filial no dia {selectedDia.split('-').reverse().join('/')}.</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between bg-neutral-50 dark:bg-neutral-950 p-2.5 rounded-lg border border-neutral-200 dark:border-neutral-800">
+                      <span className="text-[10px] font-bold uppercase text-neutral-450">Dia Selecionado:</span>
+                      <span className="text-xs font-extrabold text-neutral-800 dark:text-neutral-200">
+                        {selectedDia.split('-').reverse().join('/')}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider text-neutral-400 px-1 border-b border-neutral-100 dark:border-neutral-850 pb-1">
+                      <span>Colaborador</span>
+                      <span>Horário</span>
+                    </div>
+
+                    <div className="divide-y divide-neutral-100 dark:divide-neutral-850 max-h-[35vh] lg:max-h-[50vh] overflow-y-auto pr-1">
+                      {colaboradoresDia.map((colab) => (
+                        <div key={colab.punch_id} className="py-2 flex items-center justify-between text-xs gap-3">
+                          <div className="flex flex-col gap-0.5 min-w-0">
+                            <span className="font-bold text-neutral-800 dark:text-neutral-200 truncate">{colab.nome}</span>
+                            <div className="flex gap-2 text-[10px] text-neutral-500 font-medium">
+                              <span>RE: {colab.re}</span>
+                              <span>•</span>
+                              <span className="truncate">{colab.cargo}</span>
+                            </div>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-md font-mono text-[10px] font-bold bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 shrink-0">
+                            {colab.horario_entrada}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

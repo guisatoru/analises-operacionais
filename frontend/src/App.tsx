@@ -10,7 +10,6 @@ import Lojas from './pages/Lojas';
 import Colaboradores from './pages/Colaboradores';
 import Terminos from './pages/Terminos';
 import Importacoes from './pages/Importacoes';
-import Presencas from './pages/Presencas';
 import Escopos from './pages/Escopos';
 import Comparativo from './pages/Comparativo';
 import Diarias from './pages/Diarias';
@@ -133,58 +132,54 @@ function App() {
             />
           }
         >
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<Dashboard permissions={permissions} />} />
           <Route 
             path="/lojas" 
-            element={permissions.lojas?.view === false ? <Navigate to="/" replace /> : <Lojas />} 
+            element={permissions.lojas?.view ? <Lojas /> : <Navigate to="/" replace />} 
           />
           <Route 
             path="/agenda" 
-            element={permissions.apoio?.view === false ? <Navigate to="/lojas" replace /> : <Agenda />} 
+            element={permissions.apoio?.view ? <Agenda /> : <Navigate to="/" replace />} 
           />
           <Route 
             path="/agenda/historico" 
-            element={permissions.apoio?.view === false ? <Navigate to="/lojas" replace /> : <HistoricoAgenda />} 
+            element={permissions.apoio?.view ? <HistoricoAgenda /> : <Navigate to="/" replace />} 
           />
           <Route 
             path="/escopos" 
-            element={permissions.escopos?.view === false ? <Navigate to="/lojas" replace /> : <Escopos />} 
+            element={permissions.escopos?.view ? <Escopos /> : <Navigate to="/" replace />} 
           />
           <Route 
             path="/comparativo" 
-            element={permissions.comparativo?.view === false ? <Navigate to="/lojas" replace /> : <Comparativo />} 
+            element={permissions.comparativo?.view ? <Comparativo /> : <Navigate to="/" replace />} 
           />
           <Route 
             path="/headcount" 
-            element={permissions.headcount?.view === false ? <Navigate to="/lojas" replace /> : <Headcount />} 
+            element={permissions.headcount?.view ? <Headcount /> : <Navigate to="/" replace />} 
           />
           <Route 
             path="/diarias" 
-            element={permissions.diarias?.view === false ? <Navigate to="/lojas" replace /> : <Diarias />} 
+            element={permissions.diarias?.view ? <Diarias /> : <Navigate to="/" replace />} 
           />
           <Route 
             path="/premios" 
-            element={permissions.premios?.view === false ? <Navigate to="/lojas" replace /> : <Premios />} 
+            element={permissions.premios?.view ? <Premios /> : <Navigate to="/" replace />} 
           />
           <Route 
             path="/colaboradores" 
-            element={permissions.colaboradores?.view === false ? <Navigate to="/" replace /> : <Colaboradores />} 
+            element={permissions.colaboradores?.view ? <Colaboradores /> : <Navigate to="/" replace />} 
           />
           <Route 
             path="/terminos" 
-            element={permissions.colaboradores?.view === false ? <Navigate to="/" replace /> : <Terminos />} 
+            element={permissions.colaboradores?.view ? <Terminos /> : <Navigate to="/" replace />} 
           />
           <Route 
             path="/testes" 
-            element={permissions.testes_promocao?.view === false ? <Navigate to="/" replace /> : <TestesPromocao />} 
+            element={permissions.testes_promocao?.view ? <TestesPromocao /> : <Navigate to="/" replace />} 
           />
           <Route 
             path="/importacoes" 
-            element={permissions.importacoes?.view === false ? <Navigate to="/" replace /> : <Importacoes />} 
-          />
-          <Route 
-            path="/presencas" 
-            element={permissions.presencas?.view === false ? <Navigate to="/" replace /> : <Presencas />} 
+            element={permissions.importacoes?.view ? <Importacoes /> : <Navigate to="/" replace />} 
           />
           <Route 
             path="/usuarios" 
@@ -214,10 +209,10 @@ function App() {
           path="/premios/relatorio" 
           element={
             isAuthenticated ? (
-              permissions.premios?.view === false ? (
-                <Navigate to="/lojas" replace />
-              ) : (
+              permissions.premios?.view ? (
                 <RelatorioPremios />
+              ) : (
+                <Navigate to="/" replace />
               )
             ) : (
               <Navigate to="/login" replace />

@@ -256,7 +256,7 @@ def role_list(request):
     data = []
     
     modulos = [
-        "dashboard", "lojas", "apoio", "colaboradores", "presencas",
+        "dashboard", "lojas", "apoio", "colaboradores",
         "escopos", "comparativo", "headcount", "diarias", "premios",
         "importacoes", "usuarios", "salarios", "testes_promocao"
     ]
