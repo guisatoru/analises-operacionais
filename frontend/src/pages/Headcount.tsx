@@ -23,14 +23,6 @@ interface HeadcountRow {
   desvio: number;
 }
 
-interface ColaboradorHeadcount {
-  id: string;
-  re: string;
-  nome: string;
-  funcao_gestao: string | null;
-  status_gestao: string | null;
-}
-
 /**
  * Página de Análise de Headcount por Loja (Versão Paginada para Lojas Ativas).
  * 
