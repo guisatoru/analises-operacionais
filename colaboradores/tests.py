@@ -25,15 +25,22 @@ class GestaoImportacaoTests(TestCase):
             uf="SP",
         )
 
-    def criar_planilha_gestao(self, linhas):
+    def criar_planilha_gestao(self, linhas, linhas_lojas=None):
         """
         Monta uma planilha em memória para testar a importação sem depender de arquivo manual.
         """
+        if linhas_lojas is None:
+            linhas_lojas = []
         arquivo = BytesIO()
         with pd.ExcelWriter(arquivo, engine="openpyxl") as writer:
             pd.DataFrame(linhas).to_excel(
                 writer,
                 sheet_name="Relação de funcionários",
+                index=False,
+            )
+            pd.DataFrame(linhas_lojas).to_excel(
+                writer,
+                sheet_name="Relação de lojas",
                 index=False,
             )
         arquivo.seek(0)
@@ -61,17 +68,28 @@ class GestaoImportacaoTests(TestCase):
                     "LOJA": " loja planilha ",
                     "STATUS": "ATIVO",
                 }
+            ],
+            linhas_lojas=[
+                {
+                    "LOJA": "LOJA PLANILHA",
+                    "CNPJ": "12.345.678/0001-90",
+                    "QUADRO CONTRATO": 15,
+                }
             ]
         )
 
         resultado = importar_gestao_pessoas(arquivo)
         colaborador.refresh_from_db()
+        loja_gestao.refresh_from_db()
 
         self.assertEqual(resultado["atualizados"], 1)
         self.assertEqual(resultado["lojas_gestao_encontradas"], 1)
         self.assertEqual(colaborador.loja_id, loja_totvs.id)
         self.assertEqual(colaborador.loja_gestao_id, loja_gestao.id)
         self.assertTrue(colaborador.is_divergente)
+        self.assertEqual(loja_gestao.quadro, "15")
+        self.assertEqual(loja_gestao.headcount_real, 1)
+
 
 
 class TerminoStateTests(TestCase):

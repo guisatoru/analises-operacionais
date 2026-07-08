@@ -181,6 +181,13 @@ class Loja(models.Model):
         choices=STATUS_CHOICES,
         default="ATIVA",
     )
+    # Por que existe: Guarda a quantidade de colaboradores ativos calculada diretamente
+    # a partir da planilha de Gestão de Pessoas (aba Relação de funcionários).
+    headcount_real = models.IntegerField(
+        "Headcount Real (Gestão)",
+        default=0,
+    )
+
 
     # ---------------------------------------------------------------
     # Endereço — todos opcionais.

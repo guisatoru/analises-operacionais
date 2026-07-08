@@ -26,8 +26,9 @@ def headcount_analise_api(request):
     Ela obtém o quadro planejado diretamente do cadastro de cada loja (campo 'quadro' convertido para inteiro)
     e compara com a quantidade de pessoas ativas/aviso alocadas na Gestão de Pessoas, paginando os resultados.
     """
-    # Filtra apenas lojas ativas
-    lojas = Loja.objects.filter(status="ATIVA").order_by("nome_referencia")
+    # Filtra apenas lojas ativas com headcount real maior que zero
+    lojas = Loja.objects.filter(status="ATIVA").exclude(headcount_real=0).order_by("nome_referencia")
+
 
     # Aplica busca textual se informada
     search_text = request.GET.get("busca", "").strip()
@@ -37,33 +38,6 @@ def headcount_analise_api(request):
             | Q(cliente__icontains=search_text)
             | Q(centro_de_custo__icontains=search_text)
         )
-
-    # Carrega todos os colaboradores que possuem loja de gestão associada
-    colabs = Colaborador.objects.filter(loja_gestao__isnull=False).only(
-        "loja_gestao_id", "status_gestao"
-    )
-
-    # Dicionário com contagem real
-    headcount_real_all = {loja.id: 0 for loja in lojas}
-
-    for c in colabs:
-        loja_id = c.loja_gestao_id
-        if loja_id not in headcount_real_all:
-            continue
-
-        status_clean = unidecode((c.status_gestao or "").strip().upper())
-
-        # Busca a loja correspondente na memória
-        loja_obj = next((l for l in lojas if l.id == loja_id), None)
-        is_atacadao = False
-        if loja_obj and loja_obj.cliente:
-            cliente_normalized = unidecode(loja_obj.cliente).upper()
-            if "ATACADAO" in cliente_normalized:
-                is_atacadao = True
-
-        # Aplica a regra de elegibilidade do status para o headcount
-        if status_clean == "ATIVO" or "AVISO" in status_clean or (is_atacadao and "FERIA" in status_clean):
-            headcount_real_all[loja_id] += 1
 
     # Calcula KPIs Globais sobre o queryset filtrado inteiro (antes da paginação)
     total_planejado = 0
@@ -75,7 +49,7 @@ def headcount_analise_api(request):
         except (ValueError, TypeError):
             pass
         total_planejado += quadro_val
-        total_real_acumulado += headcount_real_all.get(loja.id, 0)
+        total_real_acumulado += loja.headcount_real
 
     # Aplica a paginação de lojas
     paginator = HeadcountPaginacao()
@@ -91,7 +65,7 @@ def headcount_analise_api(request):
         except (ValueError, TypeError):
             pass
 
-        real = headcount_real_all.get(loja.id, 0)
+        real = loja.headcount_real
         desvio = real - quadro_planejado
 
         resultado.append({
@@ -125,7 +99,7 @@ def headcount_analise_api(request):
 def headcount_loja_colaboradores_api(request, loja_id):
     """
     Por que existe: Retorna nominalmente a lista de colaboradores associados à loja que
-    estão contabilizados na contagem de headcount (ativos, avisos ou férias se for Atacadão).
+    estão contabilizados na contagem de headcount (ativos ou férias se for Atacadão).
     Permite auditar diretamente na tela quem são os funcionários alocados na Gestão de Pessoas.
     """
     loja = get_object_or_404(Loja, pk=loja_id)
@@ -136,7 +110,7 @@ def headcount_loja_colaboradores_api(request, loja_id):
     ids_validos = []
     for c in colabs_qs:
         status_clean = unidecode((c.status_gestao or "").strip().upper())
-        if status_clean == "ATIVO" or "AVISO" in status_clean or (is_atacadao and "FERIA" in status_clean):
+        if status_clean == "ATIVO" or (is_atacadao and "FERIA" in status_clean):
             ids_validos.append(c.id)
 
     colabs_filtrados = Colaborador.objects.filter(id__in=ids_validos).order_by("nome")

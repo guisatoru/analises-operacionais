@@ -2,6 +2,7 @@ import pandas as pd
 from django.db import transaction
 from colaboradores.models import Colaborador
 from lojas.models import Loja
+from unidecode import unidecode
 
 
 def normalizar_nome_loja_gestao(valor):
@@ -11,6 +12,22 @@ def normalizar_nome_loja_gestao(valor):
     if pd.isna(valor):
         return ""
     return str(valor).strip().upper()
+
+
+def normalizar_quadro(valor):
+    """
+    Por que existe: Normaliza a quantidade de quadro prevista convertendo float para int string
+    ou limpando strings vazias ou nulas.
+    """
+    if pd.isna(valor):
+        return "0"
+    try:
+        # Se for um valor float como 15.0, converte primeiro para float, depois int e string
+        val_float = float(valor)
+        return str(int(val_float))
+    except (ValueError, TypeError):
+        return str(valor).strip()
+
 
 
 def criar_mapa_lojas_por_nome_gestao():
@@ -161,6 +178,27 @@ def importar_gestao_pessoas(arquivo_excel, progress_callback=None):
     except Exception:
         pass
 
+    # Por que existe: Calcula o headcount real por loja a partir da planilha de funcionários (df_unico).
+    # De acordo com os requisitos, conta apenas status "ATIVO", e também status "FÉRIAS" caso a loja seja Atacadão.
+    headcount_real_por_loja = {}
+    for _, row in df_unico.iterrows():
+        loja_val = row[col_loja]
+        status_val = row[col_status]
+        
+        nome_loja_normalizado = normalizar_nome_loja_gestao(loja_val)
+        if nome_loja_normalizado in lojas_por_nome_gestao:
+            loja = lojas_por_nome_gestao[nome_loja_normalizado]
+            
+            status_clean = unidecode(str(status_val).strip().upper())
+            is_atacadao = False
+            if loja.cliente:
+                cliente_normalized = unidecode(loja.cliente).upper()
+                if "ATACADAO" in cliente_normalized:
+                    is_atacadao = True
+            
+            if status_clean == "ATIVO" or (is_atacadao and "FERIA" in status_clean):
+                headcount_real_por_loja[loja.id] = headcount_real_por_loja.get(loja.id, 0) + 1
+
     stats = {
         'total_planilha': len(df_unico), 
         'atualizados': 0, 
@@ -229,6 +267,60 @@ def importar_gestao_pessoas(arquivo_excel, progress_callback=None):
         except Exception:
             stats['erros'] += 1
             continue
+
+    # Por que existe: Lê a aba "Relação de lojas" da planilha e atualiza o "quadro" (QUADRO CONTRATO)
+    # de cada loja, além de registrar o "headcount_real" calculado anteriormente.
+    if progress_callback:
+        progress_callback(80, "Lendo aba Relação de lojas e atualizando quadros...")
+
+    try:
+        if hasattr(arquivo_excel, 'seek'):
+            arquivo_excel.seek(0)
+        df_lojas = pd.read_excel(arquivo_excel, sheet_name="Relação de lojas", engine='openpyxl')
+        
+        col_loja_lojas = "LOJA"
+        col_quadro_lojas = "QUADRO CONTRATO"
+
+        for col in [col_loja_lojas, col_quadro_lojas]:
+            if col not in df_lojas.columns:
+                raise ValueError(f"Coluna '{col}' não encontrada na aba 'Relação de lojas'.")
+
+        quadro_por_loja_gestao = {}
+        for _, row in df_lojas.iterrows():
+            loja_val = row[col_loja_lojas]
+            if pd.isna(loja_val):
+                continue
+            nome_normalizado = normalizar_nome_loja_gestao(loja_val)
+            quadro_por_loja_gestao[nome_normalizado] = row[col_quadro_lojas]
+
+        lojas_para_atualizar = []
+        todas_lojas = list(Loja.objects.all())
+        
+        for loja in todas_lojas:
+            nome_normalizado = normalizar_nome_loja_gestao(loja.nome_gestao)
+            changed_loja = False
+            
+            hc_real = headcount_real_por_loja.get(loja.id, 0)
+            if loja.headcount_real != hc_real:
+                loja.headcount_real = hc_real
+                changed_loja = True
+                
+            if nome_normalizado and nome_normalizado in quadro_por_loja_gestao:
+                quadro_val = quadro_por_loja_gestao[nome_normalizado]
+                quadro_normalizado = normalizar_quadro(quadro_val)
+                if loja.quadro != quadro_normalizado:
+                    loja.quadro = quadro_normalizado
+                    changed_loja = True
+                    
+            if changed_loja:
+                lojas_para_atualizar.append(loja)
+
+        if lojas_para_atualizar:
+            with transaction.atomic():
+                Loja.objects.bulk_update(lojas_para_atualizar, ['quadro', 'headcount_real'], batch_size=500)
+
+    except Exception as e:
+        raise ValueError(f"Erro ao processar aba 'Relação de lojas': {str(e)}")
 
     # 2. Gravação em massa
     if progress_callback:
