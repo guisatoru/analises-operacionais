@@ -1,6 +1,7 @@
 from django.core.paginator import Paginator
 from django.db.models import Q
 from rest_framework.decorators import api_view, permission_classes
+import unicodedata
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from usuarios.permissions import IsGestaoOrAdministrador
@@ -76,6 +77,21 @@ def status_gestao_opcoes(request):
         )
     )
     return Response(opcoes)
+
+
+def _normalizar_termo_busca(txt):
+    """
+    Por que existe: Esta funcao normaliza o texto digitado pelo usuario,
+    removendo acentos e cedilhas. Isso eh necessario porque o banco de dados
+    SQLite nao possui suporte nativo a buscas insensiveis a acentuacao (accent-insensitive),
+    e os nomes no banco de dados muitas vezes estao cadastrados sem acentos (ex: CONCEICAO).
+    Normalizando o termo da busca, conseguimos encontrar os nomes mesmo se o usuario
+    digitar acentos ou cedilha (como conceição).
+    """
+    if not txt:
+        return ""
+    nfkd_form = unicodedata.normalize('NFKD', txt)
+    return "".join([c for c in nfkd_form if not unicodedata.combining(c)])
 
 
 def _ler_filtros_colaboradores(params):
@@ -169,9 +185,18 @@ def _aplicar_filtros_colaboradores(colaboradores_qs, filtros):
             if vals:
                 # Modificado para busca parcial com icontains de forma simples e legível.
                 # Como Nome agora é um input de texto simples, permitimos ao usuário digitar partes do nome.
+                # Também normalizamos acentos e cedilhas para cobrir bancos SQLite sem suporte nativo
+                # e fazemos busca concorrente no RE para atender pesquisas unificadas.
                 q_vals = Q()
                 for val in vals:
-                    q_vals = q_vals | Q(nome__icontains=val)
+                    val_norm = _normalizar_termo_busca(val)
+                    q_vals = (
+                        q_vals
+                        | Q(nome__icontains=val)
+                        | Q(nome__icontains=val_norm)
+                        | Q(re__icontains=val)
+                        | Q(re__icontains=val_norm)
+                    )
                 q_obj = q_vals
             if has_null:
                 q_obj = q_obj | Q(nome__isnull=True) | Q(nome="")
@@ -285,9 +310,18 @@ def _aplicar_filtros_demitidos(colaboradores_qs, filtros):
             if vals:
                 # Modificado para busca parcial com icontains de forma simples e legível.
                 # Como Nome agora é um input de texto simples, permitimos ao usuário digitar partes do nome.
+                # Também normalizamos acentos e cedilhas para cobrir bancos SQLite sem suporte nativo
+                # e fazemos busca concorrente no RE para atender pesquisas unificadas.
                 q_vals = Q()
                 for val in vals:
-                    q_vals = q_vals | Q(nome__icontains=val)
+                    val_norm = _normalizar_termo_busca(val)
+                    q_vals = (
+                        q_vals
+                        | Q(nome__icontains=val)
+                        | Q(nome__icontains=val_norm)
+                        | Q(re__icontains=val)
+                        | Q(re__icontains=val_norm)
+                    )
                 q_obj = q_vals
             if has_null:
                 q_obj = q_obj | Q(nome__isnull=True) | Q(nome="")
