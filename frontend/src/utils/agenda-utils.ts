@@ -18,7 +18,7 @@ export interface Agendamento {
   funcao: string;
   data: string; // YYYY-MM-DD
   status: 'agendado' | 'concluido' | 'folga' | 'livre' | 'faltou' | 'atestado';
-  turno: 'matutino' | 'noturno';
+  turno: 'matutino' | 'noturno' | 'personalizado';
   hora_entrada?: string | null;
   hora_saida?: string | null;
   observacao?: string | null;
@@ -39,7 +39,7 @@ export interface CalendarDayItem {
   cliente?: string;
   supervisor?: string;
   observacao?: string;
-  turno?: 'matutino' | 'noturno';
+  turno?: 'matutino' | 'noturno' | 'personalizado';
   hora_entrada?: string;
   hora_saida?: string;
   funcao?: string;

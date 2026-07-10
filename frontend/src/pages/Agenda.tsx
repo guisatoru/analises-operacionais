@@ -222,7 +222,7 @@ export default function Agenda() {
       lojaTexto: '',
       funcao: selectedColaborador?.cargo || 'Apoio',
       status: (isSunday ? 'folga' : 'livre') as any,
-      turno: 'noturno' as 'matutino' | 'noturno',
+      turno: 'noturno' as 'matutino' | 'noturno' | 'personalizado',
       horaEntrada: '',
       horaSaida: '',
       observacao: '',

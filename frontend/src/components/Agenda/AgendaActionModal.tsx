@@ -19,7 +19,7 @@ interface AgendaActionModalProps {
     lojaTexto: string;
     funcao: string;
     status: 'agendado' | 'concluido' | 'folga' | 'livre' | 'faltou' | 'atestado';
-    turno: 'matutino' | 'noturno';
+    turno: 'matutino' | 'noturno' | 'personalizado';
     horaEntrada: string;
     horaSaida: string;
     observacao: string;
@@ -309,13 +309,26 @@ export function AgendaActionModal({
     onSubmit(localForm);
   };
 
-  const handleShiftSelect = (t: 'matutino' | 'noturno') => {
-    setLocalForm(prev => ({ 
-      ...prev, 
-      turno: t,
-      horaEntrada: t === 'noturno' ? '22:00H' : '06:00H',
-      horaSaida: t === 'noturno' ? '05:00H' : '14:20H'
-    }));
+  const handleShiftSelect = (t: 'matutino' | 'noturno' | 'personalizado') => {
+    setLocalForm(prev => {
+      let novaEntrada = prev.horaEntrada;
+      let novaSaida = prev.horaSaida;
+      
+      if (t === 'noturno') {
+        novaEntrada = '22:00H';
+        novaSaida = '05:00H';
+      } else if (t === 'matutino') {
+        novaEntrada = '06:00H';
+        novaSaida = '14:20H';
+      }
+      
+      return { 
+        ...prev, 
+        turno: t,
+        horaEntrada: novaEntrada,
+        horaSaida: novaSaida
+      };
+    });
   };
 
   // Prepara as opções de lojas para o SearchableSelect
@@ -478,8 +491,8 @@ export function AgendaActionModal({
                   {/* Turno */}
                   <div className="space-y-1.5">
                     <span className="block text-[10px] font-bold text-neutral-500 uppercase">Turno</span>
-                    <div className="flex gap-2">
-                      {(['matutino', 'noturno'] as const).map((t) => (
+                    <div className="flex gap-1.5">
+                      {(['matutino', 'noturno', 'personalizado'] as const).map((t) => (
                         <button
                           key={t}
                           type="button"
@@ -490,7 +503,7 @@ export function AgendaActionModal({
                               : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-550'
                           }`}
                         >
-                          {t === 'matutino' ? 'Matutino' : 'Noturno'}
+                          {t === 'matutino' ? 'Matutino' : t === 'noturno' ? 'Noturno' : 'Personalizado'}
                         </button>
                       ))}
                     </div>
@@ -502,7 +515,14 @@ export function AgendaActionModal({
                     <input 
                       type="text" 
                       value={localForm.horaEntrada}
-                      onChange={(e) => setLocalForm(prev => ({ ...prev, horaEntrada: maskTime(e.target.value) }))}
+                      onChange={(e) => {
+                        const val = maskTime(e.target.value);
+                        setLocalForm(prev => {
+                          const novoTurno = (prev.turno === 'matutino' && val === '06:00H' && prev.horaSaida === '14:20H') ? 'matutino' :
+                                            (prev.turno === 'noturno' && val === '22:00H' && prev.horaSaida === '05:00H') ? 'noturno' : 'personalizado';
+                          return { ...prev, horaEntrada: val, turno: novoTurno };
+                        });
+                      }}
                       className="w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-4 py-2.5 text-sm font-semibold outline-none text-neutral-900 dark:text-neutral-100 focus:border-neutral-900 dark:focus:border-neutral-300"
                       placeholder="Ex: 07:00H"
                     />
@@ -531,11 +551,18 @@ export function AgendaActionModal({
 
                   {/* Saída */}
                   <div className="space-y-1.5">
-                    <span className="block text-[10px] font-bold text-neutral-500 uppercase">Saída</span>
+                    <span className="block text-[10px] font-bold text-neutral-550 uppercase">Saída</span>
                     <input 
                       type="text" 
                       value={localForm.horaSaida}
-                      onChange={(e) => setLocalForm(prev => ({ ...prev, horaSaida: maskTime(e.target.value) }))}
+                      onChange={(e) => {
+                        const val = maskTime(e.target.value);
+                        setLocalForm(prev => {
+                          const novoTurno = (prev.turno === 'matutino' && prev.horaEntrada === '06:00H' && val === '14:20H') ? 'matutino' :
+                                            (prev.turno === 'noturno' && prev.horaEntrada === '22:00H' && val === '05:00H') ? 'noturno' : 'personalizado';
+                          return { ...prev, horaSaida: val, turno: novoTurno };
+                        });
+                      }}
                       className="w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-4 py-2.5 text-sm font-semibold outline-none text-neutral-900 dark:text-neutral-100 focus:border-neutral-900 dark:focus:border-neutral-300"
                       placeholder="Ex: 16:00H"
                     />
