@@ -18,11 +18,18 @@ class Command(BaseCommand):
             action="store_true",
             help="Limpa todos os dados de batidas locais antes de iniciar a sincronização."
         )
+        parser.add_argument(
+            "--pagina",
+            type=int,
+            default=1,
+            help="Página inicial para começar a sincronização das batidas de ponto. Padrão: 1"
+        )
 
     def handle(self, *args, **options):
         inicio_str = options["inicio"]
         fim_str = options["fim"]
         limpar = options.get("limpar")
+        pagina_inicial = options.get("pagina", 1)
 
         if limpar:
             from colaboradores.models import PresencaRelogio
@@ -46,7 +53,12 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(msg))
 
         try:
-            res = sincronizar_punches_api(inicio, fim, progress_callback=log_progress)
+            res = sincronizar_punches_api(
+                inicio,
+                fim,
+                progress_callback=log_progress,
+                pagina_inicial=pagina_inicial
+            )
             self.stdout.write(
                 self.style.SUCCESS(
                     f"Sincronização concluída com sucesso!\n"

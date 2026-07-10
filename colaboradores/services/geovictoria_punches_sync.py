@@ -30,12 +30,13 @@ def normalizar_cpf(cpf):
     return cpf_limpo
 
 
-def sincronizar_punches_api(start_date: date, end_date: date, progress_callback=None):
+def sincronizar_punches_api(start_date: date, end_date: date, progress_callback=None, pagina_inicial: int = 1):
     """
     Por que existe: Consome de forma paginada a API da GeoVictoria para buscar batidas
     de ponto eletrônico de um período. Filtra os registros do tipo "Entrada",
     associa cada batida a um colaborador local pelo CPF e a uma loja pelo grupo,
     e persiste as novas presenças no banco de dados local.
+    Suporta o início da sincronização a partir de uma página customizada.
     """
     token = get_token()
     if not token:
@@ -58,7 +59,8 @@ def sincronizar_punches_api(start_date: date, end_date: date, progress_callback=
             if campo:
                 loja_map[normalizar_nome(campo)] = l
 
-    page = 1
+    page = pagina_inicial
+    paginas_lidas_count = 0
     total_pages = None
     total_inseridos = 0
     total_batidas_processadas = 0
@@ -92,14 +94,15 @@ def sincronizar_punches_api(start_date: date, end_date: date, progress_callback=
             progress_callback(msg)
 
         payload = _geovictoria_request("/Punch/PaginatedListByDate", body=body, token=token)
+        paginas_lidas_count += 1
         
         # A resposta pode vir com uma lista direta ou encapsulada
         punches = []
         if isinstance(payload, list):
             punches = payload
         else:
-            # Tenta ler o TotalOfPages na primeira requisição para controlar o loop com resiliência
-            if page == 1:
+            # Tenta ler o TotalOfPages na primeira requisição recebida (se total_pages for None) para controlar o loop com resiliência
+            if total_pages is None:
                 total_pages_val = (
                     payload.get("TotalOfPages")
                     or payload.get("totalOfPages")
@@ -226,7 +229,7 @@ def sincronizar_punches_api(start_date: date, end_date: date, progress_callback=
     cache.delete("sync_punches_status")
 
     return {
-        "paginas_lidas": page - 1,
+        "paginas_lidas": paginas_lidas_count,
         "total_analisado": total_batidas_processadas,
         "novas_presencas_salvas": total_inseridos
     }
