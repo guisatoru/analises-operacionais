@@ -87,6 +87,39 @@ export default function AcaoTesteModal({ teste, onClose, onSaveSuccess }: AcaoTe
     }
   };
 
+  /**
+   * Copia um texto para a área de transferência do usuário com fallback de segurança.
+   * 
+   * Por que existe: O navigator.clipboard exige HTTPS para funcionar nos navegadores modernos.
+   * Para ambientes locais rodando em HTTP, essa função cria uma área de texto oculta 
+   * temporária para realizar a cópia de forma compatível.
+   */
+  const copyTextToClipboard = (text: string): boolean => {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      navigator.clipboard.writeText(text);
+      return true;
+    } else {
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.top = '0';
+        textarea.style.left = '0';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        
+        const success = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        return !!success;
+      } catch (err) {
+        console.error('Erro ao copiar informações via execCommand (fallback):', err);
+        return false;
+      }
+    }
+  };
+
   const handleCopiarDados = () => {
     const faltasCount = ausencias ? ausencias.faltas : 0;
     const atestadosCount = ausencias ? ausencias.atestados : 0;
@@ -103,10 +136,14 @@ export default function AcaoTesteModal({ teste, onClose, onSaveSuccess }: AcaoTe
 
 Por favor, verifique se aprova o início do teste de promoção para este colaborador.`;
 
-    navigator.clipboard.writeText(texto);
-    setCopied(true);
-    toast.success('Dados da solicitação copiados para a área de transferência!');
-    setTimeout(() => setCopied(false), 2000);
+    const copiou = copyTextToClipboard(texto);
+    if (copiou) {
+      setCopied(true);
+      toast.success('Dados da solicitação copiados para a área de transferência!');
+      setTimeout(() => setCopied(false), 2000);
+    } else {
+      toast.error('Erro ao copiar informações.');
+    }
   };
 
   const handleSalvarAcao = async (e: React.FormEvent) => {
