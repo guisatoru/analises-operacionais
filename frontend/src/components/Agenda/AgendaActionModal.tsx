@@ -101,6 +101,12 @@ export function AgendaActionModal({
   const [copied, setCopied] = useState(false);
   const [localForm, setLocalForm] = useState(initialForm);
 
+  /**
+   * Estado para controlar se a data na carta de apresentação deve ser exibida como "a partir de" a data selecionada.
+   * Por que existe: Permite flexibilizar a geração da carta para escalas que começam em uma data fixa e continuam indefinidamente.
+   */
+  const [usarAPartirDe, setUsarAPartirDe] = useState(false);
+
   const hasExistingAgendamento = selectedDateRange.some(date => 
     agendamentos.some(a => a.data === date && String(a.colaborador) === String(selectedColaborador.id))
   );
@@ -108,6 +114,7 @@ export function AgendaActionModal({
   useEffect(() => {
     if (isOpen && initialForm) {
       setLocalForm(initialForm);
+      setUsarAPartirDe(false);
     }
   }, [isOpen, initialForm]);
 
@@ -139,7 +146,9 @@ export function AgendaActionModal({
     };
     
     let dateText = '';
-    if (sortedDates.length === 1) {
+    if (usarAPartirDe) {
+      dateText = `a partir do dia ${formatDateStr(sortedDates[0])}`;
+    } else if (sortedDates.length === 1) {
       dateText = `no dia ${formatDateStr(sortedDates[0])}`;
     } else {
       dateText = `no dia ${formatDateStr(sortedDates[0])} até ${formatDateStr(sortedDates[sortedDates.length - 1])}`;
@@ -501,7 +510,15 @@ export function AgendaActionModal({
 
                   {/* Botão de Carta de Apresentação */}
                   <div className="space-y-1.5">
-                    <span className="hidden md:block text-[10px] font-bold text-transparent select-none uppercase">&nbsp;</span>
+                    <label className="flex items-center gap-2 text-[10px] font-bold text-neutral-550 dark:text-neutral-400 uppercase cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={usarAPartirDe}
+                        onChange={(e) => setUsarAPartirDe(e.target.checked)}
+                        className="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900 h-3.5 w-3.5 cursor-pointer"
+                      />
+                      <span>Usar "A partir de"</span>
+                    </label>
                     <button
                       type="button"
                       onClick={handleGenerateLetter}
