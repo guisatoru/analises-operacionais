@@ -37,10 +37,10 @@ export interface InfoFolha {
 }
 
 /**
- * Calcula as folhas de pagamento (período de 20 a 19) correspondentes aos 3 meses de teste.
+ * Calcula as folhas de pagamento (período de 20 a 19) correspondentes aos 4 meses de teste.
  * 
  * Por que existe: O controle de testes de promoção é baseado na folha de pagamento da empresa (fechamento do dia 20 ao dia 19).
- * Esta função ajuda a descobrir quais folhas de pagamento específicas (ex: "06/2026") correspondem a cada um dos 3 meses de teste
+ * Esta função ajuda a descobrir quais folhas de pagamento específicas (ex: "06/2026") correspondem a cada um dos 4 meses de teste
  * com base na data de início, para que o usuário saiba com exatidão se o prêmio da folha já foi pago.
  */
 export const obterInfoFolhas = (dataInicioStr: string): InfoFolha[] => {
@@ -62,7 +62,7 @@ export const obterInfoFolhas = (dataInicioStr: string): InfoFolha[] => {
   
   const folhas: InfoFolha[] = [];
   
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 4; i++) {
     const dataRef = new Date(dataFolha);
     dataRef.setUTCMonth(dataRef.getUTCMonth() + i);
     

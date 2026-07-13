@@ -188,7 +188,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
 
   const mesAtual = getMesAtualNum();
 
-  // Calcula as informações das folhas para os 3 meses de teste
+  // Calcula as informações das folhas para os 4 meses de teste
   const folhas = obterInfoFolhas(teste.data_inicio);
   const folhaAtual = folhas.find(f => f.mesRef === mesAtual);
 
@@ -359,7 +359,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
               {teste.status !== 'pendente' && (
                 <div className="space-y-3">
                   <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider block">Ciclos do Teste de Promoção</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     {folhas.map((folha) => {
                       const infoMes = obterStatusMes(folha.mesRef);
                       return (
@@ -459,11 +459,11 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
                     </div>
                   )}
 
-                  {mesAtual === 3 && (
+                  {mesAtual === 4 && (
                     <div className="p-3.5 bg-red-500/5 border border-red-500/20 text-red-700 dark:text-red-400 rounded-lg text-xs flex gap-2.5">
                       <AlertTriangle className="h-4.5 w-4.5 text-red-500 shrink-0" />
                       <span>
-                        <strong>Aviso do Mês 3:</strong> O teste de promoção atingiu o limite contratual de 3 meses. 
+                        <strong>Aviso do Mês 4:</strong> O teste de promoção atingiu o limite de 4 meses. 
                         É impossível prorrogar mais um mês (pagar prêmio). Deve-se promover ou cancelar obrigatoriamente.
                       </span>
                     </div>
@@ -476,7 +476,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
                       {/* Botão Pagar Prêmio */}
                       <button
                         type="button"
-                        disabled={mesAtual === 3}
+                        disabled={mesAtual === 4}
                         onClick={() => setAcao('pagar_premio')}
                         className={`py-3 px-4 text-xs font-bold rounded-xl border text-center transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
                           acao === 'pagar_premio'

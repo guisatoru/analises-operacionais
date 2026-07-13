@@ -59,7 +59,7 @@ export interface TestePromocaoItem {
  * 
  * Por que existe: Permite o acompanhamento mensal de novos colaboradores em fase de teste,
  * gerindo as tomadas de decisões de prorrogação (pagamento de prêmio), promoção ou cancelamento
- * com regras rigorosas por tempo de teste (mês 1, mês 2 ou mês 3).
+ * com regras rigorosas por tempo de teste (mês 1, mês 2, mês 3 ou mês 4).
  */
 export default function TestesPromocao() {
   const [testes, setTestes] = useState<TestePromocaoItem[]>([]);

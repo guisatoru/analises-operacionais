@@ -293,10 +293,10 @@ def teste_registrar_acao(request, pk):
                 {"error": "Não é permitido promover o colaborador no primeiro mês de teste. O prêmio deve ser pago obrigatoriamente."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-    elif mes_atual == 3:
+    elif mes_atual == 4:
         if acao == "pagar_premio":
             return Response(
-                {"error": "O teste de promoção atingiu o limite de 3 meses. Escolha Promover ou Cancelar."},
+                {"error": "O teste de promoção atingiu o limite de 4 meses. Escolha Promover ou Cancelar."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
