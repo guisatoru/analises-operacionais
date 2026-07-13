@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.admin.models import LogEntry
-from .models import Colaborador, ControleTermino
+from .models import Colaborador, ControleTermino, TestePromocao, HistoricoAcaoTeste
 
 @admin.register(Colaborador)
 class ColaboradorAdmin(admin.ModelAdmin):
@@ -94,4 +94,48 @@ class LogEntryAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(TestePromocao)
+class TestePromocaoAdmin(admin.ModelAdmin):
+    """
+    Registra os testes de promoção no painel administrativo.
+    Permite visualizar, pesquisar e corrigir dados de testes se necessário.
+    """
+    list_display = (
+        "colaborador",
+        "data_inicio",
+        "cargo_teste",
+        "status",
+        "criado_por",
+        "created_at",
+    )
+    list_filter = ("status", "data_inicio", "created_at")
+    search_fields = ("colaborador__nome", "colaborador__re", "cargo_teste", "criado_por")
+    ordering = ("-created_at",)
+
+
+@admin.register(HistoricoAcaoTeste)
+class HistoricoAcaoTesteAdmin(admin.ModelAdmin):
+    """
+    Registra o histórico de ações no painel administrativo.
+    Permite auditar os passos tomados em cada teste de promoção.
+    """
+    list_display = (
+        "teste",
+        "acao",
+        "mes_referencia",
+        "solicitado_por",
+        "realizado_por",
+        "data_acao",
+    )
+    list_filter = ("acao", "mes_referencia", "data_acao")
+    search_fields = (
+        "teste__colaborador__nome",
+        "teste__colaborador__re",
+        "solicitado_por",
+        "realizado_por",
+    )
+    ordering = ("-data_acao",)
+
 

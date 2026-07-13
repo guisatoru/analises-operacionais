@@ -668,44 +668,62 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
                 </div>
               </div>
 
-              {teste.historico_acoes.length === 0 ? (
-                <p className="text-center py-12 text-xs text-neutral-400 font-medium">Nenhuma ação registrada na timeline.</p>
-              ) : (
-                <div className="relative pl-6 border-l border-neutral-200 dark:border-neutral-800 space-y-6 py-2 ml-3">
-                  {teste.historico_acoes.map((item) => (
-                    <div key={item.id} className="relative">
-                      {/* Marcador na linha */}
-                      <span className={`absolute -left-[31px] top-1.5 flex h-4.5 w-4.5 items-center justify-center rounded-full border bg-white dark:bg-neutral-900 ${
-                        item.acao === 'ativar' ? 'border-blue-500 text-blue-500' :
-                        item.acao === 'pagar_premio' ? 'border-amber-500 text-amber-500' :
-                        item.acao === 'promover' ? 'border-green-600 text-green-600' :
-                        'border-red-655 text-red-655'
-                      }`}>
-                        <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                      </span>
+              <div className="relative pl-6 border-l border-neutral-200 dark:border-neutral-800 space-y-6 py-2 ml-3">
+                {/* Item de Criação da Solicitação */}
+                <div className="relative">
+                  {/* Marcador na linha */}
+                  <span className="absolute -left-[31px] top-1.5 flex h-4.5 w-4.5 items-center justify-center rounded-full border bg-white dark:bg-neutral-900 border-neutral-400 text-neutral-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                  </span>
 
-                      <div className="space-y-1 bg-neutral-50 dark:bg-neutral-950/10 border border-neutral-250/20 dark:border-neutral-850 p-3.5 rounded-xl">
-                        <div className="flex justify-between items-start">
-                          <h5 className="text-xs font-bold text-neutral-900 dark:text-white">
-                            {item.acao_display} {item.mes_referencia > 0 && `(Mês ${item.mes_referencia})`}
-                          </h5>
-                          <span className="text-[10px] text-neutral-400 font-medium">{formatDate(item.data_acao)}</span>
-                        </div>
-                        <div className="text-[11px] text-neutral-500">
-                          Solicitado por: <span className="font-semibold text-neutral-700 dark:text-neutral-300">{item.solicitado_por}</span> • 
-                          Lançado por: <span className="font-semibold text-neutral-700 dark:text-neutral-300">{item.realizado_por}</span>
-                        </div>
-                        {item.observacao && (
-                          <div className="text-xs text-neutral-600 dark:text-neutral-450 bg-white/60 dark:bg-neutral-950/45 p-2 rounded border border-neutral-100 dark:border-neutral-800 mt-2 leading-relaxed whitespace-pre-wrap">
-                            <span className="font-bold text-[9px] uppercase tracking-wider text-neutral-400 block mb-0.5">Observações:</span>
-                            {item.observacao}
-                          </div>
-                        )}
-                      </div>
+                  <div className="space-y-1 bg-neutral-50 dark:bg-neutral-950/10 border border-neutral-250/20 dark:border-neutral-850 p-3.5 rounded-xl">
+                    <div className="flex justify-between items-start">
+                      <h5 className="text-xs font-bold text-neutral-900 dark:text-white">
+                        Solicitação Criada
+                      </h5>
+                      <span className="text-[10px] text-neutral-400 font-medium">
+                        {formatDate(teste.created_at ? teste.created_at.split('T')[0] : null)}
+                      </span>
                     </div>
-                  ))}
+                    <div className="text-[11px] text-neutral-500">
+                      Criado por: <span className="font-semibold text-neutral-700 dark:text-neutral-300">{teste.criado_por || 'Sistema'}</span>
+                    </div>
+                  </div>
                 </div>
-              )}
+
+                {teste.historico_acoes.map((item) => (
+                  <div key={item.id} className="relative">
+                    {/* Marcador na linha */}
+                    <span className={`absolute -left-[31px] top-1.5 flex h-4.5 w-4.5 items-center justify-center rounded-full border bg-white dark:bg-neutral-900 ${
+                      item.acao === 'ativar' ? 'border-blue-500 text-blue-500' :
+                      item.acao === 'pagar_premio' ? 'border-amber-500 text-amber-500' :
+                      item.acao === 'promover' ? 'border-green-600 text-green-600' :
+                      'border-red-655 text-red-655'
+                    }`}>
+                      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                    </span>
+
+                    <div className="space-y-1 bg-neutral-50 dark:bg-neutral-950/10 border border-neutral-250/20 dark:border-neutral-850 p-3.5 rounded-xl">
+                      <div className="flex justify-between items-start">
+                        <h5 className="text-xs font-bold text-neutral-900 dark:text-white">
+                          {item.acao_display} {item.mes_referencia > 0 && `(Mês ${item.mes_referencia})`}
+                        </h5>
+                        <span className="text-[10px] text-neutral-400 font-medium">{formatDate(item.data_acao)}</span>
+                      </div>
+                      <div className="text-[11px] text-neutral-500">
+                        Solicitado por: <span className="font-semibold text-neutral-700 dark:text-neutral-300">{item.solicitado_por}</span> • 
+                        Lançado por: <span className="font-semibold text-neutral-700 dark:text-neutral-300">{item.realizado_por}</span>
+                      </div>
+                      {item.observacao && (
+                        <div className="text-xs text-neutral-600 dark:text-neutral-450 bg-white/60 dark:bg-neutral-950/45 p-2 rounded border border-neutral-100 dark:border-neutral-800 mt-2 leading-relaxed whitespace-pre-wrap">
+                          <span className="font-bold text-[9px] uppercase tracking-wider text-neutral-400 block mb-0.5">Observações:</span>
+                          {item.observacao}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
