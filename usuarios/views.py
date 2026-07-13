@@ -5,6 +5,11 @@ from rest_framework.decorators import api_view, permission_classes, authenticati
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.authentication import SessionAuthentication
+from django.core.mail import send_mail
+from django.conf import settings
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
 
 from .permissions import IsAdministrador
 from .serializers import UsuarioSerializer, UsuarioCreateSerializer
@@ -30,6 +35,33 @@ def usuario_create(request):
     serializer = UsuarioCreateSerializer(data=request.data)
     if serializer.is_valid():
         novo_usuario = serializer.save()
+        
+        # Envia e-mail de boas-vindas com dados de acesso se houver e-mail cadastrado
+        email = novo_usuario.email
+        if email:
+            senha_plana = request.data.get("password", "")
+            subject = "Sua conta foi criada no Sistema de Análises Operacionais"
+            message = f"Olá, {novo_usuario.first_name or novo_usuario.username}!\n\n" \
+                      f"Sua conta no Sistema de Análises Operacionais foi criada por um administrador.\n\n" \
+                      f"Seguem abaixo os seus dados de acesso:\n" \
+                      f"Link do sistema: {settings.FRONTEND_URL}/login\n" \
+                      f"Usuário: {novo_usuario.username}\n" \
+                      f"Senha: {senha_plana}\n\n" \
+                      f"Por favor, acesse o sistema utilizando as credenciais acima.\n\n" \
+                      f"Atenciosamente,\n" \
+                      f"Equipe de Suporte Operacional"
+            try:
+                send_mail(
+                    subject=subject,
+                    message=message,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[email],
+                    fail_silently=False,
+                )
+            except Exception as e:
+                # Se falhar o envio de e-mail, registramos o erro no log e prosseguimos para não impedir a criação do usuário
+                print(f"Erro ao enviar email de boas-vindas: {e}")
+
         return Response({
             "success": True,
             "message": f"Usuário {novo_usuario.username} cadastrado como administrador.",
@@ -328,3 +360,107 @@ def role_permissions_update(request, group_id):
         "success": True,
         "message": f"Permissões do grupo {group.name} atualizadas com sucesso."
     })
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def api_recuperar_senha(request):
+    """
+    Gera um token de redefinição de senha seguro e envia por e-mail para o usuário.
+    
+    Docstring explicativa em português:
+    Esta view serve para permitir que um usuário que esqueceu sua senha informe seu e-mail.
+    Se o e-mail estiver vinculado a uma conta ativa, geramos um token seguro e um ID em Base64
+    e enviamos um link por e-mail para redefinição.
+    """
+    email = request.data.get("email")
+    if not email:
+        return Response({
+            "success": False,
+            "error": "Por favor, informe o e-mail."
+        }, status=status.HTTP_400_BAD_REQUEST)
+        
+    try:
+        user = User.objects.get(email=email, is_active=True)
+    except User.DoesNotExist:
+        # Por motivos de segurança, se o e-mail não existir, retornamos sucesso
+        # para evitar a descoberta de e-mails cadastrados na base (username harvesting).
+        return Response({
+            "success": True,
+            "message": "Se o e-mail estiver cadastrado, um link de redefinição foi enviado."
+        })
+        
+    uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    
+    link = f"{settings.FRONTEND_URL}/redefinir-senha?uidb64={uidb64}&token={token}"
+    
+    subject = "Recuperação de Senha - Sistema de Análises Operacionais"
+    message = f"Olá, {user.first_name or user.username}!\n\n" \
+              f"Você solicitou a redefinição de sua senha no Sistema de Análises Operacionais.\n\n" \
+              f"Para definir uma nova senha, clique no link abaixo:\n" \
+              f"{link}\n\n" \
+              f"Caso você não tenha solicitado esta alteração, desconsidere este e-mail.\n\n" \
+              f"Atenciosamente,\n" \
+              f"Equipe de Suporte Operacional"
+              
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+        return Response({
+            "success": True,
+            "message": "Se o e-mail estiver cadastrado, um link de redefinição foi enviado."
+        })
+    except Exception as e:
+        print(f"Erro ao enviar email de recuperação de senha: {e}")
+        return Response({
+            "success": False,
+            "error": "Ocorreu um erro ao processar o envio do e-mail. Tente novamente mais tarde."
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def api_redefinir_senha(request):
+    """
+    Valida o token seguro e altera a senha do usuário.
+    
+    Docstring explicativa em português:
+    Esta view serve para receber a nova senha do usuário juntamente com o ID criptografado (uidb64)
+    e o token de segurança de redefinição de senha gerado anteriormente. Valida esses dados e,
+    se forem corretos e válidos, altera e hasheia a nova senha do usuário.
+    """
+    uidb64 = request.data.get("uidb64")
+    token = request.data.get("token")
+    password = request.data.get("password")
+    
+    if not uidb64 or not token or not password:
+        return Response({
+            "success": False,
+            "error": "Dados incompletos fornecidos."
+        }, status=status.HTTP_400_BAD_REQUEST)
+        
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid, is_active=True)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+        
+    if user is not None and default_token_generator.check_token(user, token):
+        user.set_password(password)
+        user.save()
+        return Response({
+            "success": True,
+            "message": "Sua senha foi redefinida com sucesso!"
+        })
+        
+    return Response({
+        "success": False,
+        "error": "Este link de redefinição é inválido ou expirou. Solicite um novo link."
+    }, status=status.HTTP_400_BAD_REQUEST)
+

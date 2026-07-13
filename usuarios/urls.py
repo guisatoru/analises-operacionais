@@ -12,4 +12,6 @@ urlpatterns = [
     path("api/me/", views.api_me, name="api_me"),
     path("api/roles/", views.role_list, name="role_list"),
     path("api/roles/<int:group_id>/permissions/", views.role_permissions_update, name="role_permissions_update"),
+    path("api/recuperar-senha/", views.api_recuperar_senha, name="api_recuperar_senha"),
+    path("api/redefinir-senha/", views.api_redefinir_senha, name="api_redefinir_senha"),
 ]

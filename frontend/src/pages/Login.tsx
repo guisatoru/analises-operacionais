@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, User, Loader2, TrendingUp } from 'lucide-react';
+import { Lock, User, Loader2, TrendingUp, Mail } from 'lucide-react';
 import api from '../api/client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '../components/ui/input-group';
@@ -23,11 +23,43 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [usernameInput, setUsernameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
 
   // Por que existe: Define o título da aba do navegador especificamente para a página de Login.
   useEffect(() => {
-    document.title = 'Operacional | Login';
-  }, []);
+    document.title = isForgotPassword ? 'Operacional | Recuperar Senha' : 'Operacional | Login';
+  }, [isForgotPassword]);
+
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) {
+      toast.error('Por favor, informe seu e-mail.');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const response = await api.post('/usuarios/api/recuperar-senha/', {
+        email: forgotEmail.trim(),
+      });
+      if (response.data.success) {
+        toast.success('Se o e-mail estiver cadastrado, o link foi enviado!');
+        setIsForgotPassword(false);
+        setForgotEmail('');
+      } else {
+        toast.error(response.data.error || 'Erro ao solicitar recuperação.');
+      }
+    } catch (err: any) {
+      console.error('Erro ao recuperar senha:', err);
+      if (err.response && err.response.data && err.response.data.error) {
+        toast.error(err.response.data.error);
+      } else {
+        toast.error('Erro de comunicação com o servidor.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,70 +118,136 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
         <Card className="w-full bg-white dark:bg-neutral-900 shadow-sm border border-neutral-200 dark:border-neutral-800 rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-bold text-neutral-900 dark:text-white">Acesse sua conta</CardTitle>
-            <CardDescription className="text-xs text-neutral-400">Preencha as informações abaixo</CardDescription>
+            <CardTitle className="text-lg font-bold text-neutral-900 dark:text-white">
+              {isForgotPassword ? 'Recuperar Senha' : 'Acesse sua conta'}
+            </CardTitle>
+            <CardDescription className="text-xs text-neutral-400">
+              {isForgotPassword ? 'Enviaremos um link de recuperação para seu e-mail' : 'Preencha as informações abaixo'}
+            </CardDescription>
           </CardHeader>
           <CardContent className="pt-4">
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              <div>
-                <label htmlFor="username" className="block text-xs font-semibold text-neutral-400 dark:text-neutral-450 uppercase tracking-wider mb-1.5">
-                  Usuário
-                </label>
-                <InputGroup className="w-full">
-                  <InputGroupAddon align="inline-start">
-                    <User className="h-4 w-4 text-neutral-450" />
-                  </InputGroupAddon>
-                  <InputGroupInput
-                    id="username"
-                    name="username"
-                    type="text"
-                    required
-                    value={usernameInput}
-                    onChange={(e) => setUsernameInput(e.target.value)}
-                    placeholder="Seu usuário"
-                    disabled={isLoading}
-                  />
-                </InputGroup>
-              </div>
+            {isForgotPassword ? (
+              <form className="space-y-6" onSubmit={handleForgotPasswordSubmit}>
+                <div>
+                  <label htmlFor="forgotEmail" className="block text-xs font-semibold text-neutral-400 dark:text-neutral-450 uppercase tracking-wider mb-1.5">
+                    E-mail de Cadastro
+                  </label>
+                  <InputGroup className="w-full">
+                    <InputGroupAddon align="inline-start">
+                      <Mail className="h-4 w-4 text-neutral-450" />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="forgotEmail"
+                      name="forgotEmail"
+                      type="email"
+                      required
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="Seu e-mail cadastrado"
+                      disabled={isLoading}
+                    />
+                  </InputGroup>
+                </div>
 
-              <div>
-                <label htmlFor="password" className="block text-xs font-semibold text-neutral-400 dark:text-neutral-450 uppercase tracking-wider mb-1.5">
-                  Senha
-                </label>
-                <InputGroup className="w-full">
-                  <InputGroupAddon align="inline-start">
-                    <Lock className="h-4 w-4 text-neutral-450" />
-                  </InputGroupAddon>
-                  <InputGroupInput
-                    id="password"
-                    name="password"
-                    type="password"
-                    required
-                    value={passwordInput}
-                    onChange={(e) => setPasswordInput(e.target.value)}
-                    placeholder="Sua senha"
+                <div className="flex flex-col gap-3">
+                  <button
+                    type="submit"
                     disabled={isLoading}
-                  />
-                </InputGroup>
-              </div>
+                    className="w-full flex justify-center items-center gap-2 py-2.5 px-4 rounded-full text-xs font-bold text-white bg-neutral-900 dark:bg-white dark:text-neutral-900 hover:bg-neutral-850 dark:hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer shadow-xs"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Enviando...
+                      </>
+                    ) : (
+                      'Enviar E-mail de Recuperação'
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsForgotPassword(false);
+                      setForgotEmail('');
+                    }}
+                    disabled={isLoading}
+                    className="w-full flex justify-center items-center gap-2 py-2.5 px-4 rounded-full text-xs font-bold text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800 disabled:opacity-50 transition-all cursor-pointer"
+                  >
+                    Voltar para o Login
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form className="space-y-6" onSubmit={handleSubmit}>
+                <div>
+                  <label htmlFor="username" className="block text-xs font-semibold text-neutral-400 dark:text-neutral-450 uppercase tracking-wider mb-1.5">
+                    Usuário
+                  </label>
+                  <InputGroup className="w-full">
+                    <InputGroupAddon align="inline-start">
+                      <User className="h-4 w-4 text-neutral-450" />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="username"
+                      name="username"
+                      type="text"
+                      required
+                      value={usernameInput}
+                      onChange={(e) => setUsernameInput(e.target.value)}
+                      placeholder="Seu usuário"
+                      disabled={isLoading}
+                    />
+                  </InputGroup>
+                </div>
 
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full flex justify-center items-center gap-2 py-2.5 px-4 rounded-full text-xs font-bold text-white bg-neutral-900 dark:bg-white dark:text-neutral-900 hover:bg-neutral-850 dark:hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer shadow-xs"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Autenticando...
-                    </>
-                  ) : (
-                    'Entrar no Sistema'
-                  )}
-                </button>
-              </div>
-            </form>
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label htmlFor="password" className="block text-xs font-semibold text-neutral-400 dark:text-neutral-450 uppercase tracking-wider">
+                      Senha
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setIsForgotPassword(true)}
+                      className="text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer focus:outline-none"
+                    >
+                      Esqueci minha senha
+                    </button>
+                  </div>
+                  <InputGroup className="w-full">
+                    <InputGroupAddon align="inline-start">
+                      <Lock className="h-4 w-4 text-neutral-450" />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="password"
+                      name="password"
+                      type="password"
+                      required
+                      value={passwordInput}
+                      onChange={(e) => setPasswordInput(e.target.value)}
+                      placeholder="Sua senha"
+                      disabled={isLoading}
+                    />
+                  </InputGroup>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full flex justify-center items-center gap-2 py-2.5 px-4 rounded-full text-xs font-bold text-white bg-neutral-900 dark:bg-white dark:text-neutral-900 hover:bg-neutral-850 dark:hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer shadow-xs"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Autenticando...
+                      </>
+                    ) : (
+                      'Entrar no Sistema'
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
           </CardContent>
         </Card>
       </div>

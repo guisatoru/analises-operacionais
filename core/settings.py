@@ -190,3 +190,18 @@ try:
 except Exception:
     pass
 
+# Configurações de e-mail utilizando SMTP com fallback para exibição no console em ambiente local.
+# Por que existe: Permite que em desenvolvimento os e-mails sejam exibidos no console do terminal,
+# facilitando os testes sem precisar configurar chaves reais imediatamente. Em produção, envia via Resend.
+EMAIL_BACKEND = config("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+EMAIL_HOST = config("EMAIL_HOST", default="")
+EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="onboarding@resend.dev")
+
+# URL do frontend para compor os links de redefinição de senha
+# Por que existe: Permite gerar o link completo de redefinição de senha apontando para a porta do React.
+FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:5173")
+

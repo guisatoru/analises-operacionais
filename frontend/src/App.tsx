@@ -5,6 +5,7 @@ import api from './api/client';
 
 import Layout from './components/Layout';
 import Login from './pages/Login';
+import RedefinirSenha from './pages/RedefinirSenha';
 import Dashboard from './pages/Dashboard';
 import Lojas from './pages/Lojas';
 import Colaboradores from './pages/Colaboradores';
@@ -115,6 +116,18 @@ function App() {
               <Navigate to="/" replace />
             ) : (
               <Login onLoginSuccess={handleLoginSuccess} />
+            )
+          } 
+        />
+
+        {/* Rota Pública de Redefinição de Senha */}
+        <Route 
+          path="/redefinir-senha" 
+          element={
+            isAuthenticated ? (
+              <Navigate to="/" replace />
+            ) : (
+              <RedefinirSenha />
             )
           } 
         />
