@@ -573,12 +573,16 @@ def importar_colaboradores_de_texto(conteudo_csv: str, progress_callback=None) -
     
     colaboradores_existentes = _carregar_colaboradores_existentes()
 
+    # Por que existe: Lista que irá armazenar os colaboradores com cargos desconsiderados (exceções) para fins de exibição na conclusão.
+    excecoes: List[Dict[str, Any]] = []
+
     # Etapa 4: Processamento linha a linha (30% - 90%)
     estatisticas = {
         "total": len(df),
         "criados": 0,
         "atualizados": 0,
         "erros": 0,
+        "excecoes": excecoes,
     }
 
     para_criar: List[Colaborador] = []
@@ -596,6 +600,17 @@ def importar_colaboradores_de_texto(conteudo_csv: str, progress_callback=None) -
                 continue
 
             re_valor = linha[mapa_colunas["re"]]
+
+            # Por que existe: Identifica se o cargo é o desconsiderado ('AUXILIAR ADMINISTRAT') e coleta seus dados para a lista de exceções.
+            cargo_normalizado = (dados.get("cargo") or "").strip().upper()
+            if cargo_normalizado == "AUXILIAR ADMINISTRAT":
+                excecoes.append({
+                    "re": re_valor,
+                    "nome": dados.get("nome"),
+                    "cargo": dados.get("cargo"),
+                    "centro_custo": dados.get("centro_custo")
+                })
+
             colaborador_existente = colaboradores_existentes.get(re_valor)
 
             if colaborador_existente is None:

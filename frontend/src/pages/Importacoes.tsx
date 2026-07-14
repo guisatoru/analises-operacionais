@@ -525,6 +525,35 @@ export default function Importacoes() {
                       </div>
                     </div>
                   )}
+
+                  {importStatus.result?.excecoes?.length > 0 && (
+                    <div className="p-4 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/40 rounded-xl space-y-2">
+                      <div className="flex items-center gap-2 font-bold text-xs text-purple-800 dark:text-purple-300">
+                        <AlertCircle className="h-4 w-4 text-purple-500 shrink-0" />
+                        <span>Colaboradores com cargo 'AUXILIAR ADMINISTRAT' desconsiderados nas telas ({importStatus.result.excecoes.length}):</span>
+                      </div>
+                      <div className="max-h-40 overflow-y-auto pr-1">
+                        <table className="w-full text-left border-collapse text-xs">
+                          <thead>
+                            <tr className="border-b border-purple-100 dark:border-purple-900/40 text-purple-700 dark:text-purple-400 font-semibold">
+                              <th className="py-1 text-left">RE</th>
+                              <th className="py-1 text-left">Nome</th>
+                              <th className="py-1 text-left">Centro de Custo</th>
+                            </tr>
+                          </thead>
+                          <tbody className="text-purple-800 dark:text-purple-300 divide-y divide-purple-100/50 dark:divide-purple-900/20">
+                            {importStatus.result.excecoes.map((exc: any, idx: number) => (
+                              <tr key={idx} className="hover:bg-purple-100/30 dark:hover:bg-purple-900/10">
+                                <td className="py-1.5 font-semibold">{exc.re}</td>
+                                <td className="py-1.5">{exc.nome}</td>
+                                <td className="py-1.5">{exc.centro_custo || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
