@@ -226,8 +226,19 @@ def comparativo_relatorio_api(request):
     escopo_total = Decimal("0.00")
     escopo_por_loja_comp = defaultdict(Decimal)
     
-    # Conjunto de competências (ano, mes) que já possuem qualquer dado de folha importado
-    meses_com_folha_geral = set((ano, mes) for (loja_id, ano, mes) in folha_por_loja_comp.keys())
+    # Conjunto de competências (ano, mes) que já possuem qualquer dado de folha importado.
+    # Por que existe: Permite identificar de forma global (sem filtros de loja) se a competência
+    # possui folhas importadas no banco, garantindo que lojas com folha zerada na competência
+    # tenham seu orçamento desconsiderado, mesmo quando filtros de loja são aplicados.
+    meses_com_folha_geral = set()
+    if datas_exatas:
+        folhas_existentes = ResumoFolhaMensal.objects.filter(
+            dt_arq__in=datas_exatas
+        ).values_list("dt_arq", flat=True).distinct()
+        for dt in folhas_existentes:
+            if dt:
+                meses_com_folha_geral.add((dt.year, dt.month))
+
     
     if lojas_filtradas_ids:
         # Otimização N+1: Carrega configs de insalubridade de uma vez

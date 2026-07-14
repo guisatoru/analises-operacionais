@@ -310,6 +310,50 @@ class ComparativoViewsTests(TestCase):
         kpis = data["kpis"]
         self.assertEqual(kpis["realizado_total"], 1600.0)
 
+    def test_desconsiderar_loja_com_folha_zerada_com_filtro(self):
+        """
+        Por que existe: Garante que, ao filtrar por uma loja específica que está com a folha zerada
+        (mas o mês de referência possui dados de folha importados no banco para outras lojas),
+        o custo orçado (escopo) dessa loja seja desconsiderado (retornando 0.0), evitando divergências de orçamento.
+        """
+        # Cria uma nova loja ativa
+        loja_sem_folha = Loja.objects.create(
+            nome_referencia="LOJA SEM FOLHA",
+            centro_de_custo="876543210987",
+            quadro="3",
+            uf="SP",
+        )
+        
+        # Cria escopo orçado para ela em 2026/03
+        escopo_loja = EscopoMensal.objects.create(
+            loja=loja_sem_folha,
+            ano=2026,
+            mes=3,
+        )
+        ItemEscopoMensal.objects.create(
+            escopo_mensal=escopo_loja,
+            cargo=self.cargo,
+            turno="DIURNO",
+            quantidade=1,
+        )
+        
+        # Não adicionamos folha para a loja_sem_folha em 2026/03 (a folha dela fica zerada).
+        # Porém, a loja modelo (self.loja) possui folha importada para 2026/03 (self.linha).
+        
+        # Faz uma consulta ao comparativo filtrando especificamente por essa loja sem folha
+        response = self.client.get("/comparativo/relatorio/", {
+            "period": "2026-03",
+            "loja": str(loja_sem_folha.id)
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # O orçado total para essa loja filtrada deve ser 0.0, pois a folha dela é zerada,
+        # e outras lojas possuem folha na competência de 2026-03.
+        kpis = response.data["results"]["kpis"]
+        self.assertEqual(kpis["realizado_total"], 0.0)
+        self.assertEqual(kpis["orcado_total"], 0.0)
+
+
 
 
 
