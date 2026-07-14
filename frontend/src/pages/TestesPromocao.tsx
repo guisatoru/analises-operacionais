@@ -65,11 +65,10 @@ export default function TestesPromocao() {
   const [testes, setTestes] = useState<TestePromocaoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [count, setCount] = useState(0);
 
   // Filtros
   const [busca, setBusca] = useState('');
+  const [buscaAplicada, setBuscaAplicada] = useState('');
   const [statusFiltro, setStatusFiltro] = useState('');
   const [cobrancaFiltro, setCobrancaFiltro] = useState<'todos' | 'falta_resposta' | 'em_dia'>('todos');
   const [fetchTrigger, setFetchTrigger] = useState(0);
@@ -79,30 +78,27 @@ export default function TestesPromocao() {
   const [showAcaoModal, setShowAcaoModal] = useState(false);
   const [selectedTeste, setSelectedTeste] = useState<TestePromocaoItem | null>(null);
 
+  // Por que existe: Carrega a lista completa de testes da API quando o componente é montado
+  // ou quando uma nova ação/cadastro é finalizado (disparando fetchTrigger).
   useEffect(() => {
     fetchTestes();
-  }, [currentPage, statusFiltro, fetchTrigger]);
+  }, [fetchTrigger]);
+
+  // Por que existe: Reinicia a página ativa para a primeira toda vez que um filtro é alterado,
+  // evitando que o usuário fique em uma página inexistente para a nova busca.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [buscaAplicada, statusFiltro, cobrancaFiltro]);
 
   const fetchTestes = async () => {
     setLoading(true);
     try {
-      const params = {
-        page: currentPage,
-        search: busca || undefined,
-        status: statusFiltro || undefined,
-      };
-
-      const response = await api.get('/colaboradores/testes/', { params });
+      // Requisita a lista completa de testes enviando no_page=true para que a paginação
+      // ocorra de forma local no frontend após aplicados todos os filtros.
+      const response = await api.get('/colaboradores/testes/', { params: { no_page: 'true' } });
       
-      if (response.data && response.data.results) {
-        setTestes(response.data.results);
-        setCount(response.data.count);
-        setTotalPages(Math.ceil(response.data.count / 10) || 1);
-      } else {
-        setTestes(response.data || []);
-        setCount(response.data ? response.data.length : 0);
-        setTotalPages(1);
-      }
+      const dados = Array.isArray(response.data) ? response.data : (response.data.results || []);
+      setTestes(dados);
     } catch (err) {
       console.error('Erro ao carregar testes de promoção:', err);
       toast.error('Não foi possível carregar a lista de testes de promoção.');
@@ -113,16 +109,16 @@ export default function TestesPromocao() {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setBuscaAplicada(busca);
     setCurrentPage(1);
-    setFetchTrigger(prev => prev + 1);
   };
 
   const handleClearFilters = () => {
     setBusca('');
+    setBuscaAplicada('');
     setStatusFiltro('');
     setCobrancaFiltro('todos');
     setCurrentPage(1);
-    setFetchTrigger(prev => prev + 1);
   };
 
   const handleOpenAcao = (teste: TestePromocaoItem) => {
@@ -198,29 +194,53 @@ export default function TestesPromocao() {
     return `Mês ${mesAtualNum} (Folha ${folhaAtual?.nomeFolha || '-'})`;
   };
 
-  // Filtra os testes locais baseando-se no cobrancaFiltro
+  // Filtra todos os testes com base no termo de busca (Nome ou RE), status selecionado e cobrança.
+  // Por que existe: Centraliza a filtragem global no frontend, garantindo que os filtros
+  // atuem sobre o total de registros do banco e não apenas na página exibida.
   const testesFiltrados = testes.filter((teste) => {
-    if (cobrancaFiltro === 'todos') return true;
-    if (teste.status !== 'ativo') return false;
-
-    const folhas = obterInfoFolhas(teste.data_inicio);
-    const premios = teste.historico_acoes.filter(a => a.acao === 'pagar_premio').length;
-    const mesAtualNum = premios + 1;
-    const folhaTeste = folhas.find(f => f.mesRef === mesAtualNum);
-
-    if (!folhaTeste) return false;
-
-    const numFolhaTeste = converterFolhaParaNumero(folhaTeste.nomeFolha);
-    const numFolhaHoje = converterFolhaParaNumero(obterFolhaCalendarioReal());
-
-    if (cobrancaFiltro === 'falta_resposta') {
-      return numFolhaTeste <= numFolhaHoje;
+    // 1. Filtro de busca por texto (Nome ou RE)
+    if (buscaAplicada.trim()) {
+      const termo = buscaAplicada.toLowerCase();
+      const nomeMatch = teste.colaborador_nome?.toLowerCase().includes(termo);
+      const reMatch = teste.colaborador_re?.toLowerCase().includes(termo);
+      if (!nomeMatch && !reMatch) return false;
     }
-    if (cobrancaFiltro === 'em_dia') {
-      return numFolhaTeste > numFolhaHoje;
+
+    // 2. Filtro por status
+    if (statusFiltro && teste.status !== statusFiltro) {
+      return false;
     }
+
+    // 3. Filtro por status de cobrança (aplicável apenas a testes 'ativos')
+    if (cobrancaFiltro !== 'todos') {
+      if (teste.status !== 'ativo') return false;
+
+      const folhas = obterInfoFolhas(teste.data_inicio);
+      const premios = teste.historico_acoes.filter(a => a.acao === 'pagar_premio').length;
+      const mesAtualNum = premios + 1;
+      const folhaTeste = folhas.find(f => f.mesRef === mesAtualNum);
+
+      if (!folhaTeste) return false;
+
+      const numFolhaTeste = converterFolhaParaNumero(folhaTeste.nomeFolha);
+      const numFolhaHoje = converterFolhaParaNumero(obterFolhaCalendarioReal());
+
+      if (cobrancaFiltro === 'falta_resposta') {
+        return numFolhaTeste <= numFolhaHoje;
+      }
+      if (cobrancaFiltro === 'em_dia') {
+        return numFolhaTeste > numFolhaHoje;
+      }
+    }
+
     return true;
   });
+
+  // Fatia a lista filtrada para exibir apenas os registros correspondentes à página atual.
+  const testesPaginados = testesFiltrados.slice((currentPage - 1) * 10, currentPage * 10);
+
+  // Calcula o total de páginas com base no número de registros que passaram pelos filtros.
+  const totalPages = Math.ceil(testesFiltrados.length / 10) || 1;
 
   return (
     <div className="space-y-6">
@@ -310,7 +330,7 @@ export default function TestesPromocao() {
             <Loader2 className="h-8 w-8 animate-spin text-neutral-950 dark:text-white" />
             <span className="text-sm font-medium">Buscando testes de promoção...</span>
           </div>
-        ) : testes.length === 0 ? (
+        ) : testesFiltrados.length === 0 ? (
           <div className="text-center py-20 border-dashed border border-neutral-200 dark:border-neutral-850 rounded-2xl m-4">
             <AlertCircle className="h-10 w-10 text-neutral-400 mx-auto mb-3" />
             <p className="text-sm font-semibold text-neutral-750 dark:text-neutral-200">Nenhum teste de promoção encontrado.</p>
@@ -331,7 +351,7 @@ export default function TestesPromocao() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800 text-sm">
-                {testesFiltrados.map((teste) => (
+                {testesPaginados.map((teste) => (
                   <tr key={teste.id} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-850/10 transition-colors">
                     {/* Colaborador */}
                     <td className="py-4 px-6">
@@ -450,19 +470,13 @@ export default function TestesPromocao() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between p-5 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950">
             <span className="text-xs text-neutral-500">
-              {cobrancaFiltro === 'todos' ? (
-                <>
-                  Mostrando <span className="font-semibold text-neutral-800 dark:text-neutral-250">{(currentPage - 1) * 10 + 1}</span> a{' '}
-                  <span className="font-semibold text-neutral-800 dark:text-neutral-250">
-                    {Math.min(currentPage * 10, count)}
-                  </span>{' '}
-                  de <span className="font-semibold text-neutral-800 dark:text-neutral-250">{count}</span> resultados
-                </>
-              ) : (
-                <>
-                  Mostrando <span className="font-semibold text-neutral-800 dark:text-neutral-250">{testesFiltrados.length}</span> de{' '}
-                  <span className="font-semibold text-neutral-800 dark:text-neutral-250">{testes.length}</span> resultados filtrados por cobrança na página atual
-                </>
+              Mostrando <span className="font-semibold text-neutral-800 dark:text-neutral-250">{(currentPage - 1) * 10 + 1}</span> a{' '}
+              <span className="font-semibold text-neutral-800 dark:text-neutral-250">
+                {Math.min(currentPage * 10, testesFiltrados.length)}
+              </span>{' '}
+              de <span className="font-semibold text-neutral-800 dark:text-neutral-250">{testesFiltrados.length}</span> resultados
+              {testesFiltrados.length !== testes.length && (
+                <> (filtrados de um total de <span className="font-semibold text-neutral-800 dark:text-neutral-250">{testes.length}</span>)</>
               )}
             </span>
             <div className="flex items-center gap-2">

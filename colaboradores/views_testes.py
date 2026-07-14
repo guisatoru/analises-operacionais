@@ -95,6 +95,14 @@ def testes_list(request):
     # Ordenação decrescente por criação padrão
     testes_qs = testes_qs.order_by("-created_at")
 
+    # Verifica se o frontend solicitou a lista completa sem paginação.
+    # Por que existe: Permite que o frontend busque todos os registros de uma vez para realizar
+    # filtros complexos (como o de cobrança) e paginação de forma global no cliente.
+    no_page = request.GET.get("no_page", "").lower() == "true"
+    if no_page:
+        serializer = TestePromocaoSerializer(testes_qs, many=True)
+        return Response(serializer.data)
+
     paginator = PageNumberPagination()
     paginator.page_size = 10
     page = paginator.paginate_queryset(testes_qs, request)
