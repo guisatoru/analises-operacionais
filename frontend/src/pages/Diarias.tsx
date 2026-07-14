@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { 
   AlertCircle, 
   Coins, 
@@ -69,7 +69,9 @@ export default function Diarias() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loadingData, setLoadingData] = useState(true);
+  const lastQueryId = useRef(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [fetchTrigger, setFetchTrigger] = useState(0);
 
   // Função para lidar com erros passados pelos filhos
   const handleFilterError = useCallback((msg: string | null) => {
@@ -81,6 +83,7 @@ export default function Diarias() {
     const fetchDiarias = async () => {
       setLoadingData(true);
       setErrorMsg(null);
+      const queryId = ++lastQueryId.current;
       try {
         const params = new URLSearchParams();
         params.append('page', String(currentPage));
@@ -98,6 +101,8 @@ export default function Diarias() {
 
         const response = await api.get(`/diarias/?${params.toString()}`);
         
+        if (queryId !== lastQueryId.current) return;
+
         if (response.data) {
           const results = response.data.results || {};
           setDiarias(results.resultados || []);
@@ -108,27 +113,27 @@ export default function Diarias() {
           setTotalPages(Math.ceil(count / 20) || 1);
         }
       } catch (err) {
+        if (queryId !== lastQueryId.current) return;
         console.error('Erro ao buscar listagem de diárias:', err);
         setErrorMsg('Não foi possível carregar os dados do painel de diárias.');
       } finally {
-        setLoadingData(false);
+        if (queryId === lastQueryId.current) {
+          setLoadingData(false);
+        }
       }
     };
 
     fetchDiarias();
   }, [
     currentPage,
-    filtroMesAno,
-    filtroLoja,
-    filtroDiarista,
-    filtroTurno,
-    filtroMotivo,
-    filtroStatus,
-    filtroSupervisor,
-    filtroCoordenador,
-    filtroUf,
-    filtroOrderType
+    fetchTrigger
   ]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCurrentPage(1);
+    setFetchTrigger(prev => prev + 1);
+  };
 
   const handleLimparFiltros = () => {
     setFiltroMesAno('');
@@ -142,6 +147,7 @@ export default function Diarias() {
     setFiltroUf('');
     setFiltroOrderType('');
     setCurrentPage(1);
+    setFetchTrigger(prev => prev + 1);
   };
 
   const formatarReal = (valor: number) => {
@@ -168,25 +174,26 @@ export default function Diarias() {
       {/* Filtros de Diárias */}
       <DiariasFilter
         filtroMesAno={filtroMesAno}
-        setFiltroMesAno={(val) => { setFiltroMesAno(val); setCurrentPage(1); }}
+        setFiltroMesAno={setFiltroMesAno}
         filtroLoja={filtroLoja}
-        setFiltroLoja={(val) => { setFiltroLoja(val); setCurrentPage(1); }}
+        setFiltroLoja={setFiltroLoja}
         filtroDiarista={filtroDiarista}
-        setFiltroDiarista={(val) => { setFiltroDiarista(val); setCurrentPage(1); }}
+        setFiltroDiarista={setFiltroDiarista}
         filtroTurno={filtroTurno}
-        setFiltroTurno={(val) => { setFiltroTurno(val); setCurrentPage(1); }}
+        setFiltroTurno={setFiltroTurno}
         filtroMotivo={filtroMotivo}
-        setFiltroMotivo={(val) => { setFiltroMotivo(val); setCurrentPage(1); }}
+        setFiltroMotivo={setFiltroMotivo}
         filtroStatus={filtroStatus}
-        setFiltroStatus={(val) => { setFiltroStatus(val); setCurrentPage(1); }}
+        setFiltroStatus={setFiltroStatus}
         filtroSupervisor={filtroSupervisor}
-        setFiltroSupervisor={(val) => { setFiltroSupervisor(val); setCurrentPage(1); }}
+        setFiltroSupervisor={setFiltroSupervisor}
         filtroCoordenador={filtroCoordenador}
-        setFiltroCoordenador={(val) => { setFiltroCoordenador(val); setCurrentPage(1); }}
+        setFiltroCoordenador={setFiltroCoordenador}
         filtroUf={filtroUf}
-        setFiltroUf={(val) => { setFiltroUf(val); setCurrentPage(1); }}
+        setFiltroUf={setFiltroUf}
         filtroOrderType={filtroOrderType}
-        setFiltroOrderType={(val) => { setFiltroOrderType(val); setCurrentPage(1); }}
+        setFiltroOrderType={setFiltroOrderType}
+        onSubmit={handleSearchSubmit}
         onClear={handleLimparFiltros}
         onError={handleFilterError}
       />

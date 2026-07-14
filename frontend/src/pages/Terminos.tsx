@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { 
   Loader2,
   AlertCircle,
@@ -34,6 +34,8 @@ export default function Terminos() {
   // Estados de listagem e paginação
   const [terminos, setTerminos] = useState<TerminoItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const lastQueryId = useRef(0);
+  const isFirstRender = useRef(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [count, setCount] = useState(0);
@@ -72,6 +74,7 @@ export default function Terminos() {
   const fetchTerminos = async (resetPage = false) => {
     setLoading(true);
     setErrorMsg(null);
+    const queryId = ++lastQueryId.current;
     const targetPage = resetPage ? 1 : currentPage;
     if (resetPage) {
       setCurrentPage(1);
@@ -96,6 +99,8 @@ export default function Terminos() {
         params: requestParams
       });
 
+      if (queryId !== lastQueryId.current) return;
+
       if (response.data && response.data.results) {
         setTerminos(response.data.results);
         setCount(response.data.count);
@@ -106,31 +111,32 @@ export default function Terminos() {
         setTotalPages(1);
       }
     } catch (err) {
+      if (queryId !== lastQueryId.current) return;
       console.error('Erro ao buscar términos:', err);
       setErrorMsg('Não foi possível carregar os prazos de término.');
     } finally {
-      setLoading(false);
+      if (queryId === lastQueryId.current) {
+        setLoading(false);
+      }
     }
   };
 
-  // Por que existe: Recarrega a busca a partir da página inicial sempre que qualquer filtro de seleção (dropdown/data),
-  // ordenação ou o gatilho de busca explícito sofrer alterações por parte do usuário.
-  // Note que removemos reFiltro e nomeFiltro daqui para desativar a busca dinâmica a cada caractere digitado.
+  // Por que existe: Recarrega a busca a partir da página inicial sempre que a ordenação
+  // ou o gatilho de busca explícito (fetchTrigger) sofrer alterações por parte do usuário.
+  // Todos os filtros de seleção e data só são aplicados ao clicar em Buscar.
   useEffect(() => {
     fetchTerminos(true);
   }, [
     ordenacao,
-    statusGestao,
-    coordenador,
-    dataFiltro,
-    dataFim,
-    etapaFiltro,
-    acaoFiltro,
     fetchTrigger
   ]);
 
   // Por que existe: Recarrega os dados preservando o filtro atual quando o usuário navegar entre as páginas.
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     fetchTerminos();
   }, [currentPage]);
 

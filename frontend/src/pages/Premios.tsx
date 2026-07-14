@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { AlertCircle, FileText } from 'lucide-react';
 import api from '../api/client';
 import PremiosFilter from '../components/Premios/PremiosFilter';
@@ -48,7 +48,9 @@ export default function Premios() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loadingData, setLoadingData] = useState(true);
+  const lastQueryId = useRef(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [fetchTrigger, setFetchTrigger] = useState(0);
 
   // Função para lidar com erros passados pelos filhos
   const handleFilterError = useCallback((msg: string | null) => {
@@ -60,6 +62,7 @@ export default function Premios() {
     const fetchPremios = async () => {
       setLoadingData(true);
       setErrorMsg(null);
+      const queryId = ++lastQueryId.current;
       try {
         const params = new URLSearchParams();
         params.append('page', String(currentPage));
@@ -76,6 +79,8 @@ export default function Premios() {
 
         const response = await api.get(`/premios/?${params.toString()}`);
         
+        if (queryId !== lastQueryId.current) return;
+
         if (response.data) {
           const results = response.data.results || {};
           setPremios(results.resultados || []);
@@ -86,26 +91,27 @@ export default function Premios() {
           setTotalPages(Math.ceil(count / 20) || 1);
         }
       } catch (err) {
+        if (queryId !== lastQueryId.current) return;
         console.error('Erro ao buscar listagem de prêmios:', err);
         setErrorMsg('Não foi possível carregar os dados do painel de prêmios pagos.');
       } finally {
-        setLoadingData(false);
+        if (queryId === lastQueryId.current) {
+          setLoadingData(false);
+        }
       }
     };
 
     fetchPremios();
   }, [
     currentPage,
-    filtroPeriodo,
-    filtroLoja,
-    filtroStatus,
-    filtroVerbName,
-    filtroSupervisor,
-    filtroCoordenador,
-    filtroUf,
-    filtroOrderType,
-    filtroRoteiro
+    fetchTrigger
   ]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCurrentPage(1);
+    setFetchTrigger(prev => prev + 1);
+  };
 
   const handleLimparFiltros = () => {
     setFiltroPeriodo('');
@@ -118,6 +124,7 @@ export default function Premios() {
     setFiltroOrderType('');
     setFiltroRoteiro('');
     setCurrentPage(1);
+    setFetchTrigger(prev => prev + 1);
   };
 
   return (
@@ -162,23 +169,24 @@ export default function Premios() {
       {/* Filtros */}
       <PremiosFilter
         filtroPeriodo={filtroPeriodo}
-        setFiltroPeriodo={(val) => { setFiltroPeriodo(val); setCurrentPage(1); }}
+        setFiltroPeriodo={setFiltroPeriodo}
         filtroLoja={filtroLoja}
-        setFiltroLoja={(val) => { setFiltroLoja(val); setCurrentPage(1); }}
+        setFiltroLoja={setFiltroLoja}
         filtroStatus={filtroStatus}
-        setFiltroStatus={(val) => { setFiltroStatus(val); setCurrentPage(1); }}
+        setFiltroStatus={setFiltroStatus}
         filtroVerbName={filtroVerbName}
-        setFiltroVerbName={(val) => { setFiltroVerbName(val); setCurrentPage(1); }}
+        setFiltroVerbName={setFiltroVerbName}
         filtroSupervisor={filtroSupervisor}
-        setFiltroSupervisor={(val) => { setFiltroSupervisor(val); setCurrentPage(1); }}
+        setFiltroSupervisor={setFiltroSupervisor}
         filtroCoordenador={filtroCoordenador}
-        setFiltroCoordenador={(val) => { setFiltroCoordenador(val); setCurrentPage(1); }}
+        setFiltroCoordenador={setFiltroCoordenador}
         filtroUf={filtroUf}
-        setFiltroUf={(val) => { setFiltroUf(val); setCurrentPage(1); }}
+        setFiltroUf={setFiltroUf}
         filtroOrderType={filtroOrderType}
-        setFiltroOrderType={(val) => { setFiltroOrderType(val); setCurrentPage(1); }}
+        setFiltroOrderType={setFiltroOrderType}
         filtroRoteiro={filtroRoteiro}
-        setFiltroRoteiro={(val) => { setFiltroRoteiro(val); setCurrentPage(1); }}
+        setFiltroRoteiro={setFiltroRoteiro}
+        onSubmit={handleSearchSubmit}
         onClear={handleLimparFiltros}
         onError={handleFilterError}
       />
@@ -192,12 +200,12 @@ export default function Premios() {
         <PremiosCharts
           loadingData={loadingData}
           graficos={graficos}
-          setFiltroStatus={setFiltroStatus}
-          setFiltroOrderType={setFiltroOrderType}
-          setFiltroRoteiro={setFiltroRoteiro}
-          setFiltroUf={setFiltroUf}
-          setFiltroCoordenador={setFiltroCoordenador}
-          setFiltroVerbName={setFiltroVerbName}
+          setFiltroStatus={(val) => { setFiltroStatus(val); setCurrentPage(1); setFetchTrigger(prev => prev + 1); }}
+          setFiltroOrderType={(val) => { setFiltroOrderType(val); setCurrentPage(1); setFetchTrigger(prev => prev + 1); }}
+          setFiltroRoteiro={(val) => { setFiltroRoteiro(val); setCurrentPage(1); setFetchTrigger(prev => prev + 1); }}
+          setFiltroUf={(val) => { setFiltroUf(val); setCurrentPage(1); setFetchTrigger(prev => prev + 1); }}
+          setFiltroCoordenador={(val) => { setFiltroCoordenador(val); setCurrentPage(1); setFetchTrigger(prev => prev + 1); }}
+          setFiltroVerbName={(val) => { setFiltroVerbName(val); setCurrentPage(1); setFetchTrigger(prev => prev + 1); }}
           setCurrentPage={setCurrentPage}
         />
 

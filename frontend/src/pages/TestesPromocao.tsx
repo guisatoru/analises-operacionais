@@ -70,7 +70,9 @@ export default function TestesPromocao() {
   const [busca, setBusca] = useState('');
   const [buscaAplicada, setBuscaAplicada] = useState('');
   const [statusFiltro, setStatusFiltro] = useState('');
+  const [statusFiltroAplicado, setStatusFiltroAplicado] = useState('');
   const [cobrancaFiltro, setCobrancaFiltro] = useState<'todos' | 'falta_resposta' | 'em_dia'>('todos');
+  const [cobrancaFiltroAplicado, setCobrancaFiltroAplicado] = useState<'todos' | 'falta_resposta' | 'em_dia'>('todos');
   const [fetchTrigger, setFetchTrigger] = useState(0);
 
   // Modais
@@ -84,11 +86,11 @@ export default function TestesPromocao() {
     fetchTestes();
   }, [fetchTrigger]);
 
-  // Por que existe: Reinicia a página ativa para a primeira toda vez que um filtro é alterado,
+  // Por que existe: Reinicia a página ativa para a primeira toda vez que um filtro de busca aplicada é alterado,
   // evitando que o usuário fique em uma página inexistente para a nova busca.
   useEffect(() => {
     setCurrentPage(1);
-  }, [buscaAplicada, statusFiltro, cobrancaFiltro]);
+  }, [buscaAplicada, statusFiltroAplicado, cobrancaFiltroAplicado]);
 
   const fetchTestes = async () => {
     setLoading(true);
@@ -110,6 +112,8 @@ export default function TestesPromocao() {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setBuscaAplicada(busca);
+    setStatusFiltroAplicado(statusFiltro);
+    setCobrancaFiltroAplicado(cobrancaFiltro);
     setCurrentPage(1);
   };
 
@@ -117,7 +121,9 @@ export default function TestesPromocao() {
     setBusca('');
     setBuscaAplicada('');
     setStatusFiltro('');
+    setStatusFiltroAplicado('');
     setCobrancaFiltro('todos');
+    setCobrancaFiltroAplicado('todos');
     setCurrentPage(1);
   };
 
@@ -207,12 +213,12 @@ export default function TestesPromocao() {
     }
 
     // 2. Filtro por status
-    if (statusFiltro && teste.status !== statusFiltro) {
+    if (statusFiltroAplicado && teste.status !== statusFiltroAplicado) {
       return false;
     }
 
     // 3. Filtro por status de cobrança (aplicável apenas a testes 'ativos')
-    if (cobrancaFiltro !== 'todos') {
+    if (cobrancaFiltroAplicado !== 'todos') {
       if (teste.status !== 'ativo') return false;
 
       const folhas = obterInfoFolhas(teste.data_inicio);
@@ -225,10 +231,10 @@ export default function TestesPromocao() {
       const numFolhaTeste = converterFolhaParaNumero(folhaTeste.nomeFolha);
       const numFolhaHoje = converterFolhaParaNumero(obterFolhaCalendarioReal());
 
-      if (cobrancaFiltro === 'falta_resposta') {
+      if (cobrancaFiltroAplicado === 'falta_resposta') {
         return numFolhaTeste <= numFolhaHoje;
       }
-      if (cobrancaFiltro === 'em_dia') {
+      if (cobrancaFiltroAplicado === 'em_dia') {
         return numFolhaTeste > numFolhaHoje;
       }
     }

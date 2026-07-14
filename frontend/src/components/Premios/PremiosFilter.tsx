@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { RotateCcw } from 'lucide-react';
 import api from '../../api/client';
 import SearchableSelect from '../ui/searchable-select';
 
@@ -34,6 +33,7 @@ interface PremiosFilterProps {
   setFiltroOrderType: (val: string) => void;
   filtroRoteiro: string;
   setFiltroRoteiro: (val: string) => void;
+  onSubmit: (e: React.FormEvent) => void;
   onClear: () => void;
   onError: (msg: string | null) => void;
 }
@@ -64,6 +64,7 @@ export default function PremiosFilter({
   setFiltroOrderType,
   filtroRoteiro,
   setFiltroRoteiro,
+  onSubmit,
   onClear,
   onError,
 }: PremiosFilterProps) {
@@ -97,19 +98,11 @@ export default function PremiosFilter({
   }, [onError]);
 
   return (
-    <form onSubmit={(e) => e.preventDefault()} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-xs shadow-sm space-y-4">
+    <form onSubmit={onSubmit} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-xs shadow-sm space-y-4">
       <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3">
         <h2 className="text-xs font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
           Filtros de Prêmios
         </h2>
-        <button 
-          type="button"
-          onClick={onClear}
-          className="text-[10px] text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 font-semibold flex items-center gap-1 cursor-pointer"
-        >
-          <RotateCcw className="h-3 w-3" />
-          Limpar filtros
-        </button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -283,6 +276,22 @@ export default function PremiosFilter({
             />
           )}
         </div>
+      </div>
+
+      <div className="flex justify-end gap-3 pt-2">
+        <button
+          type="button"
+          onClick={onClear}
+          className="px-5 py-2.5 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 rounded-full text-xs font-bold text-neutral-700 dark:text-neutral-300 text-sm font-semibold transition-colors cursor-pointer"
+        >
+          Limpar Filtros
+        </button>
+        <button
+          type="submit"
+          className="px-6 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full text-xs font-bold hover:bg-neutral-850 dark:hover:bg-neutral-100 shadow-xs transition-opacity cursor-pointer"
+        >
+          Buscar Prêmios
+        </button>
       </div>
     </form>
   );

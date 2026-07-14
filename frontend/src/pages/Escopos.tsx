@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Plus, Copy, AlertCircle } from 'lucide-react';
 import api from '../api/client';
 import { toast } from 'sonner';
@@ -22,6 +22,8 @@ export default function Escopos() {
   // Listagem de escopos e paginação
   const [escopos, setEscopos] = useState<EscopoMensal[]>([]);
   const [loading, setLoading] = useState(true);
+  const lastQueryId = useRef(0);
+  const isFirstRender = useRef(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [count, setCount] = useState(0);
@@ -82,6 +84,7 @@ export default function Escopos() {
   const fetchEscopos = async (resetPage = false) => {
     setLoading(true);
     setErrorMsg(null);
+    const queryId = ++lastQueryId.current;
     const targetPage = resetPage ? 1 : currentPage;
     if (resetPage) {
       setCurrentPage(1);
@@ -98,6 +101,8 @@ export default function Escopos() {
         }
       });
 
+      if (queryId !== lastQueryId.current) return;
+
       if (response.data && response.data.results) {
         setEscopos(response.data.results);
         setCount(response.data.count);
@@ -111,20 +116,27 @@ export default function Escopos() {
       // Atualiza também as lojas sem escopo em segundo plano
       fetchLojasSemEscopo();
     } catch (err) {
+      if (queryId !== lastQueryId.current) return;
       console.error('Erro ao buscar escopos:', err);
       setErrorMsg('Não foi possível carregar os escopos mensais das lojas.');
     } finally {
-      setLoading(false);
+      if (queryId === lastQueryId.current) {
+        setLoading(false);
+      }
     }
   };
 
-  // Efeito reativo: recarrega a lista se mudar filtros ou clicar em pesquisar
+  // Efeito reativo: recarrega a lista apenas ao clicar em pesquisar/filtrar (disparando o fetchTrigger)
   useEffect(() => {
     fetchEscopos(true);
-  }, [lojaFiltro, anoFiltro, mesFiltro, fetchTrigger]);
+  }, [fetchTrigger]);
 
   // Recarrega se mudar a página corrente
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     fetchEscopos();
   }, [currentPage]);
 

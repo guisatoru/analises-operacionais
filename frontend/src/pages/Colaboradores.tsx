@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Loader2, Users2, UserX2, Layers, AlertCircle } from 'lucide-react';
 import api from '../api/client';
 import { Progress, ProgressValue } from '../components/ui/progress';
@@ -20,6 +20,8 @@ export default function Colaboradores() {
   // Estados da listagem de colaboradores e paginação
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
   const [loading, setLoading] = useState(true);
+  const lastQueryId = useRef(0);
+  const isFirstRender = useRef(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [count, setCount] = useState(0);
@@ -55,6 +57,7 @@ export default function Colaboradores() {
   const fetchColaboradores = async (resetPage = false) => {
     setLoading(true);
     setErrorMsg(null);
+    const queryId = ++lastQueryId.current;
     const targetPage = resetPage ? 1 : currentPage;
     if (resetPage) {
       setCurrentPage(1);
@@ -79,6 +82,8 @@ export default function Colaboradores() {
         }
       });
 
+      if (queryId !== lastQueryId.current) return;
+
       if (response.data && response.data.results) {
         setColaboradores(response.data.results);
         setCount(response.data.count);
@@ -89,16 +94,19 @@ export default function Colaboradores() {
         setTotalPages(1);
       }
     } catch (err) {
+      if (queryId !== lastQueryId.current) return;
       console.error('Erro ao buscar colaboradores:', err);
       setErrorMsg('Erro ao conectar ao servidor de dados dos colaboradores.');
     } finally {
-      setLoading(false);
+      if (queryId === lastQueryId.current) {
+        setLoading(false);
+      }
     }
   };
 
-  // Por que existe: Recarrega a listagem a partir da página inicial sempre que filtros baseados
-  // em seleção (dropdowns), abas, chips rápidos ou o gatilho de busca (Enter/Botão de Pesquisar) forem alterados.
-  // Note que removemos reBusca e nomeBusca daqui para evitar requisições a cada tecla digitada.
+  // Por que existe: Recarrega a listagem a partir da página inicial sempre que abas, 
+  // chips rápidos de auditoria ou o gatilho de busca explícito (fetchTrigger) sofrerem alterações.
+  // Filtros em seletores dropdown adicionais só são aplicados ao clicar em Buscar.
   useEffect(() => {
     fetchColaboradores(true);
   }, [
@@ -107,14 +115,15 @@ export default function Colaboradores() {
     funcaoDivergenteQuery,
     divergenteQuery,
     soTotvsQuery,
-    lojaFiltro,
-    statusFiltro,
-    statusGestaoFiltro,
     fetchTrigger
   ]);
 
   // Efeito reativo para recarregar se mudar de página
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     fetchColaboradores();
   }, [currentPage]);
 

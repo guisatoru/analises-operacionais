@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Plus, AlertCircle } from 'lucide-react';
 import api from '../api/client';
 import { toast } from 'sonner';
@@ -20,6 +20,8 @@ export default function Lojas() {
   // Estados para listagem e paginação
   const [lojas, setLojas] = useState<Loja[]>([]);
   const [loading, setLoading] = useState(true);
+  const lastQueryId = useRef(0);
+  const isFirstRender = useRef(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [count, setCount] = useState(0);
@@ -59,12 +61,16 @@ export default function Lojas() {
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Carrega as lojas ao inicializar ou mudar de página/filtros
+  // Carrega as lojas apenas ao inicializar ou quando o gatilho de busca explícito (fetchTrigger) for acionado
   useEffect(() => {
     fetchLojas(true);
-  }, [busca, cliente, statusFiltro, centroCusto, coordenadorFiltro, supervisorFiltro, codigoLojaFiltro, fetchTrigger]);
+  }, [fetchTrigger]);
 
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     fetchLojas();
   }, [currentPage]);
 
@@ -132,6 +138,7 @@ export default function Lojas() {
   const fetchLojas = async (resetPage = false) => {
     setLoading(true);
     setErrorMsg(null);
+    const queryId = ++lastQueryId.current;
     const targetPage = resetPage ? 1 : currentPage;
     if (resetPage) {
       setCurrentPage(1);
@@ -151,6 +158,8 @@ export default function Lojas() {
         }
       });
 
+      if (queryId !== lastQueryId.current) return;
+
       if (response.data && response.data.results) {
         setLojas(response.data.results);
         setCount(response.data.count);
@@ -161,10 +170,13 @@ export default function Lojas() {
         setTotalPages(1);
       }
     } catch (err) {
+      if (queryId !== lastQueryId.current) return;
       console.error('Erro ao buscar lojas:', err);
       setErrorMsg('Não foi possível carregar as lojas do servidor.');
     } finally {
-      setLoading(false);
+      if (queryId === lastQueryId.current) {
+        setLoading(false);
+      }
     }
   };
 
