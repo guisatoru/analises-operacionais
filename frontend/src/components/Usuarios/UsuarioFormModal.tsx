@@ -53,6 +53,8 @@ export default function UsuarioFormModal({
       let mappedRole = 'administrador';
       if (usuario.role === 'Gestão') {
         mappedRole = 'gestao';
+      } else if (usuario.role === 'Aprendiz') {
+        mappedRole = 'aprendiz';
       }
       setFormData({
         username: usuario.username,
@@ -243,6 +245,7 @@ export default function UsuarioFormModal({
             >
               <option value="administrador">Administrador</option>
               <option value="gestao">Gestão</option>
+              <option value="aprendiz">Aprendiz</option>
             </select>
             {usuario !== null && usuario.username === currentUsername && (
               <p className="text-[10px] text-neutral-400 mt-1">

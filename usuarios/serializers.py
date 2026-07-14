@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User, Group
 from rest_framework import serializers
-from .constants import ADMINISTRADOR_ROLE, GESTAO_ROLE
+from .constants import ADMINISTRADOR_ROLE, GESTAO_ROLE, APRENDIZ_ROLE
 from .models import RolePermission
 
 class RolePermissionSerializer(serializers.ModelSerializer):
@@ -34,6 +34,8 @@ class UsuarioSerializer(serializers.ModelSerializer):
             return "Administrador"
         if obj.groups.filter(name=GESTAO_ROLE).exists():
             return "Gestão"
+        if obj.groups.filter(name=APRENDIZ_ROLE).exists():
+            return "Aprendiz"
         return "Sem role"
 
     def get_permissions(self, obj):
@@ -94,7 +96,7 @@ class UsuarioCreateSerializer(serializers.ModelSerializer):
     permissões e grupos corretos para o respectivo papel de acesso ao sistema.
     """
     role = serializers.ChoiceField(
-        choices=((ADMINISTRADOR_ROLE, "Administrador"), (GESTAO_ROLE, "Gestão")),
+        choices=((ADMINISTRADOR_ROLE, "Administrador"), (GESTAO_ROLE, "Gestão"), (APRENDIZ_ROLE, "Aprendiz")),
         default=ADMINISTRADOR_ROLE,
         required=False
     )
