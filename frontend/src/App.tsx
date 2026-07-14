@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import RedefinirSenha from './pages/RedefinirSenha';
 import Dashboard from './pages/Dashboard';
 import Lojas from './pages/Lojas';
+import MapaLojas from './pages/MapaLojas';
 import Colaboradores from './pages/Colaboradores';
 import Terminos from './pages/Terminos';
 import Importacoes from './pages/Importacoes';
@@ -149,6 +150,10 @@ function App() {
           <Route 
             path="/lojas" 
             element={permissions.lojas?.view ? <Lojas /> : <Navigate to="/" replace />} 
+          />
+          <Route 
+            path="/lojas/mapa" 
+            element={permissions.lojas?.view ? <MapaLojas /> : <Navigate to="/" replace />} 
           />
           <Route 
             path="/agenda" 

@@ -7,7 +7,6 @@ import {
   Layers, 
   Briefcase,
   CheckCircle2,
-  TrendingDown,
   TrendingUp,
   Calendar,
   X,

@@ -218,6 +218,16 @@ class Loja(models.Model):
         max_length=80,
         blank=True,
     )
+    latitude = models.FloatField(
+        "Latitude",
+        blank=True,
+        null=True,
+    )
+    longitude = models.FloatField(
+        "Longitude",
+        blank=True,
+        null=True,
+    )
     coordenador = models.ForeignKey(
         Coordenador,
         on_delete=models.SET_NULL,

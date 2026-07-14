@@ -42,6 +42,9 @@ export default function Layout({ isAuthenticated, username, email, onLogout, rol
   if (path === 'lojas') {
     sector = 'Operação';
     pageName = 'Lojas';
+  } else if (path === 'lojas/mapa') {
+    sector = 'Operação';
+    pageName = 'Mapa de Lojas';
   } else if (path === 'agenda') {
     sector = 'Operação';
     pageName = 'Agenda';

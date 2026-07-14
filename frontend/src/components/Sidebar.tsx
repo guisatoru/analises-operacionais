@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Store, 
+  Map,
   Users, 
   LogOut, 
   TrendingUp,
@@ -134,6 +135,22 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, p
                     <Link to="/lojas">
                       <Store className="h-5 w-5 shrink-0" />
                       {open && <span className="truncate">Lojas</span>}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+
+              {/* Mapa de Lojas */}
+              {permissions?.lojas?.view === true && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={location.pathname === '/lojas/mapa'}
+                    title={!open ? "Mapa de Lojas" : undefined}
+                  >
+                    <Link to="/lojas/mapa">
+                      <Map className="h-5 w-5 shrink-0" />
+                      {open && <span className="truncate">Mapa de Lojas</span>}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
