@@ -41,7 +41,7 @@ export default function Headcount() {
   const [kpis, setKpis] = useState({
     total_planejado: 0,
     total_real: 0,
-    desvio_geral: 0,
+    total_excedentes: 0,
     total_lojas: 0
   });
   const [loading, setLoading] = useState(true);
@@ -194,7 +194,7 @@ export default function Headcount() {
       if (response.data) {
         const payload = response.data.results || {};
         setData(payload.resultados || []);
-        setKpis(payload.kpis || { total_planejado: 0, total_real: 0, desvio_geral: 0, total_lojas: 0 });
+        setKpis(payload.kpis || { total_planejado: 0, total_real: 0, total_excedentes: 0, total_lojas: 0 });
         
         const totalCount = response.data.count || 0;
         setTotalPages(Math.ceil(totalCount / 20) || 1);
@@ -305,25 +305,21 @@ export default function Headcount() {
           </div>
         </div>
 
-        {/* Desvio Geral */}
+        {/* Total Excedentes */}
         <div className={`border rounded-2xl p-5 shadow-sm flex items-center justify-between transition-colors ${
-          kpis.desvio_geral > 0 
+          kpis.total_excedentes > 0 
             ? 'bg-violet-500/5 border-violet-500/20 text-violet-750' 
-            : kpis.desvio_geral < 0 
-            ? 'bg-amber-550/5 border-amber-500/20 text-amber-700' 
             : 'bg-green-500/5 border-green-500/20 text-green-700'
         }`}>
           <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block">Desvio Consolidado</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block">Total de Excedentes</span>
             <span className="text-2xl font-extrabold font-mono block">
-              {loading ? '...' : (kpis.desvio_geral > 0 ? `+${kpis.desvio_geral}` : kpis.desvio_geral)}
+              {loading ? '...' : (kpis.total_excedentes > 0 ? `+${kpis.total_excedentes}` : kpis.total_excedentes)}
             </span>
           </div>
           <div className="p-3 rounded-xl bg-white dark:bg-neutral-850 shadow-2xs">
-            {kpis.desvio_geral > 0 ? (
+            {kpis.total_excedentes > 0 ? (
               <TrendingUp className="h-5 w-5 text-violet-600" />
-            ) : kpis.desvio_geral < 0 ? (
-              <TrendingDown className="h-5 w-5 text-amber-600" />
             ) : (
               <CheckCircle2 className="h-5 w-5 text-green-600" />
             )}

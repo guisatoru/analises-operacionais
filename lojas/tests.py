@@ -123,6 +123,17 @@ class HeadcountViewsTests(TestCase):
         self.loja_carrefour.save()
 
     def test_headcount_analise_consolidado(self):
+        # Por que existe: Este teste valida que o endpoint retorna corretamente os KPIs globais,
+        # incluindo o total_excedentes que soma apenas os excedentes individuais de cada loja (desvio > 0)
+        # em vez de somar desvios negativos, e a paginação das lojas ativas.
+
+        # Configura o headcount_real das lojas simulando um excedente de +1 no Atacadão
+        # e uma falta de -1 no Carrefour (para verificar que a soma de excedentes dá 1 e não 0).
+        self.loja_atacadao.headcount_real = 4  # Planejado era 3. Desvio = +1
+        self.loja_atacadao.save()
+        self.loja_carrefour.headcount_real = 1  # Planejado era 2. Desvio = -1
+        self.loja_carrefour.save()
+
         # Faz a chamada para a API consolidada (sem filtros de data)
         response = self.client.get("/lojas/headcount/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -135,29 +146,29 @@ class HeadcountViewsTests(TestCase):
         self.assertEqual(len(resultados), 2)
         self.assertNotIn("LOJA INATIVA DE TESTE", [r["nome_referencia"] for r in resultados])
 
-        # Valida dados do Atacadão (Planejado: 3, Real: 3, Desvio: 0)
+        # Valida dados do Atacadão (Planejado: 3, Real: 4, Desvio: 1)
         atacadao_data = next(
             r for r in resultados if r["nome_referencia"] == "ATACADÃO SÃO PAULO"
         )
         self.assertEqual(atacadao_data["quadro_planejado"], 3)
-        self.assertEqual(atacadao_data["headcount_real"], 3)
-        self.assertEqual(atacadao_data["desvio"], 0)
+        self.assertEqual(atacadao_data["headcount_real"], 4)
+        self.assertEqual(atacadao_data["desvio"], 1)
         self.assertTrue(atacadao_data["is_atacadao"])
 
-        # Valida dados do Carrefour (Planejado: 2, Real: 2, Desvio: 0)
+        # Valida dados do Carrefour (Planejado: 2, Real: 1, Desvio: -1)
         carrefour_data = next(
             r for r in resultados if r["nome_referencia"] == "CARREFOUR CAMPINAS"
         )
         self.assertEqual(carrefour_data["quadro_planejado"], 2)
-        self.assertEqual(carrefour_data["headcount_real"], 2)  # Rita (férias) não conta
-        self.assertEqual(carrefour_data["desvio"], 0)
+        self.assertEqual(carrefour_data["headcount_real"], 1)
+        self.assertEqual(carrefour_data["desvio"], -1)
         self.assertFalse(carrefour_data["is_atacadao"])
 
         # Valida KPIs globais
         kpis = results_data["kpis"]
         self.assertEqual(kpis["total_planejado"], 5)  # 3 (Atacadão) + 2 (Carrefour)
-        self.assertEqual(kpis["total_real"], 5)       # 3 (Atacadão) + 2 (Carrefour)
-        self.assertEqual(kpis["desvio_geral"], 0)
+        self.assertEqual(kpis["total_real"], 5)       # 4 (Atacadão) + 1 (Carrefour)
+        self.assertEqual(kpis["total_excedentes"], 1)  # Apenas o excedente do Atacadão (+1)
         self.assertEqual(kpis["total_lojas"], 2)
 
     def test_headcount_loja_colaboradores_detail(self):

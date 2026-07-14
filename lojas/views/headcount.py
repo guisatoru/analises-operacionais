@@ -51,6 +51,7 @@ def headcount_analise_api(request):
     # Calcula KPIs Globais sobre a lista inteira filtrada
     total_planejado = 0
     total_real_acumulado = 0
+    total_excedentes = 0
     for loja in lojas_list:
         quadro_val = 0
         try:
@@ -59,6 +60,11 @@ def headcount_analise_api(request):
             pass
         total_planejado += quadro_val
         total_real_acumulado += loja.headcount_real
+
+        # Por que existe: Calcula o total de funcionários excedentes (quando o real supera o planejado)
+        desvio_loja = loja.headcount_real - quadro_val
+        if desvio_loja > 0:
+            total_excedentes += desvio_loja
 
     # Aplica a paginação de lojas na lista
     paginator = HeadcountPaginacao()
@@ -92,7 +98,7 @@ def headcount_analise_api(request):
         "kpis": {
             "total_planejado": total_planejado,
             "total_real": total_real_acumulado,
-            "desvio_geral": total_real_acumulado - total_planejado,
+            "total_excedentes": total_excedentes,
             "total_lojas": len(lojas_list),
         },
         "resultados": resultado,
