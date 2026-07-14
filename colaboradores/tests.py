@@ -403,3 +403,103 @@ class TerminoAPITests(TestCase):
         response = self.client.get(self.url, {"acao": "pendente"})
         self.assertEqual(len(response.data["results"]), 1)
         self.assertEqual(response.data["results"][0]["colaborador"]["re"], "888888")
+
+    def test_sync_geovictoria_skips_terminated_and_kept_employees(self):
+        """
+        Garante que a sincronização da GeoVictoria pula colaboradores que possuem
+        decisão de término (Dispensar) ou decisão de manter (Efetivar) no segundo período.
+        """
+        from unittest.mock import patch
+        
+        # Criar colaboradores adicionais
+        today = date.today()
+        
+        # Colaborador 1: Prorrogado no 1º Termino (deve sincronizar)
+        colab_prorrogado = Colaborador.objects.create(
+            re="111111",
+            nome="Colab Prorrogado",
+            loja=self.loja,
+            centro_custo="999",
+            cpf="11111111111",
+            data_admissao=today - timedelta(days=10),
+            status="A",
+            termino_1=today + timedelta(days=5),
+            termino_2=today + timedelta(days=35),
+        )
+        ControleTermino.objects.create(
+            colaborador=colab_prorrogado,
+            etapa=1,
+            acao="prorrogado",
+            observacao="Prorrogar",
+        )
+
+        # Colaborador 2: Mantido no 2º Termino (deve ser pulado)
+        colab_mantido = Colaborador.objects.create(
+            re="222222",
+            nome="Colab Mantido",
+            loja=self.loja,
+            centro_custo="999",
+            cpf="22222222222",
+            data_admissao=today - timedelta(days=10),
+            status="A",
+            termino_1=today + timedelta(days=5),
+            termino_2=today + timedelta(days=35),
+        )
+        ControleTermino.objects.create(
+            colaborador=colab_mantido,
+            etapa=1,
+            acao="prorrogado",
+            observacao="Prorrogar",
+        )
+        ControleTermino.objects.create(
+            colaborador=colab_mantido,
+            etapa=2,
+            acao="manter",
+            observacao="Efetivar",
+        )
+
+        # Colaborador 3: Dispensado (acao=termino) no 1º Termino (deve ser pulado)
+        colab_dispensado = Colaborador.objects.create(
+            re="333333",
+            nome="Colab Dispensado",
+            loja=self.loja,
+            centro_custo="999",
+            cpf="33333333333",
+            data_admissao=today - timedelta(days=10),
+            status="A",
+            termino_1=today + timedelta(days=5),
+            termino_2=today + timedelta(days=35),
+        )
+        ControleTermino.objects.create(
+            colaborador=colab_dispensado,
+            etapa=1,
+            acao="termino",
+            observacao="Dispensar",
+        )
+
+        sync_url = reverse("colaboradores:sync_geovictoria")
+
+        # Modificado: Usar patch para interceptar o disparo da thread em segundo plano da views_sync
+        with patch("colaboradores.views_sync.threading.Thread") as mock_thread:
+            response = self.client.post(sync_url)
+            self.assertEqual(response.status_code, 200)
+            
+            # Verificar se a Thread foi criada
+            self.assertTrue(mock_thread.called)
+            
+            # Extrair os argumentos passados para a Thread (o target é _sync_geovictoria_background e args é a lista de CPFs)
+            call_kwargs = mock_thread.call_args[1]
+            args_passed = call_kwargs.get("args")
+            cpfs_list = args_passed[0] if args_passed else []
+            
+            # Obter CPFs na lista enviada para sincronização
+            cpfs_enviados = [item["cpf"] for item in cpfs_list]
+            
+            # Colab prorrogado DEVE estar nos CPFs enviados (não foi dispensado nem efetivado na etapa 2)
+            self.assertIn("11111111111", cpfs_enviados)
+            
+            # Colab mantido na etapa 2 NÃO DEVE estar na lista
+            self.assertNotIn("22222222222", cpfs_enviados)
+            
+            # Colab dispensado na etapa 1 NÃO DEVE estar na lista
+            self.assertNotIn("33333333333", cpfs_enviados)

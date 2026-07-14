@@ -184,6 +184,20 @@ def sync_geovictoria(request):
     cpfs_para_sincronizar = []
     for item in processed_colaboradores:
         colaborador = item["colaborador"]
+        history = item["history"]
+
+        # Por que existe: Evita sincronizar dados de faltas/atestados para colaboradores que já possuem
+        # decisões definitivas tomadas (como "termino" em qualquer um dos termos, ou "manter" no segundo termo),
+        # garantindo que os dados históricos fiquem congelados no momento da decisão.
+        pular_sync = False
+        for controle in history:
+            if (controle.etapa == 2 and controle.acao == "manter") or (controle.acao == "termino"):
+                pular_sync = True
+                break
+
+        if pular_sync:
+            continue
+
         if colaborador.cpf:
             cpfs_para_sincronizar.append({
                 "cpf": str(colaborador.cpf).strip(),
