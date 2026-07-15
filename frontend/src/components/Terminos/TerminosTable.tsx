@@ -58,6 +58,8 @@ interface TerminosTableProps {
   count: number;
   setCurrentPage: (page: number) => void;
   onOpenAcao: (item: TerminoItem) => void;
+  ordenacao: string;
+  setOrdenacao: (val: string) => void;
 }
 
 /**
@@ -190,6 +192,8 @@ export default function TerminosTable({
   count,
   setCurrentPage,
   onOpenAcao,
+  ordenacao,
+  setOrdenacao,
 }: TerminosTableProps) {
 
   /**
@@ -268,7 +272,20 @@ export default function TerminosTable({
               <th className="py-3 px-4 align-middle w-[15%]">Loja (TOTVS)</th>
               <th className="py-3 px-4 align-middle w-[13%]">Coordenador</th>
               <th className="py-3 px-4 align-middle w-[8%]">Status Gestão</th>
-              <th className="py-3 px-4 text-center align-middle w-[9%]">Faltas / Atestados</th>
+              <th
+                onClick={() => setOrdenacao(ordenacao === 'ausencias' ? 'data' : 'ausencias')}
+                className="py-3 px-4 text-center align-middle w-[9%] cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors select-none group/col"
+                title="Clique para ordenar por total de ausências (faltas + atestados)"
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <span>Faltas / Atestados</span>
+                  {ordenacao === 'ausencias' ? (
+                    <span className="text-[10px] text-neutral-900 dark:text-neutral-100 font-bold">▼</span>
+                  ) : (
+                    <span className="text-[10px] text-neutral-400 opacity-0 group-hover/col:opacity-100 transition-opacity">↕</span>
+                  )}
+                </div>
+              </th>
               <th className="py-3 px-4 align-middle w-[9%]">1º Per. (30d)</th>
               <th className="py-3 px-4 align-middle w-[17%]">2º Per. (60d)</th>
               <th className="py-3 px-4 text-right sticky right-0 bg-neutral-100 dark:bg-neutral-800 z-20 border-b border-neutral-200 dark:border-neutral-800 align-middle w-[9%]">Ação</th>

@@ -519,7 +519,16 @@ def _ordenar_colaboradores_termino(processed_colaboradores, ordenar_por):
     """
     Ordena a lista já processada porque alguns campos dependem da regra calculada em Python.
     """
-    if ordenar_por == "faltas":
+    if ordenar_por == "ausencias":
+        # Por que existe: Ordena os colaboradores pelo total acumulado de ausências (faltas + atestados) de forma decrescente.
+        processed_colaboradores.sort(
+            key=lambda item: (
+                (item["colaborador"].faltas_geovictoria or 0) +
+                (item["colaborador"].atestados_geovictoria or 0)
+            ),
+            reverse=True,
+        )
+    elif ordenar_por == "faltas":
         processed_colaboradores.sort(
             key=lambda item: item["colaborador"].faltas_geovictoria,
             reverse=True,

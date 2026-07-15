@@ -404,6 +404,61 @@ class TerminoAPITests(TestCase):
         self.assertEqual(len(response.data["results"]), 1)
         self.assertEqual(response.data["results"][0]["colaborador"]["re"], "888888")
 
+    def test_list_order_by_ausencias(self):
+        """
+        Por que existe: Garante que a ordenação 'ausencias' traz os colaboradores
+        com maior soma de faltas e atestados no total primeiro.
+        """
+        today = date.today()
+        self.colaborador.termino_1 = today + timedelta(days=5)
+        self.colaborador.termino_2 = today + timedelta(days=35)
+        self.colaborador.faltas_geovictoria = 2
+        self.colaborador.atestados_geovictoria = 1
+        self.colaborador.cpf = "99999999999"
+        self.colaborador.save()
+
+        # Colaborador com poucas ausências (total 1)
+        Colaborador.objects.create(
+            re="888888",
+            nome="Colaborador Pouco",
+            loja=self.loja,
+            centro_custo="999",
+            data_admissao=today - timedelta(days=10),
+            status="A",
+            termino_1=today + timedelta(days=5),
+            termino_2=today + timedelta(days=35),
+            faltas_geovictoria=1,
+            atestados_geovictoria=0,
+            cpf="88888888888",
+        )
+
+        # Colaborador com muitas ausências (total 5)
+        Colaborador.objects.create(
+            re="777777",
+            nome="Colaborador Muito",
+            loja=self.loja,
+            centro_custo="999",
+            data_admissao=today - timedelta(days=10),
+            status="A",
+            termino_1=today + timedelta(days=5),
+            termino_2=today + timedelta(days=35),
+            faltas_geovictoria=3,
+            atestados_geovictoria=2,
+            cpf="77777777777",
+        )
+
+        # Buscar ordenando por 'ausencias'
+        response = self.client.get(self.url, {"ordenar": "ausencias"})
+        self.assertEqual(response.status_code, 200)
+        
+        results = response.data["results"]
+        self.assertEqual(len(results), 3)
+        
+        # A ordem deve ser: Muito (5), self.colaborador (3), Pouco (1)
+        self.assertEqual(results[0]["colaborador"]["re"], "777777")
+        self.assertEqual(results[1]["colaborador"]["re"], "999999")
+        self.assertEqual(results[2]["colaborador"]["re"], "888888")
+
     def test_sync_geovictoria_skips_terminated_and_kept_employees(self):
         """
         Garante que a sincronização da GeoVictoria pula colaboradores que possuem

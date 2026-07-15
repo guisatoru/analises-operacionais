@@ -341,8 +341,6 @@ export default function Terminos() {
         setDataFiltro={setDataFiltro}
         dataFim={dataFim}
         setDataFim={setDataFim}
-        ordenacao={ordenacao}
-        setOrdenacao={setOrdenacao}
         etapaFiltro={etapaFiltro}
         setEtapaFiltro={setEtapaFiltro}
         acaoFiltro={acaoFiltro}
@@ -369,6 +367,8 @@ export default function Terminos() {
         count={count}
         setCurrentPage={setCurrentPage}
         onOpenAcao={handleOpenAcao}
+        ordenacao={ordenacao}
+        setOrdenacao={setOrdenacao}
       />
 
       {/* Modal de Registro de Decisão */}

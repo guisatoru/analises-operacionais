@@ -20,8 +20,6 @@ interface TerminosFilterProps {
   setDataFiltro: (val: string) => void;
   dataFim: string;
   setDataFim: (val: string) => void;
-  ordenacao: string;
-  setOrdenacao: (val: string) => void;
   etapaFiltro: string;
   setEtapaFiltro: (val: string) => void;
   acaoFiltro: string;
@@ -51,8 +49,6 @@ export default function TerminosFilter({
   setDataFiltro,
   dataFim,
   setDataFim,
-  ordenacao,
-  setOrdenacao,
   etapaFiltro,
   setEtapaFiltro,
   acaoFiltro,
@@ -260,21 +256,7 @@ export default function TerminosFilter({
           </select>
         </div>
 
-        {/* Ordenação Principal */}
-        <div>
-          <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
-            Ordenação Principal
-          </label>
-          <select
-            value={ordenacao}
-            onChange={(e) => setOrdenacao(e.target.value)}
-            className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-          >
-            <option value="data">Data de Término mais próxima</option>
-            <option value="faltas">Quantidade de Faltas (Geo)</option>
-            <option value="atestados">Quantidade de Atestados (Geo)</option>
-          </select>
-        </div>
+
       </div>
 
       <div className="flex justify-end gap-3 pt-2">
