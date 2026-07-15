@@ -24,6 +24,8 @@ export interface Loja {
   municipio?: string;
   uf?: string;
   sub_regiao?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   coordenador?: string; // ID do coordenador relacional
   supervisor?: string; // ID do supervisor relacional
   coordenador_nome?: string;
