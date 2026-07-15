@@ -558,3 +558,51 @@ class TerminoAPITests(TestCase):
             
             # Colab dispensado na etapa 1 NÃO DEVE estar na lista
             self.assertNotIn("33333333333", cpfs_enviados)
+
+
+class GeoVictoriaFilterTests(TestCase):
+    """
+    Por que existe: Garante que ausências anteriores à data de admissão
+    do contrato atual de um colaborador sejam ignoradas no resumo de faltas.
+    """
+
+    def test_get_timeoff_summary_filters_by_individual_admission(self):
+        from unittest.mock import patch
+        from colaboradores.services import geovictoria
+        
+        # Simulamos o retorno da API da GeoVictoria
+        mock_payload = [
+            # Falta antiga (antes da admissão do colaborador readmitido)
+            {
+                "UserIdentifier": "99999999999",
+                "TimeOffTypeDescription": "FALTA",
+                "Starts": "20260710000000",
+                "Ends": "20260710000000",
+            },
+            # Falta nova (depois da admissão do colaborador readmitido)
+            {
+                "UserIdentifier": "99999999999",
+                "TimeOffTypeDescription": "FALTA",
+                "Starts": "20260716000000",
+                "Ends": "20260716000000",
+            },
+        ]
+        
+        with patch("colaboradores.services.geovictoria.get_token", return_value="mock-token"), \
+             patch("colaboradores.services.geovictoria._geovictoria_request", return_value=mock_payload):
+            
+            # Admissão do colaborador é no dia 2026-07-15
+            admissoes_dict = {
+                "99999999999": date(2026, 7, 15)
+            }
+            
+            res = geovictoria.get_timeoff_summary(
+                cpfs="99999999999",
+                start_date=date(2026, 7, 1),
+                end_date=date(2026, 7, 20),
+                admissoes_dict=admissoes_dict
+            )
+            
+            # A falta de '2026-07-10' deve ser ignorada pois é anterior a '2026-07-15'
+            # Apenas a falta de '2026-07-16' deve ser contabilizada (1 dia)
+            self.assertEqual(res["99999999999"]["faltas"], 1)

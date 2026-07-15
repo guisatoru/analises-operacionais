@@ -59,11 +59,20 @@ def sincronizar_colaboradores(cpfs_com_admissao: List[Dict], progress_callback=N
         admissoes = [item["admissao"] for item in chunk if item["admissao"]]
         min_admissao = min(admissoes) if admissoes else today
         
+        # Monta dicionário de admissões individuais do chunk para filtragem
+        admissoes_dict = {
+            item["cpf"]: item["admissao"]
+            for item in chunk
+            if item.get("cpf") and item.get("admissao")
+        }
+        
         # Monta string de CPFs
         cpfs_string = ",".join(item["cpf"] for item in chunk)
         
         try:
-            resultado = geovictoria.get_timeoff_summary(cpfs_string, min_admissao, today)
+            resultado = geovictoria.get_timeoff_summary(
+                cpfs_string, min_admissao, today, admissoes_dict=admissoes_dict
+            )
             
             if resultado:
                 dados_finais.update(resultado)

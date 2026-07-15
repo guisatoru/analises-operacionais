@@ -66,10 +66,13 @@ def get_token():
     return token
 
 
-def get_timeoff_summary(cpfs, start_date, end_date):
+def get_timeoff_summary(cpfs, start_date, end_date, admissoes_dict=None):
     """
-    Busca o resumo de faltas e atestados usando uma string de CPFs (separados por vírgula).
-    Retorna um dicionário mapeando cada CPF ao seu resumo {faltas, atestados, total}.
+    Busca o resumo de faltas e atestados dos colaboradores na API GeoVictoria.
+    
+    Por que existe: Agrupa as ausências por CPF para exibição na listagem de términos,
+    permitindo filtrar opcionalmente por admissões individuais para evitar contabilizar
+    faltas de contratos anteriores em colaboradores readmitidos.
     """
     token = get_token()
     if not token or not cpfs:
@@ -126,6 +129,12 @@ def get_timeoff_summary(cpfs, start_date, end_date):
             start_dt = datetime.strptime(starts_str, "%Y%m%d")
             end_dt = datetime.strptime(ends_str, "%Y%m%d")
             days = (end_dt - start_dt).days + 1
+
+            # Desconsidera ausências anteriores à data de admissão do contrato atual do colaborador
+            if admissoes_dict and entry_cpf in admissoes_dict:
+                colab_admissao = admissoes_dict[entry_cpf]
+                if colab_admissao and start_dt.date() < colab_admissao:
+                    continue
         except:
             days = 1
 
