@@ -5,11 +5,13 @@ import {
   AlertCircle, 
   User, 
   Mail, 
-  Lock 
+  Lock,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../api/client';
-import { InputGroup, InputGroupAddon, InputGroupInput } from '../ui/input-group';
+import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupButton } from '../ui/input-group';
 import type { Usuario } from './UsuariosTable';
 import FormField from '../ui/form-field';
 
@@ -43,6 +45,8 @@ export default function UsuarioFormModal({
     role: 'administrador',
   });
 
+  // Por que existe: Controla a visibilidade da senha no formulário de criação/edição de usuário.
+  const [showPassword, setShowPassword] = useState(false);
   // Estados locais de controle de envio e erro
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -263,7 +267,7 @@ export default function UsuarioFormModal({
                 <Lock className="h-4 w-4 text-neutral-450" />
               </InputGroupAddon>
               <InputGroupInput
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required={!usuario}
                 value={formData.password}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -271,6 +275,20 @@ export default function UsuarioFormModal({
                 }
                 placeholder={usuario ? 'Nova senha' : 'Senha de acesso'}
               />
+              <InputGroupAddon align="inline-end">
+                <InputGroupButton
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  className="text-neutral-450 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </InputGroupButton>
+              </InputGroupAddon>
             </InputGroup>
           </div>
 

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, User, Loader2, TrendingUp, Mail } from 'lucide-react';
+import { Lock, User, Loader2, TrendingUp, Mail, Eye, EyeOff } from 'lucide-react';
 import api from '../api/client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card';
-import { InputGroup, InputGroupAddon, InputGroupInput } from '../components/ui/input-group';
+import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupButton } from '../components/ui/input-group';
 import { toast } from 'sonner';
 
 interface LoginProps {
@@ -22,6 +22,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const navigate = useNavigate();
   const [usernameInput, setUsernameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
+  // Por que existe: Controla a visibilidade da senha na tela de login.
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -220,13 +222,28 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     <InputGroupInput
                       id="password"
                       name="password"
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       required
                       value={passwordInput}
                       onChange={(e) => setPasswordInput(e.target.value)}
                       placeholder="Sua senha"
                       disabled={isLoading}
                     />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupButton
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        disabled={isLoading}
+                        aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                        className="text-neutral-450 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </InputGroupButton>
+                    </InputGroupAddon>
                   </InputGroup>
                 </div>
 

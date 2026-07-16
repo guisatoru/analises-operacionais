@@ -5,11 +5,13 @@ import {
   AlertCircle, 
   User, 
   Mail, 
-  Lock 
+  Lock,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../api/client';
-import { InputGroup, InputGroupAddon, InputGroupInput } from '../ui/input-group';
+import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupButton } from '../ui/input-group';
 import FormField from '../ui/form-field';
 
 interface PerfilEditModalProps {
@@ -42,6 +44,10 @@ export default function PerfilEditModal({
   const [loadingUser, setLoadingUser] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  // Por que existe: Controla a visibilidade da nova senha digitada no formulário de edição de perfil.
+  const [showPassword, setShowPassword] = useState(false);
+  // Por que existe: Controla a visibilidade da confirmação da nova senha digitada no formulário de edição de perfil.
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Carrega os dados do perfil do usuário logado na montagem do modal
   useEffect(() => {
@@ -231,13 +237,27 @@ export default function PerfilEditModal({
                     <Lock className="h-4 w-4 text-neutral-450" />
                   </InputGroupAddon>
                   <InputGroupInput
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     value={formData.password}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       handleChange('password', e.target.value)
                     }
                     placeholder="Mínimo 4 caracteres"
                   />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupButton
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                      className="text-neutral-450 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </InputGroupButton>
+                  </InputGroupAddon>
                 </InputGroup>
               </div>
 
@@ -250,7 +270,7 @@ export default function PerfilEditModal({
                     <Lock className="h-4 w-4 text-neutral-450" />
                   </InputGroupAddon>
                   <InputGroupInput
-                    type="password"
+                    type={showConfirmPassword ? 'text' : 'password'}
                     value={formData.confirm_password}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       handleChange('confirm_password', e.target.value)
@@ -258,6 +278,21 @@ export default function PerfilEditModal({
                     placeholder="Redigite a nova senha"
                     disabled={!formData.password.trim()}
                   />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupButton
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      disabled={!formData.password.trim()}
+                      aria-label={showConfirmPassword ? "Ocultar senha" : "Mostrar senha"}
+                      className="text-neutral-450 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </InputGroupButton>
+                  </InputGroupAddon>
                 </InputGroup>
               </div>
             </div>

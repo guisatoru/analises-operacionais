@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Lock, Loader2, TrendingUp } from 'lucide-react';
+import { Lock, Loader2, TrendingUp, Eye, EyeOff } from 'lucide-react';
 import api from '../api/client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card';
-import { InputGroup, InputGroupAddon, InputGroupInput } from '../components/ui/input-group';
+import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupButton } from '../components/ui/input-group';
 import { toast } from 'sonner';
 
 /**
@@ -17,6 +17,10 @@ export default function RedefinirSenha() {
   const [searchParams] = useSearchParams();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  // Por que existe: Controla a visibilidade da nova senha digitada.
+  const [showPassword, setShowPassword] = useState(false);
+  // Por que existe: Controla a visibilidade da confirmação da nova senha digitada.
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const uidb64 = searchParams.get('uidb64');
@@ -104,13 +108,28 @@ export default function RedefinirSenha() {
                   <InputGroupInput
                     id="password"
                     name="password"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Mínimo de 8 caracteres"
                     disabled={isLoading}
                   />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupButton
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      disabled={isLoading}
+                      aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                      className="text-neutral-450 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </InputGroupButton>
+                  </InputGroupAddon>
                 </InputGroup>
               </div>
 
@@ -125,13 +144,28 @@ export default function RedefinirSenha() {
                   <InputGroupInput
                     id="confirmPassword"
                     name="confirmPassword"
-                    type="password"
+                    type={showConfirmPassword ? 'text' : 'password'}
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Repita a nova senha"
                     disabled={isLoading}
                   />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupButton
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      disabled={isLoading}
+                      aria-label={showConfirmPassword ? "Ocultar senha" : "Mostrar senha"}
+                      className="text-neutral-450 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </InputGroupButton>
+                  </InputGroupAddon>
                 </InputGroup>
               </div>
 
