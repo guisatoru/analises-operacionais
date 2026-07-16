@@ -1,7 +1,8 @@
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes, throttle_classes
+from .throttles import AuthAnonRateThrottle
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.authentication import SessionAuthentication
@@ -75,6 +76,7 @@ def usuario_create(request):
 @api_view(["POST"])
 @authentication_classes([])
 @permission_classes([AllowAny])
+@throttle_classes([AuthAnonRateThrottle])
 def api_login(request):
     """
     Realiza a autenticação e inicia a sessão (cookie-based) para o usuário.
@@ -261,6 +263,17 @@ def usuario_update(request, pk):
         usuario.is_active = bool(is_active)
 
     if password:
+        # Valida a força da senha antes de defini-la
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError
+        try:
+            validate_password(password, user=usuario)
+        except ValidationError as e:
+            return Response({
+                "success": False,
+                "error": "Senha muito fraca.",
+                "details": list(e.messages)
+            }, status=status.HTTP_400_BAD_REQUEST)
         usuario.set_password(password)
 
     usuario.save()
@@ -370,6 +383,7 @@ def role_permissions_update(request, group_id):
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@throttle_classes([AuthAnonRateThrottle])
 def api_recuperar_senha(request):
     """
     Gera um token de redefinição de senha seguro e envia por e-mail para o usuário.
@@ -432,6 +446,7 @@ def api_recuperar_senha(request):
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@throttle_classes([AuthAnonRateThrottle])
 def api_redefinir_senha(request):
     """
     Valida o token seguro e altera a senha do usuário.
@@ -458,6 +473,17 @@ def api_redefinir_senha(request):
         user = None
         
     if user is not None and default_token_generator.check_token(user, token):
+        # Valida a força da senha antes de defini-la
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError
+        try:
+            validate_password(password, user=user)
+        except ValidationError as e:
+            return Response({
+                "success": False,
+                "error": "Senha muito fraca.",
+                "details": list(e.messages)
+            }, status=status.HTTP_400_BAD_REQUEST)
         user.set_password(password)
         user.save()
         return Response({

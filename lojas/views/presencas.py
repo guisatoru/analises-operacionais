@@ -8,7 +8,7 @@ from ..models import Loja
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def loja_presencas_calendario_api(request, loja_id):
     """
     Por que existe: Retorna o consolidado de presenças registradas por dia para uma loja física
@@ -40,7 +40,7 @@ def loja_presencas_calendario_api(request, loja_id):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def loja_presencas_dia_api(request, loja_id):
     """
     Por que existe: Retorna o detalhamento (quem marcou presença e que horas)

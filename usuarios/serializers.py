@@ -106,6 +106,21 @@ class UsuarioCreateSerializer(serializers.ModelSerializer):
         model = User
         fields = ["username", "first_name", "last_name", "email", "password", "role"]
 
+    def validate_password(self, value):
+        """
+        Valida a força da senha de acordo com as políticas configuradas no Django.
+        
+        Por que existe: Garante que senhas cadastradas para novos usuários sigam as regras 
+        de complexidade e tamanho mínimo estipuladas no settings.py, evitando contas inseguras.
+        """
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError
+        try:
+            validate_password(value)
+        except ValidationError as e:
+            raise serializers.ValidationError(list(e.messages))
+        return value
+
     def create(self, validated_data):
         """
         Sobrescreve o método de criação padrão para aplicar a lógica de hashing de senha do Django,
