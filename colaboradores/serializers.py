@@ -233,6 +233,7 @@ class TestePromocaoSerializer(serializers.ModelSerializer):
     
     loja_nome = serializers.SerializerMethodField()
     supervisor_nome = serializers.SerializerMethodField()
+    coordenador_nome = serializers.SerializerMethodField()
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     
     historico_acoes = HistoricoAcaoTesteSerializer(many=True, read_only=True)
@@ -255,6 +256,16 @@ class TestePromocaoSerializer(serializers.ModelSerializer):
         """
         if obj.colaborador.loja and obj.colaborador.loja.supervisor:
             return obj.colaborador.loja.supervisor.nome
+        return "-"
+
+    def get_coordenador_nome(self, obj):
+        """
+        Retorna o nome do coordenador associado à loja do colaborador do teste.
+
+        Por que existe: Exibe o coordenador responsável no painel de testes e mensagens.
+        """
+        if obj.colaborador.loja and obj.colaborador.loja.coordenador:
+            return obj.colaborador.loja.coordenador.nome
         return "-"
 
     def to_representation(self, instance):

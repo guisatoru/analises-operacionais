@@ -376,6 +376,10 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
                   <span className="text-sm font-semibold text-neutral-850 dark:text-neutral-200">{teste.supervisor_nome}</span>
                 </div>
                 <div>
+                  <span className="block text-[10px] font-bold text-neutral-450 uppercase tracking-wider">Coordenador</span>
+                  <span className="text-sm font-semibold text-neutral-850 dark:text-neutral-200">{teste.coordenador_nome || '-'}</span>
+                </div>
+                <div>
                   <span className="block text-[10px] font-bold text-neutral-450 uppercase tracking-wider">Data de Início</span>
                   <span className="text-sm font-semibold text-neutral-850 dark:text-neutral-200">{formatDate(teste.data_inicio)}</span>
                 </div>

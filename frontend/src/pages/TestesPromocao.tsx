@@ -42,6 +42,7 @@ export interface TestePromocaoItem {
   colaborador_status_gestao: string;
   loja_nome: string;
   supervisor_nome: string;
+  coordenador_nome: string;
   data_inicio: string;
   cargo_teste: string | null;
   status: 'pendente' | 'ativo' | 'promovido' | 'cancelado';
@@ -370,10 +371,11 @@ export default function TestesPromocao() {
                       )}
                     </td>
 
-                    {/* Loja / Supervisor */}
+                    {/* Loja / Supervisor / Coordenador */}
                     <td className="py-4 px-6">
                       <div className="font-medium text-neutral-800 dark:text-neutral-250">{teste.loja_nome}</div>
-                      <div className="text-xs text-neutral-500">Supervisor: {teste.supervisor_nome}</div>
+                      <div className="text-xs text-neutral-500 mt-0.5">Sup: {teste.supervisor_nome}</div>
+                      <div className="text-xs text-neutral-500">Coord: {teste.coordenador_nome || '-'}</div>
                     </td>
 
                     {/* Data de Início */}
