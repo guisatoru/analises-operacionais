@@ -54,20 +54,38 @@ export default function AcaoTesteModal({ teste, onClose, onSaveSuccess }: AcaoTe
   // Ações de execução
   const [executing, setExecuting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [loadingCopy, setLoadingCopy] = useState(false);
 
+  /**
+   * Monitora a aba ativa e carrega as ausências do colaborador sob demanda.
+   * 
+   * Por que existe: Evita requisições automáticas desnecessárias na montagem do modal,
+   * buscando dados da GeoVictoria apenas quando o usuário navegar para a aba de ausências.
+   */
   useEffect(() => {
-    fetchAusencias();
-  }, [teste.id]);
+    if (activeTab === 'ausencias' && !ausencias && !loadingAusencias) {
+      fetchAusencias();
+    }
+  }, [activeTab, teste.id]);
 
-  const fetchAusencias = async () => {
+  /**
+   * Busca dados de ausências (faltas/atestados) do colaborador no backend.
+   * 
+   * Por que existe: Integra-se com a API para coletar o histórico do último ano.
+   * Retorna os dados buscados para que outras funções (como a cópia de mensagens)
+   * possam consumi-los imediatamente após a resolução da Promise.
+   */
+  const fetchAusencias = async (): Promise<AusenciasInfo | null> => {
     setLoadingAusencias(true);
     setErrorAusencias(null);
     try {
       const response = await api.get(`/colaboradores/testes/${teste.id}/ausencias/`);
       setAusencias(response.data);
+      return response.data;
     } catch (err: any) {
       console.error('Erro ao carregar ausências do teste:', err);
       setErrorAusencias(err.response?.data?.error || 'Erro ao carregar dados do relógio de ponto.');
+      return null;
     } finally {
       setLoadingAusencias(false);
     }
@@ -120,9 +138,29 @@ export default function AcaoTesteModal({ teste, onClose, onSaveSuccess }: AcaoTe
     }
   };
 
-  const handleCopiarDados = () => {
-    const faltasCount = ausencias ? ausencias.faltas : 0;
-    const atestadosCount = ausencias ? ausencias.atestados : 0;
+  /**
+   * Copia os dados formatados da solicitação para enviar ao coordenador.
+   * 
+   * Por que existe: Caso os dados de ausências ainda não estejam carregados na tela,
+   * ele faz a busca na API no momento do clique, evitando que o usuário precise trocar
+   * de aba para obter as faltas e atestados antes de copiar.
+   */
+  const handleCopiarDados = async () => {
+    let dadosAusencias = ausencias;
+
+    if (!dadosAusencias) {
+      setLoadingCopy(true);
+      dadosAusencias = await fetchAusencias();
+      setLoadingCopy(false);
+
+      if (!dadosAusencias) {
+        toast.error('Não foi possível carregar os dados de ausências para copiar.');
+        return;
+      }
+    }
+
+    const faltasCount = dadosAusencias.faltas;
+    const atestadosCount = dadosAusencias.atestados;
 
     const texto = `Solicitação de Teste de Promoção:
 - Colaborador: ${teste.colaborador_nome} (RE ${teste.colaborador_re})
@@ -413,11 +451,18 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
                   <div className="flex gap-4">
                     <button
                       type="button"
+                      disabled={loadingCopy}
                       onClick={handleCopiarDados}
-                      className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 border border-neutral-300 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-850/50 text-neutral-700 dark:text-neutral-300 rounded-xl text-sm font-bold transition-all cursor-pointer"
+                      className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 border border-neutral-300 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-850/50 text-neutral-700 dark:text-neutral-300 rounded-xl text-sm font-bold transition-all cursor-pointer disabled:opacity-50"
                     >
-                      {copied ? <Check className="h-4.5 w-4.5 text-green-500" /> : <Copy className="h-4.5 w-4.5" />}
-                      {copied ? 'Dados Copiados!' : 'Copiar Mensagem para Coordenador'}
+                      {loadingCopy ? (
+                        <Loader2 className="h-4.5 w-4.5 animate-spin" />
+                      ) : copied ? (
+                        <Check className="h-4.5 w-4.5 text-green-500" />
+                      ) : (
+                        <Copy className="h-4.5 w-4.5" />
+                      )}
+                      {loadingCopy ? 'Carregando dados...' : copied ? 'Dados Copiados!' : 'Copiar Mensagem para Coordenador'}
                     </button>
 
                     <button
