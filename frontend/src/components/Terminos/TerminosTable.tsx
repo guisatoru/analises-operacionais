@@ -9,6 +9,7 @@ import {
   PaginationPrevious,
 } from '../ui/pagination';
 import { formatDate } from '../../utils/formatters';
+import { copyTextToClipboard } from '../../utils/clipboard';
 
 export interface ColaboradorTermino {
   id: string;
@@ -197,57 +198,19 @@ export default function TerminosTable({
 }: TerminosTableProps) {
 
   /**
-   * Copia um texto para a área de transferência do usuário com fallback de segurança.
-   * 
-   * Por que existe: Evita duplicação de lógica complexa de cópia segura que lida
-   * com diferentes contextos do navegador (HTTP/HTTPS).
-   */
-  const copyToClipboard = (text: string, successMessage: string) => {
-    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-      navigator.clipboard.writeText(text)
-        .then(() => {
-          toast.success(successMessage);
-        })
-        .catch((err) => {
-          console.error('Erro ao copiar informações via Clipboard API:', err);
-          toast.error('Erro ao copiar informações.');
-        });
-    } else {
-      try {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.top = '0';
-        textarea.style.left = '0';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
-        
-        const success = document.execCommand('copy');
-        document.body.removeChild(textarea);
-        
-        if (success) {
-          toast.success(successMessage);
-        } else {
-          toast.error('Não foi possível copiar as informações.');
-        }
-      } catch (err) {
-        console.error('Erro ao copiar informações via execCommand (fallback):', err);
-        toast.error('Erro ao copiar informações.');
-      }
-    }
-  };
-
-  /**
    * Copia as informações do colaborador formatadas para envio via WhatsApp.
    * 
    * Por que existe: Facilita o envio rápido de dados formatados no padrão do WhatsApp.
    */
-  const handleCopyWhatsApp = (item: TerminoItem) => {
+  const handleCopyWhatsApp = async (item: TerminoItem) => {
     const formattedDate = formatDate(item.relevant_date);
     const text = `*Colaborador:* ${item.colaborador.nome}\n*RE:* ${item.colaborador.re}\n*Data de Término Vigente:* ${formattedDate}`;
-    copyToClipboard(text, `Informações de ${item.colaborador.nome} copiadas para WhatsApp!`);
+    const success = await copyTextToClipboard(text);
+    if (success) {
+      toast.success(`Informações de ${item.colaborador.nome} copiadas para WhatsApp!`);
+    } else {
+      toast.error('Erro ao copiar informações.');
+    }
   };
 
   /**
@@ -255,11 +218,16 @@ export default function TerminosTable({
    * 
    * Por que existe: Facilita a colagem rápida no Trello seguindo o padrão "[RE] [NOME] [DATA_LIMITE]".
    */
-  const handleCopyTrello = (item: TerminoItem) => {
+  const handleCopyTrello = async (item: TerminoItem) => {
     const formattedDate = formatDate(item.relevant_date);
     const cleanName = (item.colaborador.nome || '').trim().toUpperCase();
     const text = `${item.colaborador.re} ${cleanName} ${formattedDate}`;
-    copyToClipboard(text, `Informações de ${item.colaborador.nome} copiadas no formato Trello!`);
+    const success = await copyTextToClipboard(text);
+    if (success) {
+      toast.success(`Informações de ${item.colaborador.nome} copiadas no formato Trello!`);
+    } else {
+      toast.error('Erro ao copiar informações.');
+    }
   };
 
   return (

@@ -16,6 +16,7 @@ import {
 import api from '../../api/client';
 import { toast } from 'sonner';
 import { formatDate, obterInfoFolhas } from '../../utils/formatters';
+import { copyTextToClipboard } from '../../utils/clipboard';
 import type { TestePromocaoItem } from '../../pages/TestesPromocao';
 
 interface AcaoTesteModalProps {
@@ -104,39 +105,6 @@ export default function AcaoTesteModal({ teste, onClose, onSaveSuccess }: AcaoTe
   };
 
   /**
-   * Copia um texto para a área de transferência do usuário com fallback de segurança.
-   * 
-   * Por que existe: O navigator.clipboard exige HTTPS para funcionar nos navegadores modernos.
-   * Para ambientes locais rodando em HTTP, essa função cria uma área de texto oculta 
-   * temporária para realizar a cópia de forma compatível.
-   */
-  const copyTextToClipboard = (text: string): boolean => {
-    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-      navigator.clipboard.writeText(text);
-      return true;
-    } else {
-      try {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.top = '0';
-        textarea.style.left = '0';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
-        
-        const success = document.execCommand('copy');
-        document.body.removeChild(textarea);
-        return !!success;
-      } catch (err) {
-        console.error('Erro ao copiar informações via execCommand (fallback):', err);
-        return false;
-      }
-    }
-  };
-
-  /**
    * Copia os dados formatados da solicitação para enviar ao coordenador.
    * 
    * Por que existe: Caso os dados de ausências ainda não estejam carregados na tela,
@@ -172,7 +140,7 @@ export default function AcaoTesteModal({ teste, onClose, onSaveSuccess }: AcaoTe
 
 Por favor, verifique se aprova o início do teste de promoção para este colaborador.`;
 
-    const copiou = copyTextToClipboard(texto);
+    const copiou = await copyTextToClipboard(texto);
     if (copiou) {
       setCopied(true);
       toast.success('Dados da solicitação copiados para a área de transferência!');

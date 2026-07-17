@@ -7,6 +7,7 @@ import type { Colaborador } from '../Colaboradores/ColaboradoresTable';
 import type { Loja } from '../Lojas/LojasTable';
 import { logoBase64 } from '../../assets/logoBase64';
 import api from '../../api/client';
+import { copyTextToClipboard } from '../../utils/clipboard';
 
 interface AgendaActionModalProps {
   isOpen: boolean;
@@ -31,53 +32,6 @@ interface AgendaActionModalProps {
   onClear?: () => void;
 }
 
-/**
- * Copia um texto para a área de transferência (Clipboard) do usuário.
- * 
- * Por que existe: navigator.clipboard pode não estar disponível em contextos HTTP comuns (não seguros).
- * Esta função provê um mecanismo de fallback criando uma caixa de texto oculta temporariamente para realizar a cópia.
- */
-const copyTextToClipboard = async (text: string): Promise<void> => {
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return;
-    } catch (err) {
-      console.warn("Falha ao usar a API moderna de clipboard, usando fallback...", err);
-    }
-  }
-
-  const textArea = document.createElement("textarea");
-  textArea.value = text;
-  
-  // Impede que o elemento seja visível e atrapalhe o layout
-  textArea.style.position = "fixed";
-  textArea.style.top = "0";
-  textArea.style.left = "0";
-  textArea.style.width = "2em";
-  textArea.style.height = "2em";
-  textArea.style.padding = "0";
-  textArea.style.border = "none";
-  textArea.style.outline = "none";
-  textArea.style.boxShadow = "none";
-  textArea.style.background = "transparent";
-
-  document.body.appendChild(textArea);
-  textArea.focus();
-  textArea.select();
-
-  try {
-    const successful = document.execCommand('copy');
-    if (!successful) {
-      throw new Error("execCommand retornou falso");
-    }
-  } catch (err) {
-    console.error("Erro no fallback do clipboard:", err);
-    throw err;
-  } finally {
-    document.body.removeChild(textArea);
-  }
-};
 
 /**
  * Modal para criação e edição de agendamentos.

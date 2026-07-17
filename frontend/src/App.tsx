@@ -1,29 +1,31 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import api from './api/client';
 
 import Layout from './components/Layout';
-import Login from './pages/Login';
-import RedefinirSenha from './pages/RedefinirSenha';
-import Dashboard from './pages/Dashboard';
-import Lojas from './pages/Lojas';
-import MapaLojas from './pages/MapaLojas';
-import Colaboradores from './pages/Colaboradores';
-import Terminos from './pages/Terminos';
-import Importacoes from './pages/Importacoes';
-import Escopos from './pages/Escopos';
-import Comparativo from './pages/Comparativo';
-import Diarias from './pages/Diarias';
-import Premios from './pages/Premios';
-import RelatorioPremios from './pages/RelatorioPremios';
-import Usuarios from './pages/Usuarios';
-import Agenda from './pages/Agenda';
-import HistoricoAgenda from './pages/HistoricoAgenda';
-import Headcount from './pages/Headcount';
-import Salarios from './pages/Salarios';
-import TestesPromocao from './pages/TestesPromocao';
 import { Toaster } from './components/ui/sonner';
+
+// Carregamento sob demanda (lazy loading) das páginas para otimizar o bundle e reduzir consumo de memória
+const Login = lazy(() => import('./pages/Login'));
+const RedefinirSenha = lazy(() => import('./pages/RedefinirSenha'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Lojas = lazy(() => import('./pages/Lojas'));
+const MapaLojas = lazy(() => import('./pages/MapaLojas'));
+const Colaboradores = lazy(() => import('./pages/Colaboradores'));
+const Terminos = lazy(() => import('./pages/Terminos'));
+const Importacoes = lazy(() => import('./pages/Importacoes'));
+const Escopos = lazy(() => import('./pages/Escopos'));
+const Comparativo = lazy(() => import('./pages/Comparativo'));
+const Diarias = lazy(() => import('./pages/Diarias'));
+const Premios = lazy(() => import('./pages/Premios'));
+const RelatorioPremios = lazy(() => import('./pages/RelatorioPremios'));
+const Usuarios = lazy(() => import('./pages/Usuarios'));
+const Agenda = lazy(() => import('./pages/Agenda'));
+const HistoricoAgenda = lazy(() => import('./pages/HistoricoAgenda'));
+const Headcount = lazy(() => import('./pages/Headcount'));
+const Salarios = lazy(() => import('./pages/Salarios'));
+const TestesPromocao = lazy(() => import('./pages/TestesPromocao'));
 
 
 /**
@@ -105,142 +107,157 @@ function App() {
     );
   }
 
+  /**
+   * Componente de carregamento para páginas importadas sob demanda (lazy loading).
+   * 
+   * Por que existe: Apresenta um indicador visual amigável durante a transição de rotas
+   * enquanto o navegador faz o download do chunk JavaScript correspondente.
+   */
+  const PageLoader = () => (
+    <div className="h-full min-h-[50vh] flex flex-col items-center justify-center gap-3">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <span className="text-sm font-medium text-neutral-400">Carregando página...</span>
+    </div>
+  );
+
   return (
     <Router>
       <Toaster />
-      <Routes>
-        {/* Rota Pública de Login */}
-        <Route 
-          path="/login" 
-          element={
-            isAuthenticated ? (
-              <Navigate to="/" replace />
-            ) : (
-              <Login onLoginSuccess={handleLoginSuccess} />
-            )
-          } 
-        />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* Rota Pública de Login */}
+          <Route 
+            path="/login" 
+            element={
+              isAuthenticated ? (
+                <Navigate to="/" replace />
+              ) : (
+                <Login onLoginSuccess={handleLoginSuccess} />
+              )
+            } 
+          />
 
-        {/* Rota Pública de Redefinição de Senha */}
-        <Route 
-          path="/redefinir-senha" 
-          element={
-            isAuthenticated ? (
-              <Navigate to="/" replace />
-            ) : (
-              <RedefinirSenha />
-            )
-          } 
-        />
+          {/* Rota Pública de Redefinição de Senha */}
+          <Route 
+            path="/redefinir-senha" 
+            element={
+              isAuthenticated ? (
+                <Navigate to="/" replace />
+              ) : (
+                <RedefinirSenha />
+              )
+            } 
+          />
 
-        <Route 
-          element={
-            <Layout 
-              isAuthenticated={isAuthenticated} 
-              username={username} 
-              email={email}
-              onLogout={handleLogout} 
-              role={role}
-              permissions={permissions}
-              onUpdateProfile={handleProfileUpdate}
+          <Route 
+            element={
+              <Layout 
+                isAuthenticated={isAuthenticated} 
+                username={username} 
+                email={email}
+                onLogout={handleLogout} 
+                role={role}
+                permissions={permissions}
+                onUpdateProfile={handleProfileUpdate}
+              />
+            }
+          >
+            <Route path="/" element={<Dashboard permissions={permissions} />} />
+            <Route 
+              path="/lojas" 
+              element={permissions.lojas?.view ? <Lojas /> : <Navigate to="/" replace />} 
             />
-          }
-        >
-          <Route path="/" element={<Dashboard permissions={permissions} />} />
+            <Route 
+              path="/lojas/mapa" 
+              element={permissions.lojas?.view ? <MapaLojas /> : <Navigate to="/" replace />} 
+            />
+            <Route 
+              path="/agenda" 
+              element={permissions.apoio?.view ? <Agenda /> : <Navigate to="/" replace />} 
+            />
+            <Route 
+              path="/agenda/historico" 
+              element={permissions.apoio?.view ? <HistoricoAgenda /> : <Navigate to="/" replace />} 
+            />
+            <Route 
+              path="/escopos" 
+              element={permissions.escopos?.view ? <Escopos /> : <Navigate to="/" replace />} 
+            />
+            <Route 
+              path="/comparativo" 
+              element={permissions.comparativo?.view ? <Comparativo /> : <Navigate to="/" replace />} 
+            />
+            <Route 
+              path="/headcount" 
+              element={permissions.headcount?.view ? <Headcount /> : <Navigate to="/" replace />} 
+            />
+            <Route 
+              path="/diarias" 
+              element={permissions.diarias?.view ? <Diarias /> : <Navigate to="/" replace />} 
+            />
+            <Route 
+              path="/premios" 
+              element={permissions.premios?.view ? <Premios /> : <Navigate to="/" replace />} 
+            />
+            <Route 
+              path="/colaboradores" 
+              element={permissions.colaboradores?.view ? <Colaboradores /> : <Navigate to="/" replace />} 
+            />
+            <Route 
+              path="/terminos" 
+              element={permissions.colaboradores?.view ? <Terminos /> : <Navigate to="/" replace />} 
+            />
+            <Route 
+              path="/testes" 
+              element={permissions.testes_promocao?.view ? <TestesPromocao /> : <Navigate to="/" replace />} 
+            />
+            <Route 
+              path="/importacoes" 
+              element={permissions.importacoes?.view ? <Importacoes /> : <Navigate to="/" replace />} 
+            />
+            <Route 
+              path="/usuarios" 
+              element={
+                permissions.usuarios?.view ? (
+                  <Usuarios />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              } 
+            />
+            <Route 
+              path="/salarios" 
+              element={
+                permissions.salarios?.view ? (
+                  <Salarios />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              } 
+            />
+          </Route>
+
+          {/* Rota para visualização e impressão do relatório mensal de prêmios */}
+          {/* Por que existe: Permite a impressão de relatório A4 limpo e sem a barra de navegação lateral. */}
           <Route 
-            path="/lojas" 
-            element={permissions.lojas?.view ? <Lojas /> : <Navigate to="/" replace />} 
-          />
-          <Route 
-            path="/lojas/mapa" 
-            element={permissions.lojas?.view ? <MapaLojas /> : <Navigate to="/" replace />} 
-          />
-          <Route 
-            path="/agenda" 
-            element={permissions.apoio?.view ? <Agenda /> : <Navigate to="/" replace />} 
-          />
-          <Route 
-            path="/agenda/historico" 
-            element={permissions.apoio?.view ? <HistoricoAgenda /> : <Navigate to="/" replace />} 
-          />
-          <Route 
-            path="/escopos" 
-            element={permissions.escopos?.view ? <Escopos /> : <Navigate to="/" replace />} 
-          />
-          <Route 
-            path="/comparativo" 
-            element={permissions.comparativo?.view ? <Comparativo /> : <Navigate to="/" replace />} 
-          />
-          <Route 
-            path="/headcount" 
-            element={permissions.headcount?.view ? <Headcount /> : <Navigate to="/" replace />} 
-          />
-          <Route 
-            path="/diarias" 
-            element={permissions.diarias?.view ? <Diarias /> : <Navigate to="/" replace />} 
-          />
-          <Route 
-            path="/premios" 
-            element={permissions.premios?.view ? <Premios /> : <Navigate to="/" replace />} 
-          />
-          <Route 
-            path="/colaboradores" 
-            element={permissions.colaboradores?.view ? <Colaboradores /> : <Navigate to="/" replace />} 
-          />
-          <Route 
-            path="/terminos" 
-            element={permissions.colaboradores?.view ? <Terminos /> : <Navigate to="/" replace />} 
-          />
-          <Route 
-            path="/testes" 
-            element={permissions.testes_promocao?.view ? <TestesPromocao /> : <Navigate to="/" replace />} 
-          />
-          <Route 
-            path="/importacoes" 
-            element={permissions.importacoes?.view ? <Importacoes /> : <Navigate to="/" replace />} 
-          />
-          <Route 
-            path="/usuarios" 
+            path="/premios/relatorio" 
             element={
-              permissions.usuarios?.view ? (
-                <Usuarios />
+              isAuthenticated ? (
+                permissions.premios?.view ? (
+                  <RelatorioPremios />
+                ) : (
+                  <Navigate to="/" replace />
+                )
               ) : (
-                <Navigate to="/" replace />
+                <Navigate to="/login" replace />
               )
             } 
           />
-          <Route 
-            path="/salarios" 
-            element={
-              permissions.salarios?.view ? (
-                <Salarios />
-              ) : (
-                <Navigate to="/" replace />
-              )
-            } 
-          />
-        </Route>
 
-        {/* Rota para visualização e impressão do relatório mensal de prêmios */}
-        {/* Por que existe: Permite a impressão de relatório A4 limpo e sem a barra de navegação lateral. */}
-        <Route 
-          path="/premios/relatorio" 
-          element={
-            isAuthenticated ? (
-              permissions.premios?.view ? (
-                <RelatorioPremios />
-              ) : (
-                <Navigate to="/" replace />
-              )
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          } 
-        />
-
-        {/* Redirecionamento de rotas inexistentes para o Dashboard ou Login */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          {/* Redirecionamento de rotas inexistentes para o Dashboard ou Login */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </Router>
   );
 }
