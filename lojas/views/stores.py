@@ -30,16 +30,15 @@ def store_list(request):
     coordenador_val = request.GET.get("coordenador", "").strip()
 
     if search_text:
-        busca_list = [b.strip() for b in search_text.split(",") if b.strip()]
-        if busca_list:
-            has_null = "null" in busca_list
-            vals = [b for b in busca_list if b != "null"]
-            q_obj = Q()
-            if vals:
-                q_obj = Q(nome_referencia__in=vals)
-            if has_null:
-                q_obj = q_obj | Q(nome_referencia__isnull=True) | Q(nome_referencia="")
-            stores = stores.filter(q_obj)
+        # Por que existe: Permite buscar lojas por qualquer um dos nomes cadastrados (referencia, totvs, gestao ou geovictoria)
+        # através de uma busca de texto livre parcial e insensível a maiúsculas/minúsculas.
+        q_obj = (
+            Q(nome_referencia__icontains=search_text) |
+            Q(nome_totvs__icontains=search_text) |
+            Q(nome_gestao__icontains=search_text) |
+            Q(nome_geovictoria__icontains=search_text)
+        )
+        stores = stores.filter(q_obj)
 
     if client_name:
         cliente_list = [c.strip() for c in client_name.split(",") if c.strip()]
@@ -266,16 +265,15 @@ def store_filtro_opcoes(request):
     # Função auxiliar para aplicar filtros nas consultas de opções
     def filtrar(qs, ignore_busca=False, ignore_cliente=False, ignore_status=False, ignore_cc=False, ignore_supervisor=False, ignore_coordenador=False, ignore_codigo=False):
         if busca_val and not ignore_busca:
-            bl = [b.strip() for b in busca_val.split(",") if b.strip()]
-            if bl:
-                has_null = "null" in bl
-                vals = [b for b in bl if b != "null"]
-                q_obj = Q()
-                if vals:
-                    q_obj = Q(nome_referencia__in=vals)
-                if has_null:
-                    q_obj = q_obj | Q(nome_referencia__isnull=True) | Q(nome_referencia="")
-                qs = qs.filter(q_obj)
+            # Por que existe: Aplica o filtro de busca flexível por texto livre ao carregar as opções dinâmicas
+            # dos filtros adicionais da tela de lojas (excel-like).
+            q_obj = (
+                Q(nome_referencia__icontains=busca_val) |
+                Q(nome_totvs__icontains=busca_val) |
+                Q(nome_gestao__icontains=busca_val) |
+                Q(nome_geovictoria__icontains=busca_val)
+            )
+            qs = qs.filter(q_obj)
         if cliente_val and not ignore_cliente:
             cl = [c.strip() for c in cliente_val.split(",") if c.strip()]
             if cl:

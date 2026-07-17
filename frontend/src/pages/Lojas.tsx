@@ -36,7 +36,6 @@ export default function Lojas() {
   const [codigoLojaFiltro, setCodigoLojaFiltro] = useState('');
   
   // Estados para as opções dinâmicas dos filtros (estilo Excel)
-  const [nomesOpcoes, setNomesOpcoes] = useState<{ value: string; label: string }[]>([]);
   const [clientesOpcoes, setClientesOpcoes] = useState<{ value: string; label: string }[]>([]);
   const [centrosCustoOpcoes, setCentrosCustoOpcoes] = useState<{ value: string; label: string }[]>([]);
   const [statusOpcoes, setStatusOpcoes] = useState<{ value: string; label: string }[]>([]);
@@ -99,7 +98,6 @@ export default function Lojas() {
         });
         
         if (response.data) {
-          setNomesOpcoes(response.data.nomes || []);
           setClientesOpcoes(response.data.clientes || []);
           setCentrosCustoOpcoes(response.data.centros_custo || []);
           setStatusOpcoes(response.data.status || []);
@@ -115,7 +113,7 @@ export default function Lojas() {
     };
 
     fetchFiltroOpcoes();
-  }, [busca, cliente, statusFiltro, centroCusto, coordenadorFiltro, supervisorFiltro, codigoLojaFiltro, fetchTrigger]);
+  }, [cliente, statusFiltro, centroCusto, coordenadorFiltro, supervisorFiltro, codigoLojaFiltro, fetchTrigger]);
 
   const fetchCoordenadores = async () => {
     try {
@@ -303,16 +301,12 @@ export default function Lojas() {
             <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Busca por Nome
             </label>
-            <SearchableSelect
-              options={[
-                { value: "", label: "Todas as Lojas" },
-                ...nomesOpcoes
-              ]}
+            <input
+              type="text"
+              placeholder="Pesquisar por nome (TOTVS, Gestão, Geo)..."
               value={busca}
-              onChange={setBusca}
-              placeholder="Todas as Lojas"
-              multiple={true}
-              loading={loadingOpcoes}
+              onChange={(e) => setBusca(e.target.value)}
+              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
             />
           </div>
 
