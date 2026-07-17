@@ -117,7 +117,7 @@ export default function ColaboradoresTable({
                   onClick={() => onOpenDetail(colab)}
                   className="hover:bg-neutral-50 dark:hover:bg-neutral-850 transition-colors cursor-pointer"
                 >
-                  <td className="py-4 px-6 font-mono text-neutral-600">
+                  <td className="py-4 px-6 font-mono text-neutral-600 dark:text-neutral-400">
                     {colab.re}
                   </td>
                   <td className="py-4 px-6 min-w-0">
@@ -127,7 +127,7 @@ export default function ColaboradoresTable({
                     >
                       {colab.nome}
                     </div>
-                    <div className="text-[10px] text-neutral-600 font-mono">
+                    <div className="text-[10px] text-neutral-600 dark:text-neutral-400 font-mono">
                       CPF: {colab.cpf || '-'}
                     </div>
                   </td>
@@ -136,8 +136,8 @@ export default function ColaboradoresTable({
                       {colab.cargo}
                     </div>
                     {activeTab === 'ativos' && (
-                      <div className="text-[10px] text-neutral-550">
-                        <span className="font-semibold text-neutral-500">
+                      <div className="text-[10px] text-neutral-550 dark:text-neutral-300">
+                        <span className="font-semibold text-neutral-500 dark:text-neutral-450">
                           Gestão:
                         </span>{' '}
                         {colab.funcao_gestao || 'Em branco'}
@@ -145,22 +145,22 @@ export default function ColaboradoresTable({
                     )}
                   </td>
                   <td className="py-4 px-6 space-y-1">
-                    <div className="text-xs text-neutral-700">
-                      <span className="font-semibold text-neutral-500">
+                    <div className="text-xs text-neutral-700 dark:text-neutral-300">
+                      <span className="font-semibold text-neutral-500 dark:text-neutral-450">
                         TOTVS:
                       </span>{' '}
                       {colab.loja_nome || colab.centro_custo}
                     </div>
                     {activeTab === 'ativos' && (
                       <>
-                        <div className="text-xs text-neutral-700">
-                          <span className="font-semibold text-neutral-500">
+                        <div className="text-xs text-neutral-700 dark:text-neutral-300">
+                          <span className="font-semibold text-neutral-500 dark:text-neutral-450">
                             Gestão:
                           </span>{' '}
                           {colab.loja_gestao_nome || 'Em branco'}
                         </div>
-                        <div className="text-xs text-neutral-700">
-                          <span className="font-semibold text-neutral-500">
+                        <div className="text-xs text-neutral-700 dark:text-neutral-300">
+                          <span className="font-semibold text-neutral-500 dark:text-neutral-450">
                             Geo:
                           </span>{' '}
                           {colab.loja_geo_nome || 'Em branco'}
@@ -171,11 +171,11 @@ export default function ColaboradoresTable({
                   <td className="py-4 px-6 space-y-1.5">
                     <div>{getStatusBadge(colab.status)}</div>
                     {colab.status_gestao && (
-                      <div className="text-[10px] text-neutral-500 font-medium">
-                        <span className="font-semibold text-neutral-500">
+                      <div className="text-[10px] text-neutral-550 dark:text-neutral-300 font-medium">
+                        <span className="font-semibold text-neutral-500 dark:text-neutral-450">
                           Gestão:
                         </span>{' '}
-                        <span className="font-semibold">
+                        <span className="font-semibold text-neutral-700 dark:text-neutral-200">
                           {colab.status_gestao}
                         </span>
                       </div>
