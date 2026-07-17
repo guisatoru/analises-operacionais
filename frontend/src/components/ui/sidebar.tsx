@@ -339,8 +339,10 @@ export const SidebarMenuButton = React.forwardRef<
 >(({ className, asChild = false, isActive, children, ...props }, ref) => {
   const { open } = useSidebar();
   const buttonClasses = cn(
-    "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-850 hover:text-neutral-900 dark:hover:text-white cursor-pointer select-none",
-    isActive && "bg-primary text-primary-foreground font-semibold shadow-xs",
+    "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 hover:bg-neutral-100 dark:hover:bg-neutral-850 hover:text-neutral-900 dark:hover:text-white cursor-pointer select-none",
+    isActive 
+      ? "bg-primary text-primary-foreground dark:text-primary-foreground font-semibold shadow-xs" 
+      : "text-neutral-600 dark:text-neutral-400",
     !open && "justify-center px-2",
     className
   );
