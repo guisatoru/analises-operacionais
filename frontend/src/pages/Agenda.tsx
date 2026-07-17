@@ -417,7 +417,7 @@ export default function Agenda() {
                 ))}
               </div>
               
-              <div className="grid grid-cols-7 gap-px select-none bg-neutral-200 dark:bg-neutral-700">
+              <div className="grid grid-cols-7 select-none bg-transparent">
                 {calendarDays.map((item) => (
                   <CalendarDay 
                     key={item.key}
@@ -446,7 +446,7 @@ export default function Agenda() {
               <div className="rounded-full bg-neutral-100 dark:bg-neutral-800 p-4 mb-4">
                  <User className="h-8 w-8 text-neutral-400" />
               </div>
-              <h4 className="text-base font-bold text-neutral-900 dark:text-neutral-55">Selecione um colaborador</h4>
+              <h4 className="text-base font-bold text-neutral-900 dark:text-neutral-100">Selecione um colaborador</h4>
               <p className="mt-1 text-sm text-neutral-500 max-w-xs mx-auto">Utilize a barra de pesquisa à esquerda para selecionar um membro da equipe e gerenciar seu cronograma.</p>
             </div>
           )}

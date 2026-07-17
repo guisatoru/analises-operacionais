@@ -28,7 +28,7 @@ export const CalendarDay = memo(({
   onToggleStatus 
 }: CalendarDayProps) => {
   if (item.empty || !item.date || !item.day) {
-    return <div className="min-h-[140px] bg-neutral-50/50 dark:bg-neutral-900/30" />;
+    return <div className="min-h-[140px] bg-neutral-50 dark:bg-neutral-950 border-r border-b border-neutral-200 dark:border-neutral-800" />;
   }
 
   const isMorning = item.turno === 'matutino' && (item.status === 'agendado' || item.status === 'concluido');
@@ -36,7 +36,7 @@ export const CalendarDay = memo(({
 
   return (
     <div
-      className={`group relative min-h-[140px] transition-all duration-200 ${
+      className={`group relative min-h-[140px] overflow-hidden border-r border-b border-neutral-200 dark:border-neutral-800 transition-all duration-200 ${
         isInRange 
         ? 'z-20 ring-2 ring-inset ring-neutral-900 dark:ring-neutral-200 bg-neutral-50 dark:bg-neutral-800' 
         : 'bg-white dark:bg-neutral-900'
@@ -60,7 +60,7 @@ export const CalendarDay = memo(({
       >
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-lg font-bold leading-none text-neutral-900 dark:text-neutral-55">{item.day}</span>
+            <span className="text-lg font-bold leading-none text-neutral-900 dark:text-neutral-100">{item.day}</span>
           </div>
         </div>
         
