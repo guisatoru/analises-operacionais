@@ -251,11 +251,10 @@ def teste_registrar_acao(request, pk):
     """
     Registra uma tomada de decisão mensal sobre o teste ativo (Pagar Prêmio, Promover, Cancelar).
     
-    Por que existe: Aplica rigorosamente as regras de negócio dos testes:
-    - 1º Mês: Permitido apenas Pagar Prêmio ou Cancelar (Não pode Promover).
-    - 2º Mês: Permitido Pagar Prêmio, Promover ou Cancelar.
-    - 3º Mês: Permitido apenas Promover ou Cancelar (Impossível prorrogar mais).
-    Exige o preenchimento de observação detalhada para promover ou cancelar.
+    Por que existe: Implementa um fluxo mensal de duas etapas:
+    1. Etapa de Resposta do Supervisor ('registrar_resposta').
+    2. Etapa de Confirmação de Ação (executada pela gestão com base na resposta).
+    A data é coletada automaticamente e o solicitante padrão é o supervisor da loja.
     """
     teste = get_object_or_404(TestePromocao, id=pk)
 
@@ -267,74 +266,126 @@ def teste_registrar_acao(request, pk):
 
     acao = request.data.get("acao")
     observacao = request.data.get("observacao", "").strip()
-    solicitado_por = request.data.get("solicitado_por", "").strip()
-    data_acao_str = request.data.get("data_acao")
 
-    if not acao or not solicitado_por or not data_acao_str:
+    if not acao:
         return Response(
-            {"error": "Os campos Ação, Solicitado Por e Data da Ação são obrigatórios."},
+            {"error": "O campo Ação é obrigatório."},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    if acao not in ["pagar_premio", "promover", "cancelar"]:
+    if acao not in ["registrar_resposta", "pagar_premio", "promover", "cancelar"]:
         return Response(
             {"error": "Ação mensal inválida."},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    try:
-        data_acao = datetime.strptime(data_acao_str, "%Y-%m-%d").date()
-    except ValueError:
-        return Response(
-            {"error": "Formato de data de ação inválido. Use YYYY-MM-DD."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    # Conta prêmios pagos para determinar em qual mês de controle estamos (Mês 1, 2 ou 3)
+    # Conta prêmios pagos para determinar em qual mês de controle estamos (Mês 1, 2, 3 ou 4)
     premios_pagos = teste.historico_acoes.filter(acao="pagar_premio").count()
     mes_atual = premios_pagos + 1
 
-    # Validações das regras de negócios de meses
-    if mes_atual == 1:
-        if acao == "promover":
+    # Obter nome do supervisor do colaborador para preencher automaticamente
+    supervisor_nome = "Supervisor"
+    if teste.colaborador.loja and teste.colaborador.loja.supervisor:
+        supervisor_nome = teste.colaborador.loja.supervisor.nome
+
+    if acao == "registrar_resposta":
+        resposta_supervisor = request.data.get("resposta_supervisor")
+        
+        # No primeiro mês a resposta é automaticamente pagar
+        if mes_atual == 1:
+            resposta_supervisor = "pagar_premio"
+
+        if not resposta_supervisor:
             return Response(
-                {"error": "Não é permitido promover o colaborador no primeiro mês de teste. O prêmio deve ser pago obrigatoriamente."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-    elif mes_atual == 4:
-        if acao == "pagar_premio":
-            return Response(
-                {"error": "O teste de promoção atingiu o limite de 4 meses. Escolha Promover ou Cancelar."},
+                {"error": "A resposta do supervisor é obrigatória."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-    # Exigência de observação para finalização (Promover ou Cancelar)
-    if acao in ["promover", "cancelar"] and not observacao:
-        return Response(
-            {"error": f"Para a ação de {acao.capitalize()} é obrigatório registrar uma observação (data e quem solicitou)."},
-            status=status.HTTP_400_BAD_REQUEST,
+        if resposta_supervisor not in ["pagar_premio", "promover", "cancelar"]:
+            return Response(
+                {"error": "Resposta do supervisor inválida."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validações das regras de negócios de meses para a resposta do supervisor
+        if mes_atual == 1:
+            if resposta_supervisor == "promover":
+                return Response(
+                    {"error": "Não é permitido promover o colaborador no primeiro mês de teste. O prêmio deve ser pago obrigatoriamente."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        elif mes_atual == 4:
+            if resposta_supervisor == "pagar_premio":
+                return Response(
+                    {"error": "O teste de promoção atingiu o limite de 4 meses. Escolha Promover ou Cancelar."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # Evita duplicidade de registro de resposta para o mesmo mês
+        if teste.historico_acoes.filter(acao="registrar_resposta", mes_referencia=mes_atual).exists():
+            return Response(
+                {"error": f"Já existe uma resposta do supervisor registrada para o Mês {mes_atual}."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Exigência de observação para finalização (Promover ou Cancelar)
+        if resposta_supervisor in ["promover", "cancelar"] and not observacao:
+            return Response(
+                {"error": f"Para a resposta de {resposta_supervisor.capitalize()} é obrigatório registrar uma observação."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Registra a resposta do supervisor
+        historico = HistoricoAcaoTeste.objects.create(
+            teste=teste,
+            acao="registrar_resposta",
+            resposta_supervisor=resposta_supervisor,
+            mes_referencia=mes_atual,
+            observacao=observacao,
+            solicitado_por=supervisor_nome,
+            realizado_por=request.user.username if request.user.is_authenticated else "Sistema",
+            data_acao=date.today(),
         )
 
-    # Registra o histórico
-    historico = HistoricoAcaoTeste.objects.create(
-        teste=teste,
-        acao=acao,
-        mes_referencia=mes_atual,
-        observacao=observacao,
-        solicitado_por=solicitado_por,
-        realizado_por=request.user.username if request.user.is_authenticated else "Sistema",
-        data_acao=data_acao,
-    )
+        return Response(TestePromocaoSerializer(teste).data, status=status.HTTP_201_CREATED)
 
-    # Atualiza o status final se for Promover ou Cancelar
-    if acao == "promover":
-        teste.status = "promovido"
-        teste.save()
-    elif acao == "cancelar":
-        teste.status = "cancelado"
-        teste.save()
+    else:
+        # Ação final: pagar_premio, promover ou cancelar
+        # Valida se já existe resposta do supervisor para o mês atual
+        resposta_reg = teste.historico_acoes.filter(acao="registrar_resposta", mes_referencia=mes_atual).first()
+        if not resposta_reg:
+            return Response(
+                {"error": f"É necessário registrar a resposta do supervisor para o Mês {mes_atual} antes de aplicar a ação final."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-    return Response(TestePromocaoSerializer(teste).data, status=status.HTTP_201_CREATED)
+        # Valida se a ação final condiz com a resposta registrada do supervisor
+        if acao != resposta_reg.resposta_supervisor:
+            return Response(
+                {"error": f"A ação final de {acao.replace('_', ' ')} difere da resposta de {resposta_reg.resposta_supervisor.replace('_', ' ')} registrada pelo supervisor."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Registra a ação final executada
+        historico = HistoricoAcaoTeste.objects.create(
+            teste=teste,
+            acao=acao,
+            mes_referencia=mes_atual,
+            observacao=observacao or f"Ação de {acao.replace('_', ' ')} executada conforme resposta do supervisor.",
+            solicitado_por=supervisor_nome,
+            realizado_por=request.user.username if request.user.is_authenticated else "Sistema",
+            data_acao=date.today(),
+        )
+
+        # Atualiza o status final se for Promover ou Cancelar
+        if acao == "promover":
+            teste.status = "promovido"
+            teste.save()
+        elif acao == "cancelar":
+            teste.status = "cancelado"
+            teste.save()
+
+        return Response(TestePromocaoSerializer(teste).data, status=status.HTTP_201_CREATED)
 
 
 @api_view(["GET"])

@@ -22,7 +22,7 @@ import AcaoTesteModal from '../components/Testes/AcaoTesteModal';
 
 export interface HistoricoAcao {
   id: string;
-  acao: 'ativar' | 'pagar_premio' | 'promover' | 'cancelar';
+  acao: 'ativar' | 'pagar_premio' | 'promover' | 'cancelar' | 'registrar_resposta';
   acao_display: string;
   mes_referencia: number;
   observacao: string;
@@ -30,6 +30,7 @@ export interface HistoricoAcao {
   realizado_por: string;
   data_acao: string;
   created_at: string;
+  resposta_supervisor?: 'pagar_premio' | 'promover' | 'cancelar';
 }
 
 export interface TestePromocaoItem {
@@ -197,8 +198,11 @@ export default function TestesPromocao() {
     // Calcula as folhas associadas
     const folhas = obterInfoFolhas(teste.data_inicio);
     const folhaAtual = folhas.find(f => f.mesRef === mesAtualNum);
+
+    const jaRespondeu = teste.historico_acoes.some(a => a.acao === 'registrar_resposta' && a.mes_referencia === mesAtualNum);
+    const subEtapa = jaRespondeu ? 'Aguardando Ação' : 'Aguardando Resposta';
     
-    return `Mês ${mesAtualNum} (Folha ${folhaAtual?.nomeFolha || '-'})`;
+    return `Mês ${mesAtualNum} - ${subEtapa} (Folha ${folhaAtual?.nomeFolha || '-'})`;
   };
 
   // Filtra todos os testes com base no termo de busca (Nome ou RE), status selecionado e cobrança.
@@ -232,11 +236,13 @@ export default function TestesPromocao() {
       const numFolhaTeste = converterFolhaParaNumero(folhaTeste.nomeFolha);
       const numFolhaHoje = converterFolhaParaNumero(obterFolhaCalendarioReal());
 
+      const jaRespondeu = teste.historico_acoes.some(a => a.acao === 'registrar_resposta' && a.mes_referencia === mesAtualNum);
+
       if (cobrancaFiltroAplicado === 'falta_resposta') {
-        return numFolhaTeste <= numFolhaHoje;
+        return numFolhaTeste <= numFolhaHoje && !jaRespondeu;
       }
       if (cobrancaFiltroAplicado === 'em_dia') {
-        return numFolhaTeste > numFolhaHoje;
+        return numFolhaTeste > numFolhaHoje || jaRespondeu;
       }
     }
 
@@ -404,12 +410,20 @@ export default function TestesPromocao() {
 
                           const numFolhaTeste = converterFolhaParaNumero(folhaTeste.nomeFolha);
                           const numFolhaHoje = converterFolhaParaNumero(obterFolhaCalendarioReal());
-                          const faltaResposta = numFolhaTeste <= numFolhaHoje;
+
+                          const jaRespondeu = teste.historico_acoes.some(a => a.acao === 'registrar_resposta' && a.mes_referencia === mesAtualNum);
+                          const faltaResposta = numFolhaTeste <= numFolhaHoje && !jaRespondeu;
 
                           if (faltaResposta) {
                             return (
                               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[9px] font-bold bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/15 uppercase tracking-wider animate-pulse">
                                 Falta Resposta
+                              </span>
+                            );
+                          } else if (jaRespondeu) {
+                            return (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[9px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/15 uppercase tracking-wider">
+                                Aguardando Ação
                               </span>
                             );
                           } else {

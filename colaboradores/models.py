@@ -242,6 +242,7 @@ class HistoricoAcaoTeste(models.Model):
     """
     ACOES = [
         ("ativar", "Aprovar/Ativar"),
+        ("registrar_resposta", "Registrar Resposta do Supervisor"),
         ("pagar_premio", "Pagar Prêmio"),
         ("promover", "Promover"),
         ("cancelar", "Cancelar"),
@@ -254,6 +255,17 @@ class HistoricoAcaoTeste(models.Model):
         verbose_name="Teste de Promoção",
     )
     acao = models.CharField("Ação", max_length=20, choices=ACOES)
+    resposta_supervisor = models.CharField(
+        "Resposta do Supervisor",
+        max_length=20,
+        choices=[
+            ("pagar_premio", "Pagar Prêmio"),
+            ("promover", "Promover"),
+            ("cancelar", "Cancelar"),
+        ],
+        blank=True,
+        null=True,
+    ) # Por que existe: Guarda a intenção de ação do supervisor antes da efetivação prática pela gestão.
     mes_referencia = models.IntegerField("Mês de Referência")
     observacao = models.TextField("Observação", blank=True)
     solicitado_por = models.CharField("Solicitado Por", max_length=255, blank=True)
