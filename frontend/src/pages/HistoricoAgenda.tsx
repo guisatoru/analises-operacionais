@@ -142,7 +142,7 @@ export default function HistoricoAgenda() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-850 text-xs font-bold text-neutral-700 dark:text-neutral-350 uppercase tracking-wider">
+              <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-850 text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
                 <th className="py-4 px-6">Loja Física</th>
                 <th className="py-4 px-6">Última Visita</th>
                 <th className="py-4 px-6">Responsável (Limpador)</th>

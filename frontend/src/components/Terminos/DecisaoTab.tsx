@@ -288,7 +288,7 @@ export default function DecisaoTab({
                       {hist.respondido_por || 'Sistema'}
                     </span>
                   </div>
-                  <p className="text-neutral-600 dark:text-neutral-350 bg-white dark:bg-neutral-900/45 p-2 rounded border border-neutral-100 dark:border-neutral-800/40 mt-1 whitespace-pre-wrap leading-relaxed">
+                  <p className="text-neutral-600 dark:text-neutral-300 bg-white dark:bg-neutral-900/45 p-2 rounded border border-neutral-100 dark:border-neutral-800/40 mt-1 whitespace-pre-wrap leading-relaxed">
                     {hist.observacao}
                   </p>
                 </div>

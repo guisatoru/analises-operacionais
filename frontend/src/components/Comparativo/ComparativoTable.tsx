@@ -91,7 +91,7 @@ export default function ComparativoTable({
                 
                 return (
                   <tr key={`${item.loja_id}-${item.competencia}-${idx}`} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-850/20 transition-colors">
-                    <td className="py-3.5 px-5 font-semibold text-neutral-850 dark:text-neutral-250">
+                    <td className="py-3.5 px-5 font-semibold text-neutral-850 dark:text-neutral-200">
                       {item.loja_nome}
                     </td>
                     <td className="py-3.5 px-5 text-neutral-500 font-medium">{item.supervisor}</td>

@@ -166,7 +166,7 @@ export default function SearchableSelect({
       {/* Botão de Gatilho (Trigger) */}
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between gap-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 px-3 py-2 text-sm text-neutral-800 dark:text-neutral-200 cursor-pointer shadow-xs hover:border-neutral-350 dark:hover:border-neutral-700 select-none min-h-[38px] transition-colors"
+        className="flex w-full items-center justify-between gap-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 px-3 py-2 text-sm text-neutral-800 dark:text-neutral-200 cursor-pointer shadow-xs hover:border-neutral-300 dark:hover:border-neutral-700 select-none min-h-[38px] transition-colors"
       >
         <span className={cn("truncate", !value && !multiple && "text-neutral-400")}>
           {triggerText}

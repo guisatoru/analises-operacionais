@@ -116,7 +116,7 @@ export default function AusenciasTab({
               </h5>
               <p className="text-[11px] text-neutral-500 font-medium">
                 Dia:{' '}
-                <span className="font-semibold text-neutral-750 dark:text-neutral-250">
+                <span className="font-semibold text-neutral-750 dark:text-neutral-200">
                   {formatDate(detail.data)}
                 </span>
               </p>

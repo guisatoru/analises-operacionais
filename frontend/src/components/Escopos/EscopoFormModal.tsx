@@ -211,7 +211,7 @@ export default function EscopoFormModal({
               <button
                 type="button"
                 onClick={handleAddItem}
-                className="inline-flex items-center gap-1 px-2.5 py-1 border border-neutral-250 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-850 rounded text-xs font-bold cursor-pointer"
+                className="inline-flex items-center gap-1 px-2.5 py-1 border border-neutral-200 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-850 rounded text-xs font-bold cursor-pointer"
               >
                 <Plus className="h-3 w-3" />
                 Adicionar Cargo
@@ -221,7 +221,7 @@ export default function EscopoFormModal({
             {/* Listagem Dinâmica dos Cargos */}
             <div className="max-h-48 overflow-y-auto space-y-3 pr-1">
               {itens.map((item, index) => (
-                <div key={index} className="flex gap-3 items-end bg-neutral-50 dark:bg-neutral-850/60 p-3 rounded-lg border border-neutral-250/20">
+                <div key={index} className="flex gap-3 items-end bg-neutral-50 dark:bg-neutral-850/60 p-3 rounded-lg border border-neutral-200/20">
                   <div className="flex-1">
                     <label className="block text-[10px] font-bold text-neutral-400 uppercase mb-1">
                       Cargo / Função *

@@ -301,7 +301,7 @@ export default function NovoTesteModal({ onClose, onSaveSuccess }: NovoTesteModa
               {/* Faltas e Atestados recentes */}
               <div className="border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden">
                 <div className="p-4 bg-neutral-50 dark:bg-neutral-950/45 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center">
-                  <h4 className="text-xs font-bold text-neutral-800 dark:text-neutral-250 uppercase tracking-wider">Histórico Recente de Ausências (Último Ano)</h4>
+                  <h4 className="text-xs font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Histórico Recente de Ausências (Último Ano)</h4>
                   <span className="text-[10px] text-neutral-400">GeoVictoria</span>
                 </div>
 
@@ -338,7 +338,7 @@ export default function NovoTesteModal({ onClose, onSaveSuccess }: NovoTesteModa
                               }`}>
                                 {det.tipo}
                               </span>
-                              <span className="font-semibold text-neutral-800 dark:text-neutral-350">{det.descricao}</span>
+                              <span className="font-semibold text-neutral-800 dark:text-neutral-300">{det.descricao}</span>
                             </div>
                             <span className="text-neutral-500 font-medium">{formatDate(det.data)}</span>
                           </div>

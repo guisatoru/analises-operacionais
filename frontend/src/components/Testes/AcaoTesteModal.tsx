@@ -271,7 +271,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
         status: 'nao_cursado',
         label: 'Não Cursado',
         sublabel: 'Finalizado antes deste ciclo',
-        color: 'text-neutral-400 bg-neutral-100 dark:bg-neutral-850 border-neutral-250 dark:border-neutral-800'
+        color: 'text-neutral-400 bg-neutral-100 dark:bg-neutral-850 border-neutral-200 dark:border-neutral-800'
       };
     }
 
@@ -280,7 +280,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
         status: 'bloqueado',
         label: 'Aguardando Ativação',
         sublabel: 'Aprovação pendente',
-        color: 'text-neutral-400 bg-neutral-100 dark:bg-neutral-850 border-neutral-250 dark:border-neutral-800'
+        color: 'text-neutral-400 bg-neutral-100 dark:bg-neutral-850 border-neutral-200 dark:border-neutral-800'
       };
     }
 
@@ -298,7 +298,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
         status: 'bloqueado',
         label: 'Bloqueado',
         sublabel: `Aguardando Mês ${mesNum - 1}`,
-        color: 'text-neutral-400 bg-neutral-100 dark:bg-neutral-850 border-neutral-250 dark:border-neutral-800 opacity-60'
+        color: 'text-neutral-400 bg-neutral-100 dark:bg-neutral-850 border-neutral-200 dark:border-neutral-800 opacity-60'
       };
     }
 
@@ -306,7 +306,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
       status: 'pendente',
       label: 'Pendente',
       sublabel: 'Sem registro de ação',
-      color: 'text-neutral-500 bg-neutral-100 dark:bg-neutral-850 border-neutral-250 dark:border-neutral-800'
+      color: 'text-neutral-500 bg-neutral-100 dark:bg-neutral-850 border-neutral-200 dark:border-neutral-800'
     };
   };
 
@@ -336,7 +336,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
             className={`py-3 px-4 text-xs font-bold border-b-2 transition-all cursor-pointer ${
               activeTab === 'controle'
                 ? 'border-neutral-900 dark:border-white text-neutral-900 dark:text-white'
-                : 'border-transparent text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-350'
+                : 'border-transparent text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300'
             }`}
           >
             Ações e Decisões
@@ -347,7 +347,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
             className={`py-3 px-4 text-xs font-bold border-b-2 transition-all cursor-pointer ${
               activeTab === 'ausencias'
                 ? 'border-neutral-900 dark:border-white text-neutral-900 dark:text-white'
-                : 'border-transparent text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-350'
+                : 'border-transparent text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300'
             }`}
           >
             Ausências do Ponto
@@ -358,7 +358,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
             className={`py-3 px-4 text-xs font-bold border-b-2 transition-all cursor-pointer ${
               activeTab === 'historico'
                 ? 'border-neutral-900 dark:border-white text-neutral-900 dark:text-white'
-                : 'border-transparent text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-350'
+                : 'border-transparent text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300'
             }`}
           >
             Histórico ({teste.historico_acoes.length})
@@ -632,7 +632,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
                         </span>
                       </p>
                       {respostaSupervisorReg.observacao && (
-                        <p className="bg-white/40 dark:bg-black/20 p-2 rounded-lg text-neutral-700 dark:text-neutral-350 italic mt-2">
+                        <p className="bg-white/40 dark:bg-black/20 p-2 rounded-lg text-neutral-700 dark:text-neutral-300 italic mt-2">
                           " {respostaSupervisorReg.observacao} "
                         </p>
                       )}
@@ -697,7 +697,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
             <div className="space-y-4">
               <div className="p-4 bg-neutral-50 dark:bg-neutral-950/40 border border-neutral-200 dark:border-neutral-850 rounded-xl flex justify-between items-center shrink-0">
                 <div>
-                  <h4 className="text-xs font-bold text-neutral-800 dark:text-neutral-250 uppercase tracking-wider">Histórico Recente de Ausências (Último Ano)</h4>
+                  <h4 className="text-xs font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Histórico Recente de Ausências (Último Ano)</h4>
                   <p className="text-[10px] text-neutral-400 mt-0.5">Captado em tempo real da GeoVictoria</p>
                 </div>
                 <button
@@ -764,7 +764,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
               <div className="p-4 bg-neutral-50 dark:bg-neutral-950/40 border border-neutral-200 dark:border-neutral-850 rounded-xl flex items-center gap-2.5 shrink-0">
                 <History className="h-5 w-5 text-neutral-450" />
                 <div>
-                  <h4 className="text-xs font-bold text-neutral-800 dark:text-neutral-250 uppercase tracking-wider">Histórico de Ações (Linha do Tempo)</h4>
+                  <h4 className="text-xs font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Histórico de Ações (Linha do Tempo)</h4>
                   <p className="text-[10px] text-neutral-400 mt-0.5">Evolução do controle deste teste de promoção</p>
                 </div>
               </div>
@@ -777,7 +777,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
                     <span className="h-1.5 w-1.5 rounded-full bg-current" />
                   </span>
 
-                  <div className="space-y-1 bg-neutral-50 dark:bg-neutral-950/10 border border-neutral-250/20 dark:border-neutral-850 p-3.5 rounded-xl">
+                  <div className="space-y-1 bg-neutral-50 dark:bg-neutral-950/10 border border-neutral-200/20 dark:border-neutral-850 p-3.5 rounded-xl">
                     <div className="flex justify-between items-start">
                       <h5 className="text-xs font-bold text-neutral-900 dark:text-white">
                         Solicitação Criada
@@ -804,7 +804,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
                       <span className="h-1.5 w-1.5 rounded-full bg-current" />
                     </span>
 
-                    <div className="space-y-1 bg-neutral-50 dark:bg-neutral-950/10 border border-neutral-250/20 dark:border-neutral-850 p-3.5 rounded-xl">
+                    <div className="space-y-1 bg-neutral-50 dark:bg-neutral-950/10 border border-neutral-200/20 dark:border-neutral-850 p-3.5 rounded-xl">
                       <div className="flex justify-between items-start">
                         <h5 className="text-xs font-bold text-neutral-900 dark:text-white">
                           {item.acao_display} {item.mes_referencia > 0 && `(Mês ${item.mes_referencia})`}

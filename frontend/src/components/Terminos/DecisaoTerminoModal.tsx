@@ -52,7 +52,7 @@ export default function DecisaoTerminoModal({
             className={`py-3 px-4 text-xs font-bold border-b-2 transition-all cursor-pointer ${
               activeTab === 'decisao'
                 ? 'border-neutral-900 dark:border-white text-neutral-900 dark:text-white'
-                : 'border-transparent text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-350'
+                : 'border-transparent text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300'
             }`}
           >
             Registrar Decisão
@@ -63,7 +63,7 @@ export default function DecisaoTerminoModal({
             className={`py-3 px-4 text-xs font-bold border-b-2 transition-all cursor-pointer ${
               activeTab === 'detalhes'
                 ? 'border-neutral-900 dark:border-white text-neutral-900 dark:text-white'
-                : 'border-transparent text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-350'
+                : 'border-transparent text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300'
             }`}
           >
             Detalhes de Ausências

@@ -306,7 +306,7 @@ export default function Colaboradores() {
         <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-xs shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
-              <h3 className="text-sm font-bold text-neutral-850 dark:text-neutral-250 flex items-center gap-2">
+              <h3 className="text-sm font-bold text-neutral-850 dark:text-neutral-200 flex items-center gap-2">
                 <Layers className="h-4 w-4 text-neutral-500" />
                 Sincronização de Lojas — GeoVictoria
               </h3>
@@ -341,7 +341,7 @@ export default function Colaboradores() {
                   <span className="font-semibold text-neutral-600 dark:text-neutral-450">
                     {syncLojasMessage}
                   </span>
-                  <ProgressValue className="font-bold text-neutral-850 dark:text-neutral-250" />
+                  <ProgressValue className="font-bold text-neutral-850 dark:text-neutral-200" />
                 </div>
               </Progress>
 

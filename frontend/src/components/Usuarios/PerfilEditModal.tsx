@@ -182,7 +182,7 @@ export default function PerfilEditModal({
               </label>
               <InputGroup className="w-full">
                 <InputGroupAddon align="inline-start">
-                  <User className="h-4 w-4 text-neutral-350" />
+                  <User className="h-4 w-4 text-neutral-300" />
                 </InputGroupAddon>
                 <InputGroupInput
                   type="text"

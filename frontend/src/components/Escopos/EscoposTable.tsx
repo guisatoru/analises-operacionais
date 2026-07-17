@@ -447,7 +447,7 @@ export default function EscoposTable({
               <button
                 type="button"
                 onClick={() => handleAddNewItemPlaceholder(esc.id)}
-                className="inline-flex items-center gap-1 px-3 py-1.5 border border-neutral-250 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-850 text-neutral-700 dark:text-neutral-300 rounded-lg font-bold text-xs cursor-pointer transition-colors"
+                className="inline-flex items-center gap-1 px-3 py-1.5 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-850 text-neutral-700 dark:text-neutral-300 rounded-lg font-bold text-xs cursor-pointer transition-colors"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Novo Item

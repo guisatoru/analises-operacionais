@@ -32,7 +32,7 @@ export default function ConfirmDeleteModal({
             Confirmar Limpeza
           </h4>
         </div>
-        <p className="text-sm text-neutral-600 dark:text-neutral-350 leading-relaxed">
+        <p className="text-sm text-neutral-600 dark:text-neutral-300 leading-relaxed">
           Tem certeza que deseja limpar a decisão de <strong>Término {selectedEtapa}</strong>?
           <br />
           <br />

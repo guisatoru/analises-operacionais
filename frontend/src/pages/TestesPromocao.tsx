@@ -379,13 +379,13 @@ export default function TestesPromocao() {
 
                     {/* Loja / Supervisor / Coordenador */}
                     <td className="py-4 px-6">
-                      <div className="font-medium text-neutral-800 dark:text-neutral-250">{teste.loja_nome}</div>
+                      <div className="font-medium text-neutral-800 dark:text-neutral-200">{teste.loja_nome}</div>
                       <div className="text-xs text-neutral-500 mt-0.5">Sup: {teste.supervisor_nome}</div>
                       <div className="text-xs text-neutral-500">Coord: {teste.coordenador_nome || '-'}</div>
                     </td>
 
                     {/* Data de Início */}
-                    <td className="py-4 px-6 text-neutral-600 dark:text-neutral-350">
+                    <td className="py-4 px-6 text-neutral-600 dark:text-neutral-300">
                       <div className="flex items-center gap-1.5">
                         <Calendar className="h-4 w-4 text-neutral-400" />
                         {formatDate(teste.data_inicio)}
@@ -492,13 +492,13 @@ export default function TestesPromocao() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between p-5 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950">
             <span className="text-xs text-neutral-500">
-              Mostrando <span className="font-semibold text-neutral-800 dark:text-neutral-250">{(currentPage - 1) * 10 + 1}</span> a{' '}
-              <span className="font-semibold text-neutral-800 dark:text-neutral-250">
+              Mostrando <span className="font-semibold text-neutral-800 dark:text-neutral-200">{(currentPage - 1) * 10 + 1}</span> a{' '}
+              <span className="font-semibold text-neutral-800 dark:text-neutral-200">
                 {Math.min(currentPage * 10, testesFiltrados.length)}
               </span>{' '}
-              de <span className="font-semibold text-neutral-800 dark:text-neutral-250">{testesFiltrados.length}</span> resultados
+              de <span className="font-semibold text-neutral-800 dark:text-neutral-200">{testesFiltrados.length}</span> resultados
               {testesFiltrados.length !== testes.length && (
-                <> (filtrados de um total de <span className="font-semibold text-neutral-800 dark:text-neutral-250">{testes.length}</span>)</>
+                <> (filtrados de um total de <span className="font-semibold text-neutral-800 dark:text-neutral-200">{testes.length}</span>)</>
               )}
             </span>
             <div className="flex items-center gap-2">

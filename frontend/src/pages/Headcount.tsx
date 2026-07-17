@@ -528,7 +528,7 @@ export default function Headcount() {
                             }`}
                           >
                             <span className={`text-xs font-bold ${
-                              isSelected ? 'text-primary' : 'text-neutral-700 dark:text-neutral-350'
+                              isSelected ? 'text-primary' : 'text-neutral-700 dark:text-neutral-300'
                             }`}>
                               {item.dia}
                             </span>

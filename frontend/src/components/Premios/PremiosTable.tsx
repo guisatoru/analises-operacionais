@@ -128,10 +128,10 @@ export default function PremiosTable({
                       <span className="text-red-400 italic text-xs">Não vinculada</span>
                     )}
                   </td>
-                  <td className="py-4 px-6 text-neutral-750 dark:text-neutral-350 font-medium">
+                  <td className="py-4 px-6 text-neutral-750 dark:text-neutral-300 font-medium">
                     {p.coordenador_nome || '—'}
                   </td>
-                  <td className="py-4 px-6 text-neutral-750 dark:text-neutral-350 font-medium">
+                  <td className="py-4 px-6 text-neutral-750 dark:text-neutral-300 font-medium">
                     {p.supervisor_nome || '—'}
                   </td>
                   <td className="py-4 px-6 text-center text-neutral-600 dark:text-neutral-400 font-medium">

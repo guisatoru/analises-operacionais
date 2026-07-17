@@ -234,7 +234,7 @@ export default function GerenciarResponsaveisModal({
                 ) : (
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-800 text-[10px] font-bold text-neutral-600 dark:text-neutral-350 uppercase tracking-wider">
+                      <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-800 text-[10px] font-bold text-neutral-600 dark:text-neutral-300 uppercase tracking-wider">
                         <th className="py-2 px-4">Nome</th>
                         <th className="py-2 px-4">RE</th>
                         {activeTab === 'supervisores' && <th className="py-2 px-4">Coordenador</th>}
