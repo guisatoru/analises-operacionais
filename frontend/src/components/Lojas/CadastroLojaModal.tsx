@@ -657,7 +657,7 @@ export default function CadastroLojaModal({
                   <button
                     type="button"
                     onClick={handleAddCoordenadorClick}
-                    className="px-3 py-2 border border-neutral-200 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-355 rounded-lg text-sm font-bold transition-colors cursor-pointer"
+                    className="px-3 py-2 border border-neutral-200 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200 rounded-lg text-sm font-bold transition-colors cursor-pointer"
                     title="Cadastrar Novo Coordenador"
                   >
                     +
@@ -685,7 +685,7 @@ export default function CadastroLojaModal({
                   <button
                     type="button"
                     onClick={handleAddSupervisorClick}
-                    className="px-3 py-2 border border-neutral-200 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-355 rounded-lg text-sm font-bold transition-colors cursor-pointer"
+                    className="px-3 py-2 border border-neutral-200 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200 rounded-lg text-sm font-bold transition-colors cursor-pointer"
                     title="Cadastrar Novo Supervisor"
                   >
                     +

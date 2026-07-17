@@ -240,7 +240,7 @@ export default function SearchableSelect({
                     key={opt.value}
                     onClick={() => handleSelect(opt.value)}
                     className={cn(
-                      "flex items-center gap-2 px-2.5 py-2 rounded-md text-xs cursor-pointer transition-colors select-none text-neutral-700 dark:text-neutral-355 hover:bg-neutral-50 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white",
+                      "flex items-center gap-2 px-2.5 py-2 rounded-md text-xs cursor-pointer transition-colors select-none text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white",
                       isSelected && !multiple && "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 font-semibold",
                       isSelected && multiple && "bg-neutral-50 dark:bg-neutral-850 font-semibold"
                     )}
