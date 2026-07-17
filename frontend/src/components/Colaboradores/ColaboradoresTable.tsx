@@ -120,8 +120,11 @@ export default function ColaboradoresTable({
                   <td className="py-4 px-6 font-mono text-neutral-600">
                     {colab.re}
                   </td>
-                  <td className="py-4 px-6">
-                    <div className="font-semibold text-neutral-900 dark:text-neutral-100">
+                  <td className="py-4 px-6 min-w-0">
+                    <div 
+                      className="font-semibold text-neutral-900 dark:text-neutral-100 truncate block"
+                      title={colab.nome}
+                    >
                       {colab.nome}
                     </div>
                     <div className="text-[10px] text-neutral-600 font-mono">

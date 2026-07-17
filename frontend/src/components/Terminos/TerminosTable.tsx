@@ -340,9 +340,12 @@ export default function TerminosTable({
                   key={item.colaborador.id}
                   className="group hover:bg-neutral-50 dark:hover:bg-neutral-850 transition-colors"
                 >
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold text-neutral-900 dark:text-neutral-100">
+                  <td className="py-3 px-4 min-w-0">
+                    <div className="flex items-center justify-between gap-2 w-full min-w-0">
+                      <span 
+                        className="font-semibold text-neutral-900 dark:text-neutral-100 truncate block"
+                        title={item.colaborador.nome}
+                      >
                         {item.colaborador.nome}
                       </span>
                       <div className="flex items-center gap-1 shrink-0">
@@ -364,7 +367,7 @@ export default function TerminosTable({
                         </button>
                       </div>
                     </div>
-                    <div className="text-xs text-neutral-400 font-mono">
+                    <div className="text-xs text-neutral-400 font-mono mt-0.5">
                       RE: {item.colaborador.re}
                     </div>
                   </td>
