@@ -41,6 +41,52 @@
   --sidebar-ring: 185 30% 45%;
   
   --radius: 0.75rem; /* Cantos arredondados premium de 12px (rounded-xl) */
+
+  /* Cores neutras customizadas herdadas do sistema legado */
+  --neutral-55: 240 5.9% 97%;
+  --neutral-450: 240 5% 65%;
+  --neutral-550: 240 5% 45%;
+  --neutral-750: 240 5% 25%;
+  --neutral-850: 240 5% 15%;
+}
+
+.dark {
+  --background: 240 10% 3.9%; /* Fundo cinza escuro rico */
+  --foreground: 0 0% 98%; /* Texto claro off-white */
+  --card: 240 10% 5.9%; /* Cartões escuros */
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 5.9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 185 30% 50%; /* Teal ligeiramente mais brilhante para contraste */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 3.7% 12%;
+  --muted-foreground: 240 5% 64.9%;
+  --accent: 185 30% 15%;
+  --accent-foreground: 185 45% 90%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 185 30% 50%;
+
+  /* Variáveis específicas para a Sidebar no padrão Shadcn (Tema Escuro) */
+  --sidebar-background: 240 10% 5.9%;
+  --sidebar-foreground: 240 5% 85%;
+  --sidebar-primary: 185 30% 50%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 240 3.7% 12%;
+  --sidebar-accent-foreground: 185 45% 90%;
+  --sidebar-border: 240 3.7% 15.9%;
+  --sidebar-ring: 185 30% 50%;
+
+  /* Cores neutras customizadas em modo escuro */
+  --neutral-55: 240 5.9% 10%;
+  --neutral-450: 240 5% 45%;
+  --neutral-550: 240 5% 65%;
+  --neutral-750: 240 5% 80%;
+  --neutral-850: 240 5% 12%;
 }
 
 /* Configuração do tema estendido no Tailwind v4 */
@@ -81,6 +127,13 @@
   --color-sidebar-border: hsl(var(--sidebar-border));
   --color-sidebar-ring: hsl(var(--sidebar-ring));
 
+  /* Registro das cores customizadas no motor do Tailwind v4 */
+  --color-neutral-55: hsl(var(--neutral-55));
+  --color-neutral-450: hsl(var(--neutral-450));
+  --color-neutral-550: hsl(var(--neutral-550));
+  --color-neutral-750: hsl(var(--neutral-750));
+  --color-neutral-850: hsl(var(--neutral-850));
+
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
@@ -88,8 +141,8 @@
 
 /* Regras Globais de Layout */
 body {
-  background-color: var(--background);
-  color: var(--foreground);
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
   font-family: 'Plus Jakarta Sans', 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   margin: 0;
   padding: 0;
@@ -112,9 +165,9 @@ body {
 
 /* Inputs, Textareas e Selects */
 :where(input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], select, textarea) {
-  background-color: #ffffff;
-  color: #1e1e24;
-  border: 1px solid #e4e4e7;
+  background-color: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
   border-radius: 0.5rem;
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
@@ -125,18 +178,18 @@ body {
 }
 
 :where(input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], select, textarea):focus {
-  border-color: #579aa0;
-  box-shadow: 0 0 0 1px #579aa0, 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 1px hsl(var(--primary)), 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 :where(input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], select, textarea):hover {
-  border-color: #d4d4d8;
+  border-color: hsl(var(--muted-foreground));
 }
 
 /* Botões Customizados */
 .btn-primary {
-  background-color: #579aa0;
-  color: #ffffff;
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   font-weight: 500;
   font-size: 0.875rem;
   padding: 0.5rem 1.25rem;
@@ -151,7 +204,7 @@ body {
 }
 
 .btn-primary:hover {
-  background-color: #467e83; /* Tom ligeiramente mais escuro para hover */
+  filter: brightness(0.9);
   transform: translateY(-0.5px);
 }
 
@@ -160,13 +213,13 @@ body {
 }
 
 .btn-secondary {
-  background-color: #f4f4f5;
-  color: #579aa0;
+  background-color: hsl(var(--secondary));
+  color: hsl(var(--primary));
   font-weight: 500;
   font-size: 0.875rem;
   padding: 0.5rem 1.25rem;
   border-radius: 9999px; /* Pílula */
-  border: 1px solid #e4e4e7;
+  border: 1px solid hsl(var(--border));
   transition: all 0.2s ease;
   cursor: pointer;
   display: inline-flex;
@@ -176,15 +229,16 @@ body {
 }
 
 .btn-secondary:hover {
-  background-color: #e4e4e7;
-  color: #467e83;
+  background-color: hsl(var(--muted));
+  color: hsl(var(--primary));
+  border-color: hsl(var(--border));
 }
 
 /* Tabelas Premium */
 .table-container {
-  background-color: #ffffff;
+  background-color: hsl(var(--card));
   border-radius: 0.75rem;
-  border: 1px solid #e4e4e7;
+  border: 1px solid hsl(var(--border));
   overflow: hidden;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
 }
@@ -196,21 +250,21 @@ table {
 }
 
 th {
-  background-color: #f8f8fa;
-  color: #71717a;
+  background-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e4e4e7;
+  border-bottom: 1px solid hsl(var(--border));
 }
 
 td {
   padding: 1rem 1.5rem;
   font-size: 0.875rem;
-  color: #27272a;
-  border-bottom: 1px solid #f4f4f5;
+  color: hsl(var(--foreground));
+  border-bottom: 1px solid hsl(var(--border));
   transition: background-color 0.15s ease;
 }
 
@@ -219,14 +273,14 @@ tr:last-child td {
 }
 
 tr:hover td {
-  background-color: #fafafa;
+  background-color: hsl(var(--accent));
 }
 
 /* Card Visual Claro/Neutro */
 .card-premium {
-  background-color: #ffffff;
+  background-color: hsl(var(--card));
   border-radius: 0.75rem;
-  border: 1px solid #e4e4e7;
+  border: 1px solid hsl(var(--border));
   padding: 1.5rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
 }

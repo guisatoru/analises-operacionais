@@ -338,7 +338,7 @@ export default function TerminosTable({
               terminos.map((item) => (
                 <tr
                   key={item.colaborador.id}
-                  className="group hover:bg-neutral-50 dark:bg-neutral-850 transition-colors"
+                  className="group hover:bg-neutral-50 dark:hover:bg-neutral-850 transition-colors"
                 >
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-1.5">

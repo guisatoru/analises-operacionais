@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import PerfilEditModal from './Usuarios/PerfilEditModal';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from './ui/sidebar';
+import { useTheme } from '../context/ThemeContext';
+import { Sun, Moon } from 'lucide-react';
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -33,6 +35,7 @@ interface LayoutProps {
 export default function Layout({ isAuthenticated, username, email, onLogout, role, permissions, onUpdateProfile }: LayoutProps) {
   const location = useLocation();
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   // Mapeamento manual e amigável da rota atual para definir o setor e a página ativa
   const path = location.pathname.replace(/^\/|\/$/g, '');
@@ -132,8 +135,22 @@ export default function Layout({ isAuthenticated, username, email, onLogout, rol
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-          <div className="text-xs text-neutral-500 dark:text-neutral-400">
-            Logado como: <span className="font-semibold text-neutral-800 dark:text-neutral-200">{username}</span>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 transition-all focus:outline-none cursor-pointer border border-transparent active:scale-95"
+              title={theme === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}
+              aria-label={theme === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}
+            >
+              {theme === 'dark' ? (
+                <Sun className="h-4 w-4 text-amber-500" />
+              ) : (
+                <Moon className="h-4 w-4 text-neutral-600" />
+              )}
+            </button>
+            <div className="text-xs text-neutral-500 dark:text-neutral-400">
+              Logado como: <span className="font-semibold text-neutral-800 dark:text-neutral-200">{username}</span>
+            </div>
           </div>
         </header>
 

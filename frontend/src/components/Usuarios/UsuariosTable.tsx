@@ -83,7 +83,7 @@ export default function UsuariosTable({
               usuarios.map((user) => (
                 <tr
                   key={user.id}
-                  className="hover:bg-neutral-50 dark:bg-neutral-850 transition-colors"
+                  className="hover:bg-neutral-50 dark:hover:bg-neutral-850 transition-colors"
                 >
                   <td className="py-4 px-6">
                     <div className="w-8 h-8 rounded-full bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 flex items-center justify-center text-xs font-bold shadow-xs uppercase">

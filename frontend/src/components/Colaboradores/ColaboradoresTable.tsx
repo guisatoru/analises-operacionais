@@ -115,7 +115,7 @@ export default function ColaboradoresTable({
                 <tr
                   key={colab.id}
                   onClick={() => onOpenDetail(colab)}
-                  className="hover:bg-neutral-50 dark:bg-neutral-850 transition-colors cursor-pointer"
+                  className="hover:bg-neutral-50 dark:hover:bg-neutral-850 transition-colors cursor-pointer"
                 >
                   <td className="py-4 px-6 font-mono text-neutral-600">
                     {colab.re}

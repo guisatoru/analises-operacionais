@@ -139,7 +139,7 @@ export default function LojasTable({
               lojas.map((loja) => (
                 <tr
                   key={loja.id}
-                  className="hover:bg-neutral-50 dark:bg-neutral-850 transition-colors"
+                  className="hover:bg-neutral-50 dark:hover:bg-neutral-850 transition-colors"
                 >
                   <td className="py-4 px-6 font-mono text-neutral-600">
                     {loja.codigo_loja || '-'}

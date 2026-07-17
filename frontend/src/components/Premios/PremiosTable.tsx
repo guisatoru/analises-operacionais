@@ -118,7 +118,7 @@ export default function PremiosTable({
             </thead>
             <tbody className="divide-y divide-border text-sm">
               {premios.map((p) => (
-                <tr key={p.id} className="hover:bg-neutral-50 dark:bg-neutral-850 transition-colors">
+                <tr key={p.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-850 transition-colors">
                   <td className="py-4 px-6 font-semibold text-neutral-900 dark:text-neutral-100">{p.verb_name}</td>
                   <td className="py-4 px-6 text-neutral-600 dark:text-neutral-400 text-xs">{p.cost_center_name}</td>
                   <td className="py-4 px-6">

@@ -110,7 +110,7 @@ export default function DiariasTable({
             </thead>
             <tbody className="divide-y divide-border text-sm">
               {diarias.map((d) => (
-                <tr key={d.id_diaria} className="hover:bg-neutral-50 dark:bg-neutral-850 transition-colors">
+                <tr key={d.id_diaria} className="hover:bg-neutral-50 dark:hover:bg-neutral-850 transition-colors">
                   <td className="py-4 px-6 font-semibold text-neutral-900 dark:text-neutral-100">{d.diarista}</td>
                   <td className="py-4 px-6">
                     {d.loja_nome ? (
