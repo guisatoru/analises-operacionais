@@ -146,7 +146,7 @@ export default function Dashboard({ permissions }: DashboardProps) {
     <div className="space-y-8 max-w-6xl">
       {/* Cards de Atalho */}
       <div>
-        <h2 className="text-lg font-bold mb-6 text-neutral-800 tracking-tight">
+        <h2 className="text-lg font-bold mb-6 text-neutral-800 dark:text-neutral-200 tracking-tight">
           Acesso Rápido aos Recursos
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -156,16 +156,16 @@ export default function Dashboard({ permissions }: DashboardProps) {
               <Link
                 key={card.path}
                 to={card.path}
-                className="flex flex-col justify-between p-6 rounded-2xl border border-neutral-200 bg-white transition-all duration-300 group shadow-xs hover:shadow-md hover:border-primary/40"
+                className="flex flex-col justify-between p-6 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 transition-all duration-300 group shadow-xs hover:shadow-md hover:border-primary/40"
               >
                 <div>
                   <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 inline-block text-primary mb-4 shadow-2xs group-hover:bg-primary group-hover:text-white transition-all duration-300">
                     <Icon className="h-6 w-6" />
                   </div>
-                  <h3 className="text-base font-bold mb-2 text-neutral-800 tracking-tight group-hover:text-primary transition-colors">
+                  <h3 className="text-base font-bold mb-2 text-neutral-800 dark:text-neutral-100 tracking-tight group-hover:text-primary transition-colors">
                     {card.title}
                   </h3>
-                  <p className="text-neutral-500 text-xs leading-relaxed mb-6">
+                  <p className="text-neutral-500 dark:text-neutral-400 text-xs leading-relaxed mb-6">
                     {card.description}
                   </p>
                 </div>

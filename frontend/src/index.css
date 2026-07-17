@@ -163,27 +163,35 @@ body {
   e botões adotam o formato de pílulas (pill-shaped) premium.
 */
 
-/* Inputs, Textareas e Selects */
-:where(input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], select, textarea) {
-  background-color: hsl(var(--card));
-  color: hsl(var(--foreground));
-  border: 1px solid hsl(var(--border));
-  border-radius: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  outline: none;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
-}
+@layer base {
+  /* 
+    Inputs, Textareas e Selects em Camada Base
+    
+    Por que existe: Estiliza os campos padrão do HTML na camada base do Tailwind,
+    permitindo que classes utilitárias (como pl-10 para ícones) possam sobrescrever
+    as propriedades de padding e borda conforme necessário.
+  */
+  :where(input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], select, textarea) {
+    background-color: hsl(var(--card));
+    color: hsl(var(--foreground));
+    border: 1px solid hsl(var(--border));
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    outline: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  }
 
-:where(input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], select, textarea):focus {
-  border-color: hsl(var(--primary));
-  box-shadow: 0 0 0 1px hsl(var(--primary)), 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-}
+  :where(input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], select, textarea):focus {
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 1px hsl(var(--primary)), 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
 
-:where(input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], select, textarea):hover {
-  border-color: hsl(var(--muted-foreground));
+  :where(input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], select, textarea):hover {
+    border-color: hsl(var(--muted-foreground));
+  }
 }
 
 /* Botões Customizados */
