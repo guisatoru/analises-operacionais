@@ -10,7 +10,8 @@ import {
   Database,
   CalendarCheck,
   Coins,
-  CircleDollarSign
+  CircleDollarSign,
+  TrendingDown
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -94,6 +95,12 @@ export default function Dashboard({ permissions }: DashboardProps) {
       icon: Coins,
     },
     {
+      title: 'Painel de Turnover',
+      description: 'Monitore os motivos de desligamento da equipe, a evolução mensal e o ranking de lojas com mais saídas.',
+      path: '/turnover',
+      icon: TrendingDown,
+    },
+    {
       title: 'Salários de Dissídios',
       description: 'Configure e gerencie salários base por cargo e por estado (UF) para auditar desvios de folha.',
       path: '/salarios',
@@ -130,6 +137,7 @@ export default function Dashboard({ permissions }: DashboardProps) {
       '/headcount': 'headcount',
       '/diarias': 'diarias',
       '/premios': 'premios',
+      '/turnover': 'turnover',
       '/salarios': 'salarios',
       '/importacoes': 'importacoes',
       '/usuarios': 'usuarios',

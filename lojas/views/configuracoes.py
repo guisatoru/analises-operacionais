@@ -11,6 +11,7 @@ from usuarios.permissions import IsAdministrador, IsGestaoOrAdministrador
 
 from colaboradores.services.colaborador_importacao import importar_colaboradores_de_texto
 from colaboradores.services.gestao_importacao import importar_gestao_pessoas
+from colaboradores.services.turnover_importacao import importar_turnover_de_texto
 from lojas.services.folha_importacao import importar_folha_de_texto
 from lojas.services.diaria_importacao import importar_diarias_de_texto
 from lojas.services.premio_importacao import importar_premios_de_excel
@@ -110,6 +111,69 @@ def gestao_import_async(request):
         payload={"conteudo": arquivo.read(), "nome": arquivo.name or "gestao.xlsm"},
         titulo="Progresso da Importacao Gestao",
         mensagem_inicial="Iniciando processamento da planilha de Gestao...",
+    )
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
+def turnover_import_async(request):
+    """
+    Inicia a importação assíncrona da planilha de Turnover/Termos (terminos.csv).
+    
+    Docstring explicativa em português:
+    Esta view recebe o arquivo CSV de termos, lê seu conteúdo e inicia uma thread assíncrona
+    para processar o mapeamento de motivos de demissão e o cálculo de discrepâncias no background,
+    retornando um ID de importação para acompanhamento.
+    """
+    # Por que existe: Exige permissão explícita no novo módulo de turnover
+    from django.db import DatabaseError
+    user = request.user
+    group = user.groups.first()
+    if not user.is_superuser:
+        from usuarios.models import RolePermission
+        try:
+            perm = RolePermission.objects.get(group=group, module="turnover")
+            if not perm.can_create:
+                return Response({"success": False, "error": "Você não possui permissão para importar dados de turnover."}, status=status.HTTP_403_FORBIDDEN)
+        except (RolePermission.DoesNotExist, DatabaseError):
+            return Response({"success": False, "error": "Erro ao validar permissões de turnover."}, status=status.HTTP_403_FORBIDDEN)
+
+    arquivo = request.FILES.get("arquivo")
+    if not arquivo:
+        return Response({"success": False, "error": "Nenhum arquivo enviado."}, status=status.HTTP_400_BAD_REQUEST)
+    
+    if not arquivo.name.lower().endswith(".csv"):
+        return Response({"success": False, "error": "Envie um arquivo CSV de termos válido."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        conteudo = arquivo.read().decode("utf-8-sig")
+    except UnicodeDecodeError:
+        try:
+            # Tenta decodificar como ISO-8859-1 se UTF-8-sig falhar
+            conteudo = arquivo.read().decode("iso-8859-1")
+        except UnicodeDecodeError:
+            return Response({
+                "success": False,
+                "error": "Não foi possível ler o arquivo. Certifique-se de que é um CSV em UTF-8 ou ISO-8859-1."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    if request.user.is_authenticated:
+        from django.contrib.admin.models import LogEntry, CHANGE
+        from django.contrib.contenttypes.models import ContentType
+        from colaboradores.models import Colaborador
+        LogEntry.objects.log_action(
+            user_id=request.user.id,
+            content_type_id=ContentType.objects.get_for_model(Colaborador).pk,
+            object_id=0,
+            object_repr="Importação de Turnover (Termos)",
+            action_flag=CHANGE,
+            change_message=f"Iniciou a importação do arquivo de termos: {arquivo.name}"
+        )
+
+    return _iniciar_importacao_async(
+        tipo_importacao="turnover",
+        payload={"conteudo": conteudo},
+        titulo="Progresso da Importação de Turnover",
+        mensagem_inicial="Iniciando processamento do arquivo de termos de rescisão...",
     )
 
 @api_view(["POST"])
@@ -349,6 +413,12 @@ def _processar_importacao_background(import_id, tipo_importacao):
                 progress_callback=atualizar_progresso,
             )
             mensagem, status_msg = _montar_mensagem_sra(resultado)
+        elif tipo_importacao == "turnover":
+            resultado = importar_turnover_de_texto(
+                payload["conteudo"],
+                progress_callback=atualizar_progresso,
+            )
+            mensagem, status_msg = _montar_mensagem_turnover(resultado)
         elif tipo_importacao == "gestao":
             arquivo_excel = BytesIO(payload["conteudo"])
             arquivo_excel.name = payload.get("nome", "gestao.xlsm")
@@ -423,6 +493,27 @@ def _processar_importacao_background(import_id, tipo_importacao):
             },
             timeout=600,
         )
+
+def _montar_mensagem_turnover(resultado):
+    total = resultado.get("total", 0)
+    if total == 0:
+        return "Nenhum termo de rescisão encontrado no arquivo. Verifique o formato.", "warning"
+
+    atualizados = resultado.get("atualizados", 0)
+    desc_csv_sistema = len(resultado.get("descrepancias_csv_para_sistema", []))
+    desc_sistema_csv = len(resultado.get("descrepancias_sistema_para_csv", []))
+
+    mensagem = (
+        f"Importação de Turnover concluída: {total} registros processados. "
+        f"{atualizados} colaborador(es) atualizado(s) com o motivo de desligamento."
+    )
+    
+    tem_alerta = desc_csv_sistema > 0 or desc_sistema_csv > 0
+    if tem_alerta:
+        mensagem += f" Atenção: Foram detectadas discrepâncias no cruzamento de dados (CSV vs Banco)."
+        return mensagem, "warning"
+
+    return mensagem, "success"
 
 def _montar_mensagem_sra(resultado):
     if resultado["total"] == 0:

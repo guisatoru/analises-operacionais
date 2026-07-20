@@ -19,6 +19,7 @@ const Escopos = lazy(() => import('./pages/Escopos'));
 const Comparativo = lazy(() => import('./pages/Comparativo'));
 const Diarias = lazy(() => import('./pages/Diarias'));
 const Premios = lazy(() => import('./pages/Premios'));
+const Turnover = lazy(() => import('./pages/Turnover'));
 const RelatorioPremios = lazy(() => import('./pages/RelatorioPremios'));
 const Usuarios = lazy(() => import('./pages/Usuarios'));
 const Agenda = lazy(() => import('./pages/Agenda'));
@@ -198,6 +199,10 @@ function App() {
             <Route 
               path="/premios" 
               element={permissions.premios?.view ? <Premios /> : <Navigate to="/" replace />} 
+            />
+            <Route 
+              path="/turnover" 
+              element={permissions.turnover?.view ? <Turnover /> : <Navigate to="/" replace />} 
             />
             <Route 
               path="/colaboradores" 

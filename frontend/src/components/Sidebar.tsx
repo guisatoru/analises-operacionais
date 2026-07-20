@@ -7,6 +7,7 @@ import {
   Users, 
   LogOut, 
   TrendingUp,
+  TrendingDown,
   Database,
   Layers,
   ChevronsUpDown,
@@ -342,6 +343,21 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, p
                     <Link to="/premios">
                       <Coins className="h-5 w-5 shrink-0" />
                       {open && <span className="truncate">Prêmios</span>}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+
+              {permissions?.turnover?.view === true && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={location.pathname === '/turnover'}
+                    title={!open ? "Turnover" : undefined}
+                  >
+                    <Link to="/turnover">
+                      <TrendingDown className="h-5 w-5 shrink-0" />
+                      {open && <span className="truncate">Turnover</span>}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

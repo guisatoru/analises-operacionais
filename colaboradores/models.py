@@ -27,6 +27,8 @@ class Colaborador(models.Model):
     centro_custo = models.CharField("Centro de Custo", max_length=50)
     data_admissao = models.DateField("Data de Admissão")
     data_demissao = models.DateField("Data de Demissão", null=True, blank=True)
+    # Por que existe: Registra o motivo amigável do desligamento mapeado do CSV de termos para cálculo de Turnover.
+    motivo_demissao = models.CharField("Motivo de Demissão", max_length=100, null=True, blank=True, db_index=True)
     status = models.CharField("Status", max_length=100, db_index=True)
     cargo = models.CharField("Cargo", max_length=150, db_index=True)
     cpf = models.CharField("CPF", max_length=14, null=True, blank=True)

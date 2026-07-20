@@ -9,7 +9,8 @@ import {
   X,
   Coins,
   UploadCloud,
-  Loader2
+  Loader2,
+  TrendingDown
 } from 'lucide-react';
 import api from '../api/client';
 import UploadCard from '../components/Importacoes/UploadCard';
@@ -27,15 +28,16 @@ interface ImportStatus {
  * Página de Central de Importações.
  * 
  * Por que existe: Gerencia a seleção de arquivos e os envios multipart para a API do Django
- * (SRA Colaboradores, Planilha de Gestão, Folha SRD e Diárias), realizando o polling de progresso 
+ * (SRA Colaboradores, Planilha de Gestão, Folha SRD, Diárias, Prêmios e Turnover), realizando o polling de progresso 
  * e delegando o layout dos cards para o componente UploadCard.
  */
 export default function Importacoes() {
-  const { role } = useOutletContext<{ role?: string }>();
+  const { role, permissions } = useOutletContext<{ role?: string; permissions?: Record<string, any> }>();
   // Estados para armazenar cada tipo de arquivo selecionado
   const [sraFile, setSraFile] = useState<File | null>(null);
   const [gestaoFile, setGestaoFile] = useState<File | null>(null);
   const [folhaFile, setFolhaFile] = useState<File | null>(null);
+  const [turnoverFile, setTurnoverFile] = useState<File | null>(null);
   
   // Novos estados para importação unificada de diárias
   const [diariaSistemaFile, setDiariaSistemaFile] = useState<File | null>(null);
@@ -68,6 +70,7 @@ export default function Importacoes() {
           setSraFile(null);
           setGestaoFile(null);
           setFolhaFile(null);
+          setTurnoverFile(null);
           setDiariaSistemaFile(null);
           setDiariaManualFile(null);
           setPremioSistemaFile(null);
@@ -88,7 +91,7 @@ export default function Importacoes() {
   };
 
   // Faz o envio (upload) do arquivo para a API correspondente
-  const handleUpload = async (tipo: 'sra' | 'gestao' | 'folha', file: File | null) => {
+  const handleUpload = async (tipo: 'sra' | 'gestao' | 'folha' | 'turnover', file: File | null) => {
     if (!file) {
       alert('Selecione um arquivo primeiro.');
       return;
@@ -111,6 +114,7 @@ export default function Importacoes() {
     if (tipo === 'sra') endpoint = '/colaboradores/importar/';
     else if (tipo === 'gestao') endpoint = '/colaboradores/importar-gestao/';
     else if (tipo === 'folha') endpoint = '/folhas/importar/';
+    else if (tipo === 'turnover') endpoint = '/colaboradores/importar-turnover/';
 
     try {
       const response = await api.post(endpoint, formData, {
@@ -276,6 +280,24 @@ export default function Importacoes() {
           buttonText="Importar Planilha Gestão"
           onUpload={() => handleUpload('gestao', gestaoFile)}
         />
+
+        {permissions?.turnover?.create && (
+          <UploadCard
+            title="Motivos de Demissão (Turnover)"
+            description="Carga dos motivos de demissão da equipe. Formato aceito: CSV de desligamentos (terminos.csv)."
+            icon={
+              <div className="w-12 h-12 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-500">
+                <TrendingDown className="h-6 w-6" />
+              </div>
+            }
+            accept=".csv"
+            file={turnoverFile}
+            setFile={setTurnoverFile}
+            loading={loading}
+            buttonText="Importar Turnover"
+            onUpload={() => handleUpload('turnover', turnoverFile)}
+          />
+        )}
 
         {role !== 'Gestão' && (
           <>
@@ -551,6 +573,43 @@ export default function Importacoes() {
                             ))}
                           </tbody>
                         </table>
+                      </div>
+                    </div>
+                  )}
+                  {importStatus.result?.descrepancias_csv_para_sistema?.length > 0 && (
+                    <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl space-y-2">
+                      <div className="flex items-center gap-2 font-bold text-xs text-amber-800 dark:text-amber-300">
+                        <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                        <span>Colaboradores no CSV que não constam como demitidos no sistema ({importStatus.result.descrepancias_csv_para_sistema.length}):</span>
+                      </div>
+                      <div className="max-h-40 overflow-y-auto pr-1">
+                        <ul className="text-xs text-amber-700 dark:text-amber-400 space-y-1 list-disc pl-5">
+                          {importStatus.result.descrepancias_csv_para_sistema.map((item: any, idx: number) => (
+                            <li key={idx}>
+                              RE <span className="font-semibold">{item.re}</span> ({item.nome}):{" "}
+                              <span className="italic">{item.tipo_erro}</span> • Desligado em {item.dt_demissao_csv} no CSV (Motivo: {item.motivo})
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+
+                  {importStatus.result?.descrepancias_sistema_para_csv?.length > 0 && (
+                    <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 rounded-xl space-y-2">
+                      <div className="flex items-center gap-2 font-bold text-xs text-red-800 dark:text-red-300">
+                        <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
+                        <span>Colaboradores demitidos no sistema que não constam no CSV ({importStatus.result.descrepancias_sistema_para_csv.length}):</span>
+                      </div>
+                      <div className="max-h-40 overflow-y-auto pr-1">
+                        <ul className="text-xs text-red-700 dark:text-red-400 space-y-1 list-disc pl-5">
+                          {importStatus.result.descrepancias_sistema_para_csv.map((item: any, idx: number) => (
+                            <li key={idx}>
+                              RE <span className="font-semibold">{item.re}</span> ({item.nome}):{" "}
+                              Desligado em {item.data_demissao} • Cargo: {item.cargo}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     </div>
                   )}

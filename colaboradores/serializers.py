@@ -1,6 +1,30 @@
 from rest_framework import serializers
 from .models import Colaborador, ControleTermino, Agendamento, TestePromocao, HistoricoAcaoTeste
 from .view_utils import funcao_esta_divergente
+from lojas.models import Loja
+from lojas.services.folha_constants import normalizar_centro_custo
+
+# Cache em memória para evitar queries repetidas durante a serialização/filtragem de colaboradores
+_MAPA_LOJAS_CACHE = None
+
+def obter_loja_por_cc(centro_custo):
+    """
+    Retorna a Loja correspondente ao centro de custo normalizado.
+    
+    Docstring explicativa em português:
+    Esta função busca todas as lojas e mapeia seus centros de custo normalizados para a instância
+    correspondente da Loja (incluindo coordenadores e supervisores). É utilizada como fallback quando
+    um colaborador demitido não possui loja_gestao definida no banco.
+    """
+    global _MAPA_LOJAS_CACHE
+    if _MAPA_LOJAS_CACHE is None:
+        _MAPA_LOJAS_CACHE = {}
+        for l in Loja.objects.all().select_related("coordenador", "supervisor"):
+            cc_norm = normalizar_centro_custo(l.centro_de_custo)
+            if cc_norm:
+                _MAPA_LOJAS_CACHE[cc_norm] = l
+    cc_norm_val = normalizar_centro_custo(centro_custo)
+    return _MAPA_LOJAS_CACHE.get(cc_norm_val)
 
 class ColaboradorSerializer(serializers.ModelSerializer):
     """
@@ -18,6 +42,8 @@ class ColaboradorSerializer(serializers.ModelSerializer):
     loja_coordenador = serializers.CharField(source="loja.coordenador.nome", read_only=True)
     loja_supervisor = serializers.SerializerMethodField()
     loja_gestao_nome = serializers.SerializerMethodField()
+    loja_gestao_coordenador = serializers.SerializerMethodField()
+    loja_gestao_supervisor = serializers.SerializerMethodField()
     loja_geo_nome = serializers.SerializerMethodField()
 
     class Meta:
@@ -42,10 +68,38 @@ class ColaboradorSerializer(serializers.ModelSerializer):
 
     def get_loja_gestao_nome(self, obj):
         """
-        Retorna o nome da loja configurado na planilha de Gestão de Pessoas ou o de referência.
+        Retorna o nome de referência da loja de gestão ou do fallback de Centro de Custo.
         """
-        if obj.loja_gestao:
-            return obj.loja_gestao.nome_gestao or obj.loja_gestao.nome_referencia
+        loja_resolvida = obj.loja_gestao
+        if not loja_resolvida and obj.centro_custo:
+            loja_resolvida = obter_loja_por_cc(obj.centro_custo)
+        
+        if loja_resolvida:
+            return loja_resolvida.nome_referencia
+        return None
+
+    def get_loja_gestao_coordenador(self, obj):
+        """
+        Retorna o coordenador associado à loja de gestão ou do fallback de Centro de Custo.
+        """
+        loja_resolvida = obj.loja_gestao
+        if not loja_resolvida and obj.centro_custo:
+            loja_resolvida = obter_loja_por_cc(obj.centro_custo)
+        
+        if loja_resolvida and loja_resolvida.coordenador:
+            return loja_resolvida.coordenador.nome
+        return None
+
+    def get_loja_gestao_supervisor(self, obj):
+        """
+        Retorna o supervisor associado à loja de gestão ou do fallback de Centro de Custo.
+        """
+        loja_resolvida = obj.loja_gestao
+        if not loja_resolvida and obj.centro_custo:
+            loja_resolvida = obter_loja_por_cc(obj.centro_custo)
+        
+        if loja_resolvida and loja_resolvida.supervisor:
+            return loja_resolvida.supervisor.nome
         return None
 
     def get_loja_geo_nome(self, obj):

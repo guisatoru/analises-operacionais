@@ -23,6 +23,8 @@ def obter_modulo_por_view(view_name, path):
         return "premios"
     elif "diarias" in path_lower:
         return "diarias"
+    elif "turnover" in path_lower:
+        return "turnover"
     elif "escopos" in path_lower:
         return "escopos"
     elif "presencas" in path_lower:
