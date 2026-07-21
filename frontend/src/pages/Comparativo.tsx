@@ -173,8 +173,10 @@ export default function Comparativo() {
   };
 
   const handleLimparFiltros = () => {
+    // Redefine para a última competência disponível (como no Turnover) para evitar carregar volume excessivo de dados
+    const ultimoPeriodo = opcoesFiltros.competencias[0]?.value || '';
     setFiltros({
-      periodo: '',
+      periodo: ultimoPeriodo,
       loja: '',
       supervisor: '',
       coordenador: '',
