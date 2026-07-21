@@ -62,6 +62,7 @@ export default function Terminos() {
   const [syncProgress, setSyncProgress] = useState(0);
   const [syncMessage, setSyncMessage] = useState('');
   const [showProgressBar, setShowProgressBar] = useState(false);
+  const [sincronizadoEm, setSincronizadoEm] = useState<string | null>(null);
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -105,10 +106,16 @@ export default function Terminos() {
         setTerminos(response.data.results);
         setCount(response.data.count);
         setTotalPages(Math.ceil(response.data.count / 10) || 1);
+        if (response.data.sincronizado_em) {
+          setSincronizadoEm(response.data.sincronizado_em);
+        }
       } else {
         setTerminos(response.data || []);
         setCount(response.data ? response.data.length : 0);
         setTotalPages(1);
+        if (response.data?.sincronizado_em) {
+          setSincronizadoEm(response.data.sincronizado_em);
+        }
       }
     } catch (err) {
       if (queryId !== lastQueryId.current) return;
@@ -254,8 +261,9 @@ export default function Terminos() {
     window.open(url, '_blank');
   };
 
-  // Calcula e formata a última atualização de relógio com base nos itens carregados
+  // Calcula e formata a última atualização de relógio com base no retorno da API ou nos itens carregados
   const getUltimaAtualizacaoCache = () => {
+    if (sincronizadoEm) return sincronizadoEm;
     if (!terminos.length) return null;
     const datas = terminos
       .map(item => item.colaborador.geovictoria_atualizado_em)
@@ -263,6 +271,7 @@ export default function Terminos() {
     
     if (!datas.length) return null;
     const maxData = datas.sort().reverse()[0];
+    if (maxData.includes('/')) return maxData;
     const [year, month, day] = maxData.split('-');
     return `${day}/${month}/${year}`;
   };

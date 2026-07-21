@@ -154,11 +154,16 @@ def terminos_list(request):
     if page is not None:
         _preencher_resumo_geovictoria(page)
         serializer = TerminoColaboradorSerializer(page, many=True)
-        return paginator.get_paginated_response(serializer.data)
+        response = paginator.get_paginated_response(serializer.data)
+        response.data["sincronizado_em"] = cache_info["sincronizado_em"] if cache_info else None
+        return response
 
     _preencher_resumo_geovictoria(processed_colaboradores)
     serializer = TerminoColaboradorSerializer(processed_colaboradores, many=True)
-    return Response(serializer.data)
+    return Response({
+        "results": serializer.data,
+        "sincronizado_em": cache_info["sincronizado_em"] if cache_info else None,
+    })
 
 
 @api_view(["GET"])
@@ -303,6 +308,7 @@ def colaborador_geovictoria_details(request, colaborador_id):
             colaborador.cpf,
             colaborador.data_admissao,
             today,
+            admissao=colaborador.data_admissao,
         )
         return Response(details)
     except Exception as exc:

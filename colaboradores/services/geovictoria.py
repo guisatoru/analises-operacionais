@@ -66,6 +66,16 @@ def get_token():
     return token
 
 
+def normalizar_cpf(cpf):
+    """
+    Por que existe: Remove pontuações e caracteres não numéricos do CPF para garantir que
+    o cruzamento com a API da GeoVictoria funcione independentemente da formatação.
+    """
+    if not cpf:
+        return ""
+    return "".join(filter(str.isdigit, str(cpf)))
+
+
 def get_timeoff_summary(cpfs, start_date, end_date, admissoes_dict=None):
     """
     Busca o resumo de faltas e atestados dos colaboradores na API GeoVictoria.
@@ -81,10 +91,14 @@ def get_timeoff_summary(cpfs, start_date, end_date, admissoes_dict=None):
     def format_date(dt):
         return dt.strftime("%Y%m%d000000")
 
+    # Mapeia CPFs normalizados para os CPFs originais para garantir busca correta na API
+    cpf_list = [c.strip() for c in str(cpfs).split(',') if c.strip()]
+    cpf_map = {normalizar_cpf(c): c for c in cpf_list if normalizar_cpf(c)}
+
     body = {
         "StartDate": format_date(start_date),
         "EndDate": format_date(end_date),
-        "UserIds": str(cpfs),  # Pode ser um CPF único ou "cpf1,cpf2,cpf3"
+        "UserIds": ",".join(cpf_map.keys()) if cpf_map else str(cpfs),
     }
 
     payload = _geovictoria_request("/TimeOff/Get", body=body, token=token)
@@ -103,23 +117,33 @@ def get_timeoff_summary(cpfs, start_date, end_date, admissoes_dict=None):
             or []
         )
 
-    # Inicializa o dicionário de resultados para cada CPF solicitado
-    # Note: A GeoVictoria retorna o identifier no campo 'ExternalId' ou 'Id' ou 'Identifier'
-    # Precisamos agrupar por colaborador.
-    
-    results = {}
-    cpf_list = [c.strip() for c in str(cpfs).split(',')]
-    for c in cpf_list:
-        results[c] = {"faltas": 0, "atestados": 0, "total": 0}
+    # Inicializa o dicionário de resultados usando as chaves dos CPFs originais solicitados
+    results = {c: {"faltas": 0, "atestados": 0, "total": 0} for c in cpf_list}
+
+    # Normaliza as chaves do dicionário de admissões caso fornecido
+    admissoes_norm = {}
+    if admissoes_dict:
+        for k, v in admissoes_dict.items():
+            norm_k = normalizar_cpf(k)
+            if norm_k:
+                admissoes_norm[norm_k] = v
 
     for entry in entries:
-        # A GeoVictoria retorna o CPF no campo 'UserIdentifier' conforme exemplo fornecido
+        # A GeoVictoria retorna o CPF no campo 'UserIdentifier'
         entry_cpf = str(entry.get("UserIdentifier", "")).strip()
+        entry_cpf_norm = normalizar_cpf(entry_cpf)
         
-        if not entry_cpf or entry_cpf not in results:
+        if not entry_cpf_norm or entry_cpf_norm not in cpf_map:
             continue
 
+        original_cpf = cpf_map[entry_cpf_norm]
         desc = (entry.get("TimeOffTypeDescription", "") or "").upper()
+
+        is_falta = desc == "FALTA"
+        is_atestado = "ATESTADO" in desc or "MEDICO" in desc or "MÉDICO" in desc
+
+        if not (is_falta or is_atestado):
+            continue
 
         # Cálculo de dias (Starts e Ends são strings YYYYMMDD000000)
         starts_str = entry.get("Starts", "")[:8]
@@ -128,22 +152,30 @@ def get_timeoff_summary(cpfs, start_date, end_date, admissoes_dict=None):
         try:
             start_dt = datetime.strptime(starts_str, "%Y%m%d")
             end_dt = datetime.strptime(ends_str, "%Y%m%d")
-            days = (end_dt - start_dt).days + 1
+            total_period_days = (end_dt - start_dt).days + 1
 
-            # Desconsidera ausências anteriores à data de admissão do contrato atual do colaborador
-            if admissoes_dict and entry_cpf in admissoes_dict:
-                colab_admissao = admissoes_dict[entry_cpf]
-                if colab_admissao and start_dt.date() < colab_admissao:
-                    continue
-        except:
-            days = 1
+            # Desmembra o período e valida dia a dia em relação à admissão do colaborador
+            valid_days = 0
+            for i in range(total_period_days):
+                current_day = start_dt + timedelta(days=i)
+                if entry_cpf_norm in admissoes_norm:
+                    colab_admissao = admissoes_norm[entry_cpf_norm]
+                    if colab_admissao and current_day.date() < colab_admissao:
+                        continue
+                valid_days += 1
 
-        if desc == "FALTA":
-            results[entry_cpf]["faltas"] += days
-        elif "ATESTADO" in desc or "MEDICO" in desc:
-            results[entry_cpf]["atestados"] += days
+            if is_falta:
+                results[original_cpf]["faltas"] += valid_days
+            elif is_atestado:
+                results[original_cpf]["atestados"] += valid_days
 
-        results[entry_cpf]["total"] += days
+            results[original_cpf]["total"] += valid_days
+        except Exception:
+            if is_falta:
+                results[original_cpf]["faltas"] += 1
+            elif is_atestado:
+                results[original_cpf]["atestados"] += 1
+            results[original_cpf]["total"] += 1
 
     return results
 
@@ -172,7 +204,7 @@ def listar_usuarios_completos():
     )
 
 
-def get_timeoff_details(cpf, start_date, end_date):
+def get_timeoff_details(cpf, start_date, end_date, admissao=None):
     """
     Busca o detalhamento de faltas e atestados para um CPF específico na GeoVictoria, retornando cada dia individualmente.
 
@@ -187,10 +219,12 @@ def get_timeoff_details(cpf, start_date, end_date):
     def format_date(dt):
         return dt.strftime("%Y%m%d000000")
 
+    cpf_norm = normalizar_cpf(cpf)
+
     body = {
         "StartDate": format_date(start_date),
         "EndDate": format_date(end_date),
-        "UserIds": str(cpf),
+        "UserIds": cpf_norm if cpf_norm else str(cpf),
     }
 
     payload = _geovictoria_request("/TimeOff/Get", body=body, token=token)
@@ -211,13 +245,15 @@ def get_timeoff_details(cpf, start_date, end_date):
     details = []
     for entry in entries:
         entry_cpf = str(entry.get("UserIdentifier", "")).strip()
-        if not entry_cpf or entry_cpf != str(cpf).strip():
+        entry_cpf_norm = normalizar_cpf(entry_cpf)
+        
+        if not entry_cpf_norm or (cpf_norm and entry_cpf_norm != cpf_norm):
             continue
 
         desc = (entry.get("TimeOffTypeDescription", "") or "").upper()
         
         is_falta = desc == "FALTA"
-        is_atestado = "ATESTADO" in desc or "MEDICO" in desc
+        is_atestado = "ATESTADO" in desc or "MEDICO" in desc or "MÉDICO" in desc
 
         if not (is_falta or is_atestado):
             continue
@@ -233,6 +269,8 @@ def get_timeoff_details(cpf, start_date, end_date):
             # Desmembra o período em dias individuais
             for i in range(days):
                 current_day = start_dt + timedelta(days=i)
+                if admissao and current_day.date() < admissao:
+                    continue
                 current_formatted = current_day.strftime("%Y-%m-%d")
                 details.append({
                     "tipo": "FALTA" if is_falta else "ATESTADO",
