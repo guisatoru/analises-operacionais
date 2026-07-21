@@ -139,7 +139,7 @@ def get_timeoff_summary(cpfs, start_date, end_date, admissoes_dict=None):
         original_cpf = cpf_map[entry_cpf_norm]
         desc = (entry.get("TimeOffTypeDescription", "") or "").upper()
 
-        is_falta = desc == "FALTA"
+        is_falta = "FALTA" in desc
         is_atestado = "ATESTADO" in desc or "MEDICO" in desc or "MÉDICO" in desc
 
         if not (is_falta or is_atestado):
@@ -252,7 +252,7 @@ def get_timeoff_details(cpf, start_date, end_date, admissao=None):
 
         desc = (entry.get("TimeOffTypeDescription", "") or "").upper()
         
-        is_falta = desc == "FALTA"
+        is_falta = "FALTA" in desc
         is_atestado = "ATESTADO" in desc or "MEDICO" in desc or "MÉDICO" in desc
 
         if not (is_falta or is_atestado):
