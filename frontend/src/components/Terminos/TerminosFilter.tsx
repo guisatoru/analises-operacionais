@@ -227,15 +227,16 @@ export default function TerminosFilter({
           <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
             Fase do Término
           </label>
-          <select
+          <SearchableSelect
+            options={[
+              { value: '', label: 'Todos os Términos' },
+              { value: '1', label: '1º Término (30 dias)' },
+              { value: '2', label: '2º Término (60 dias)' },
+            ]}
             value={etapaFiltro}
-            onChange={(e) => setEtapaFiltro(e.target.value)}
-            className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-          >
-            <option value="">Todos os Términos</option>
-            <option value="1">1º Término (30 dias)</option>
-            <option value="2">2º Término (60 dias)</option>
-          </select>
+            onChange={setEtapaFiltro}
+            placeholder="Todos os Términos"
+          />
         </div>
 
         {/* Decisão / Ação Tomada */}
@@ -243,17 +244,18 @@ export default function TerminosFilter({
           <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
             Decisão / Ação Tomada
           </label>
-          <select
+          <SearchableSelect
+            options={[
+              { value: '', label: 'Todas as Ações' },
+              { value: 'pendente', label: 'Pendente (Sem Decisão)' },
+              { value: 'manter', label: 'Efetivado (Manter)' },
+              { value: 'termino', label: 'Dispensado (Término)' },
+              { value: 'prorrogado', label: 'Prorrogado' },
+            ]}
             value={acaoFiltro}
-            onChange={(e) => setAcaoFiltro(e.target.value)}
-            className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-          >
-            <option value="">Todas as Ações</option>
-            <option value="pendente">Pendente (Sem Decisão)</option>
-            <option value="manter">Efetivado (Manter)</option>
-            <option value="termino">Dispensado (Término)</option>
-            <option value="prorrogado">Prorrogado</option>
-          </select>
+            onChange={setAcaoFiltro}
+            placeholder="Todas as Ações"
+          />
         </div>
 
 

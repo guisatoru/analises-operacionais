@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import api from '../../api/client';
 import type { Loja, Responsavel } from './LojasTable';
 import FormField from '../ui/form-field';
+import SearchableSelect from '../ui/searchable-select';
 
 interface CadastroLojaModalProps {
   loja: Loja | null;
@@ -500,14 +501,15 @@ export default function CadastroLojaModal({
                 <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
                   Status
                 </label>
-                <select
+                <SearchableSelect
+                  options={[
+                    { value: 'ATIVA', label: 'Ativa' },
+                    { value: 'INATIVA', label: 'Inativa' },
+                  ]}
                   value={formData.status || 'ATIVA'}
-                  onChange={(e) => handleChange('status', e.target.value)}
-                  className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-                >
-                  <option value="ATIVA">Ativa</option>
-                  <option value="INATIVA">Inativa</option>
-                </select>
+                  onChange={(val) => handleChange('status', val)}
+                  placeholder="Selecione o status..."
+                />
               </div>
             </div>
           )}
@@ -529,22 +531,16 @@ export default function CadastroLojaModal({
                     <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
                       UF
                     </label>
-                    <select
-                      value={formData.uf || ''}
-                      onChange={(e) => handleChange('uf', e.target.value)}
-                      className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-                    >
-                      <option value="">Selecione a UF</option>
-                      {[
+                    <SearchableSelect
+                      options={[
                         'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
                         'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
                         'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO', 'BR'
-                      ].map((state) => (
-                        <option key={state} value={state}>
-                          {state}
-                        </option>
-                      ))}
-                    </select>
+                      ].map((state) => ({ value: state, label: state }))}
+                      value={formData.uf || ''}
+                      onChange={(val) => handleChange('uf', val)}
+                      placeholder="Selecione a UF"
+                    />
                   </div>
                 </div>
 
@@ -642,22 +638,21 @@ export default function CadastroLojaModal({
                   Coordenador
                 </label>
                 <div className="flex gap-2">
-                  <select
-                    value={formData.coordenador || ''}
-                    onChange={(e) => handleChange('coordenador', e.target.value)}
-                    className="flex-1 px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-                  >
-                    <option value="">Sem Coordenador</option>
-                    {coordenadores.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.nome}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex-1">
+                    <SearchableSelect
+                      options={[
+                        { value: '', label: 'Sem Coordenador' },
+                        ...coordenadores.map((c) => ({ value: c.id, label: c.nome })),
+                      ]}
+                      value={formData.coordenador || ''}
+                      onChange={(val) => handleChange('coordenador', val)}
+                      placeholder="Sem Coordenador"
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={handleAddCoordenadorClick}
-                    className="px-3 py-2 border border-neutral-200 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200 rounded-lg text-sm font-bold transition-colors cursor-pointer"
+                    className="px-3 py-2 border border-neutral-200 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200 rounded-lg text-sm font-bold transition-colors cursor-pointer shrink-0"
                     title="Cadastrar Novo Coordenador"
                   >
                     +
@@ -670,18 +665,17 @@ export default function CadastroLojaModal({
                   Supervisor
                 </label>
                 <div className="flex gap-2">
-                  <select
-                    value={formData.supervisor || ''}
-                    onChange={(e) => handleChange('supervisor', e.target.value)}
-                    className="flex-1 px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-                  >
-                    <option value="">Sem Supervisor</option>
-                    {supervisores.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.nome}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex-1">
+                    <SearchableSelect
+                      options={[
+                        { value: '', label: 'Sem Supervisor' },
+                        ...supervisores.map((s) => ({ value: s.id, label: s.nome })),
+                      ]}
+                      value={formData.supervisor || ''}
+                      onChange={(val) => handleChange('supervisor', val)}
+                      placeholder="Sem Supervisor"
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={handleAddSupervisorClick}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { CircleDollarSign, Plus, Search, Edit3, Trash2, AlertCircle, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Edit3, Trash2, AlertCircle, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../api/client';
+import SearchableSelect from '../components/ui/searchable-select';
 
 interface Cargo {
   id: string;
@@ -22,174 +23,130 @@ const UF_OPTIONS = [
   "RS", "RO", "RR", "SC", "SP", "SE", "TO", "BR"
 ];
 
-/**
- * Página de Gestão de Salários Base (Dissídios) por Cargo, Região (UF) e Ano.
- * 
- * Por que existe: Permite aos administradores visualizar, filtrar e cadastrar 
- * os salários base utilizados no cálculo das estimativas salariais de escopos mensais,
- * com validação de duplicidade por cargo/região/ano.
- */
 export default function Salarios() {
   const [salarios, setSalarios] = useState<Salario[]>([]);
   const [cargos, setCargos] = useState<Cargo[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Estados dos filtros
+  // Filtros
+  const [buscaTextual, setBuscaTextual] = useState('');
   const [filtroCargo, setFiltroCargo] = useState('');
   const [filtroUf, setFiltroUf] = useState('');
   const [filtroAno, setFiltroAno] = useState('');
-  const [buscaTextual, setBuscaTextual] = useState('');
-  
-  // Paginação
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
 
-  // Controle do Modal
+  // Modais
   const [showModal, setShowModal] = useState(false);
   const [selectedSalario, setSelectedSalario] = useState<Salario | null>(null);
 
-  // Formulário do Modal
+  // Formulário
   const [formCargo, setFormCargo] = useState('');
   const [formUf, setFormUf] = useState('SP');
-  const [formAno, setFormAno] = useState(new Date().getFullYear());
+  const [formAno, setFormAno] = useState(new Date().getFullYear().toString());
   const [formValor, setFormValor] = useState('');
+  const [formError, setFormError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  // Estados de erro/sucesso
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  // Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
 
-  // Carrega opções de cargos e lista de salários iniciais
   useEffect(() => {
     fetchCargos();
+    fetchSalarios();
   }, []);
 
-  useEffect(() => {
-    fetchSalarios();
-  }, [currentPage, filtroCargo, filtroUf, filtroAno, buscaTextual]);
-
-  // Carrega os cargos para preencher o select de cadastro
   const fetchCargos = async () => {
     try {
-      const response = await api.get('/cargos/');
-      setCargos(response.data || []);
+      const response = await api.get('/colaboradores/cargos/');
+      const dados = Array.isArray(response.data) ? response.data : (response.data.results || []);
+      setCargos(dados);
     } catch (err) {
       console.error('Erro ao carregar cargos:', err);
     }
   };
 
-  // Carrega os salários com base nos filtros e página atuais
   const fetchSalarios = async () => {
     setLoading(true);
-    setErrorMsg(null);
     try {
-      const params = new URLSearchParams();
-      params.append('page', String(currentPage));
-      if (filtroCargo) params.append('cargo', filtroCargo);
-      if (filtroUf) params.append('uf', filtroUf);
-      if (filtroAno) params.append('ano', filtroAno);
-      if (buscaTextual) params.append('search', buscaTextual);
-
-      const response = await api.get(`/lojas/api/salarios/?${params.toString()}`);
-      if (response.data) {
-        setSalarios(response.data.results || response.data || []);
-        const count = response.data.count || 0;
-        setTotalPages(Math.ceil(count / 20) || 1);
-      }
+      const response = await api.get('/colaboradores/salarios/');
+      const dados = Array.isArray(response.data) ? response.data : (response.data.results || []);
+      setSalarios(dados);
     } catch (err) {
       console.error('Erro ao carregar salários:', err);
-      setErrorMsg('Não foi possível obter a listagem de salários.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Abre modal para cadastrar novo salário
-  const handleOpenNovo = () => {
-    setSelectedSalario(null);
-    setFormCargo(cargos.length > 0 ? cargos[0].id : '');
-    setFormUf('SP');
-    setFormAno(new Date().getFullYear());
-    setFormValor('');
-    setFormError(null);
+  const handleOpenModal = (salario?: Salario) => {
+    if (salario) {
+      setSelectedSalario(salario);
+      setFormCargo(salario.cargo);
+      setFormUf(salario.uf);
+      setFormAno(salario.ano.toString());
+      setFormValor(salario.valor);
+    } else {
+      setSelectedSalario(null);
+      setFormCargo('');
+      setFormUf('SP');
+      setFormAno(new Date().getFullYear().toString());
+      setFormValor('');
+    }
+    setFormError('');
     setShowModal(true);
   };
 
-  // Abre modal para editar salário existente
-  const handleOpenEditar = (sal: Salario) => {
-    setSelectedSalario(sal);
-    setFormCargo(sal.cargo);
-    setFormUf(sal.uf);
-    setFormAno(sal.ano);
-    setFormValor(sal.valor);
-    setFormError(null);
-    setShowModal(true);
-  };
-
-  // Salva o cadastro ou edição
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError(null);
-    setSaving(true);
+    setFormError('');
 
     if (!formCargo) {
-      setFormError('Por favor, selecione um cargo.');
-      setSaving(false);
+      setFormError('Selecione um cargo.');
       return;
     }
     if (!formValor || parseFloat(formValor) <= 0) {
-      setFormError('Por favor, informe um valor válido para o salário base.');
-      setSaving(false);
+      setFormError('Informe um valor de salário válido.');
       return;
     }
 
-    const payload = {
-      cargo: formCargo,
-      uf: formUf,
-      ano: formAno,
-      valor: parseFloat(formValor)
-    };
-
+    setSubmitting(true);
     try {
+      const payload = {
+        cargo: formCargo,
+        uf: formUf,
+        ano: parseInt(formAno),
+        valor: parseFloat(formValor)
+      };
+
       if (selectedSalario) {
-        // Modo Edição
-        await api.put(`/lojas/api/salarios/${selectedSalario.id}/`, payload);
+        await api.patch(`/colaboradores/salarios/${selectedSalario.id}/`, payload);
       } else {
-        // Modo Cadastro
-        await api.post('/lojas/api/salarios/', payload);
+        await api.post('/colaboradores/salarios/', payload);
       }
+
       setShowModal(false);
-      setCurrentPage(1);
       fetchSalarios();
     } catch (err: any) {
       console.error('Erro ao salvar salário:', err);
-      if (err.response && err.response.data) {
-        // Captura erro de UniqueConstraint do banco mapeado de forma amigável
-        const errors = err.response.data;
-        if (errors.non_field_errors) {
-          setFormError('Já existe um salário cadastrado para esta combinação de Cargo, UF e Ano.');
-        } else if (errors.detail) {
-          setFormError(errors.detail);
-        } else {
-          setFormError(Object.values(errors).flat().join(' '));
-        }
+      if (err.response?.data?.non_field_errors) {
+        setFormError(err.response.data.non_field_errors[0]);
+      } else if (err.response?.data?.error) {
+        setFormError(err.response.data.error);
       } else {
-        setFormError('Ocorreu um erro inesperado ao salvar o salário.');
+        setFormError('Erro ao salvar registro de salário.');
       }
     } finally {
-      setSaving(false);
+      setSubmitting(false);
     }
   };
 
-  // Exclui salário
   const handleDelete = async (id: string) => {
-    if (!confirm('Deseja realmente excluir este registro de salário?')) return;
+    if (!confirm('Tem certeza que deseja excluir este registro de salário base?')) return;
     try {
-      await api.delete(`/lojas/api/salarios/${id}/`);
+      await api.delete(`/colaboradores/salarios/${id}/`);
       fetchSalarios();
     } catch (err) {
       console.error('Erro ao excluir salário:', err);
-      alert('Não foi possível excluir o salário.');
     }
   };
 
@@ -201,36 +158,50 @@ export default function Salarios() {
     setCurrentPage(1);
   };
 
+  // Filtragem
+  const salariosFiltrados = salarios.filter(s => {
+    if (filtroCargo && s.cargo !== filtroCargo) return false;
+    if (filtroUf && s.uf !== filtroUf) return false;
+    if (filtroAno && s.ano.toString() !== filtroAno) return false;
+    if (buscaTextual) {
+      const termo = buscaTextual.toLowerCase();
+      const matchCargo = s.cargo_nome?.toLowerCase().includes(termo);
+      const matchUf = s.uf?.toLowerCase().includes(termo);
+      if (!matchCargo && !matchUf) return false;
+    }
+    return true;
+  });
+
+  const totalPages = Math.ceil(salariosFiltrados.length / itemsPerPage) || 1;
+  const salariosPaginados = salariosFiltrados.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   return (
     <div className="space-y-6">
       {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-50 flex items-center gap-2">
-            <CircleDollarSign className="h-7 w-7 text-neutral-950 dark:text-white" />
-            Tabela de Salários de Dissídios
-          </h1>
-          <p className="text-sm text-neutral-500">
-            Gerenciamento e cadastro de salários base (dissídios) por Cargo, Região (UF) e Ano.
-          </p>
+          <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-50">Salários Base por Região (Dissídios)</h1>
+          <p className="text-xs text-neutral-500">Tabela de remunerações base por cargo, UF e ano para estimativas operacionais</p>
         </div>
-
         <button
-          onClick={handleOpenNovo}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full text-xs font-bold hover:bg-neutral-800 dark:hover:bg-neutral-100 shadow-sm transition-all cursor-pointer"
+          onClick={() => handleOpenModal()}
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full text-xs font-bold hover:bg-neutral-850 dark:hover:bg-neutral-100 shadow-xs transition-all cursor-pointer"
         >
           <Plus className="h-4 w-4" />
-          Cadastrar Novo Salário
+          Novo Salário Base
         </button>
       </div>
 
       {/* Painel de Filtros */}
-      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-xs shadow-sm space-y-4">
+      <div className="p-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xs space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <div className="space-y-1.5">
-            <label className="block text-[10px] font-bold text-neutral-500 uppercase">Pesquisa Geral</label>
+            <label className="block text-[10px] font-bold text-neutral-500 uppercase">Pesquisar</label>
             <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-neutral-400" />
+              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-neutral-400" />
               <input
                 type="text"
                 placeholder="Pesquisar cargo ou UF..."
@@ -243,30 +214,28 @@ export default function Salarios() {
 
           <div className="space-y-1.5">
             <label className="block text-[10px] font-bold text-neutral-500 uppercase">Filtrar Cargo</label>
-            <select
+            <SearchableSelect
+              options={[
+                { value: '', label: 'Todos os cargos' },
+                ...cargos.map((cargo) => ({ value: cargo.id, label: cargo.nome })),
+              ]}
               value={filtroCargo}
-              onChange={(e) => { setFiltroCargo(e.target.value); setCurrentPage(1); }}
-              className="w-full px-3 py-2 bg-neutral-55 dark:bg-neutral-950 text-xs border border-neutral-200 dark:border-neutral-800 rounded-lg text-neutral-850 dark:text-neutral-200 focus:outline-none cursor-pointer"
-            >
-              <option value="">Todos os cargos</option>
-              {cargos.map((cargo) => (
-                <option key={cargo.id} value={cargo.id}>{cargo.nome}</option>
-              ))}
-            </select>
+              onChange={(val) => { setFiltroCargo(val); setCurrentPage(1); }}
+              placeholder="Todos os cargos"
+            />
           </div>
 
           <div className="space-y-1.5">
             <label className="block text-[10px] font-bold text-neutral-500 uppercase">Filtrar UF</label>
-            <select
+            <SearchableSelect
+              options={[
+                { value: '', label: 'Todas as UFs' },
+                ...UF_OPTIONS.map((uf) => ({ value: uf, label: uf })),
+              ]}
               value={filtroUf}
-              onChange={(e) => { setFiltroUf(e.target.value); setCurrentPage(1); }}
-              className="w-full px-3 py-2 bg-neutral-55 dark:bg-neutral-950 text-xs border border-neutral-200 dark:border-neutral-800 rounded-lg text-neutral-850 dark:text-neutral-200 focus:outline-none cursor-pointer"
-            >
-              <option value="">Todas as UFs</option>
-              {UF_OPTIONS.map((uf) => (
-                <option key={uf} value={uf}>{uf}</option>
-              ))}
-            </select>
+              onChange={(val) => { setFiltroUf(val); setCurrentPage(1); }}
+              placeholder="Todas as UFs"
+            />
           </div>
 
           <div className="space-y-1.5">
@@ -293,14 +262,6 @@ export default function Salarios() {
         )}
       </div>
 
-      {/* Alerta de erro geral */}
-      {errorMsg && (
-        <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 rounded-xl text-xs flex gap-3 items-center">
-          <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
-          <span>{errorMsg}</span>
-        </div>
-      )}
-
       {/* Tabela de Dados */}
       <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
@@ -321,14 +282,14 @@ export default function Salarios() {
                     Carregando tabela de salários...
                   </td>
                 </tr>
-              ) : salarios.length === 0 ? (
+              ) : salariosFiltrados.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-12 text-center text-neutral-400 font-medium">
                     Nenhum salário cadastrado com os filtros ativos.
                   </td>
                 </tr>
               ) : (
-                salarios.map((sal) => (
+                salariosPaginados.map((sal) => (
                   <tr key={sal.id} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-850/30 transition-colors">
                     <td className="py-4 px-6 font-semibold text-neutral-800 dark:text-neutral-200">
                       {sal.cargo_nome}
@@ -347,7 +308,7 @@ export default function Salarios() {
                     <td className="py-4 px-6">
                       <div className="flex items-center justify-center gap-3">
                         <button
-                          onClick={() => handleOpenEditar(sal)}
+                          onClick={() => handleOpenModal(sal)}
                           title="Editar Salário"
                           className="p-1.5 text-neutral-500 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors cursor-pointer"
                         >
@@ -397,25 +358,25 @@ export default function Salarios() {
         )}
       </div>
 
-      {/* Modal de Formulário (Cadastro & Edição) */}
+      {/* Modal de Cadastro / Edição */}
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 px-6 py-4">
-              <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wider">
-                {selectedSalario ? 'Editar Salário Base' : 'Cadastrar Novo Salário'}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 w-full max-w-md shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3">
+              <h3 className="font-bold text-base text-neutral-900 dark:text-neutral-100">
+                {selectedSalario ? 'Editar Salário Base' : 'Novo Salário Base'}
               </h3>
               <button
                 onClick={() => setShowModal(false)}
-                className="p-1.5 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors cursor-pointer"
+                className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 p-1 cursor-pointer"
               >
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="p-6 space-y-4">
+            <form onSubmit={handleSave} className="space-y-4">
               {formError && (
-                <div className="p-3.5 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 rounded-xl text-xs flex gap-2.5 items-center">
+                <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 rounded-xl text-xs flex gap-2 items-center">
                   <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
                   <span>{formError}</span>
                 </div>
@@ -424,33 +385,29 @@ export default function Salarios() {
               {/* Cargo */}
               <div className="space-y-1.5">
                 <label className="block text-[10px] font-bold text-neutral-500 uppercase">Cargo / Função</label>
-                <select
+                <SearchableSelect
+                  options={[
+                    { value: '', label: 'Selecione o cargo...' },
+                    ...cargos.map((cargo) => ({ value: cargo.id, label: cargo.nome })),
+                  ]}
                   value={formCargo}
-                  onChange={(e) => setFormCargo(e.target.value)}
+                  onChange={setFormCargo}
+                  placeholder="Selecione o cargo..."
                   disabled={selectedSalario !== null}
-                  className="w-full px-3.5 py-2.5 bg-neutral-55 dark:bg-neutral-950 text-xs border border-neutral-200 dark:border-neutral-800 rounded-lg text-neutral-850 dark:text-neutral-200 focus:outline-none disabled:opacity-60 cursor-pointer"
-                >
-                  <option value="">Selecione o cargo...</option>
-                  {cargos.map((cargo) => (
-                    <option key={cargo.id} value={cargo.id}>{cargo.nome}</option>
-                  ))}
-                </select>
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 {/* UF */}
                 <div className="space-y-1.5">
                   <label className="block text-[10px] font-bold text-neutral-500 uppercase">Região / UF</label>
-                  <select
+                  <SearchableSelect
+                    options={UF_OPTIONS.map((uf) => ({ value: uf, label: uf }))}
                     value={formUf}
-                    onChange={(e) => setFormUf(e.target.value)}
+                    onChange={setFormUf}
+                    placeholder="UF"
                     disabled={selectedSalario !== null}
-                    className="w-full px-3.5 py-2.5 bg-neutral-55 dark:bg-neutral-950 text-xs border border-neutral-200 dark:border-neutral-800 rounded-lg text-neutral-850 dark:text-neutral-200 focus:outline-none disabled:opacity-60 cursor-pointer"
-                  >
-                    {UF_OPTIONS.map((uf) => (
-                      <option key={uf} value={uf}>{uf}</option>
-                    ))}
-                  </select>
+                  />
                 </div>
 
                 {/* Ano */}
@@ -459,7 +416,7 @@ export default function Salarios() {
                   <input
                     type="number"
                     value={formAno}
-                    onChange={(e) => setFormAno(parseInt(e.target.value))}
+                    onChange={(e) => setFormAno(e.target.value)}
                     disabled={selectedSalario !== null}
                     min={2000}
                     max={2100}
@@ -496,10 +453,10 @@ export default function Salarios() {
                 </button>
                 <button
                   type="submit"
-                  disabled={saving}
+                  disabled={submitting}
                   className="px-5 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-lg text-xs font-bold hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  {saving ? 'Salvando...' : 'Salvar Salário'}
+                  {submitting ? 'Salvando...' : 'Salvar Salário'}
                 </button>
               </div>
             </form>

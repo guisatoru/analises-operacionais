@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { formatDate, obterInfoFolhas, obterFolhaCalendarioReal, converterFolhaParaNumero } from '../utils/formatters';
 import NovoTesteModal from '../components/Testes/NovoTesteModal';
 import AcaoTesteModal from '../components/Testes/AcaoTesteModal';
+import SearchableSelect from '../components/ui/searchable-select';
 
 export interface HistoricoAcao {
   id: string;
@@ -75,6 +76,8 @@ export default function TestesPromocao() {
   const [statusFiltroAplicado, setStatusFiltroAplicado] = useState('');
   const [cobrancaFiltro, setCobrancaFiltro] = useState<'todos' | 'falta_resposta' | 'em_dia'>('todos');
   const [cobrancaFiltroAplicado, setCobrancaFiltroAplicado] = useState<'todos' | 'falta_resposta' | 'em_dia'>('todos');
+  const [supervisorFiltro, setSupervisorFiltro] = useState('');
+  const [supervisorFiltroAplicado, setSupervisorFiltroAplicado] = useState('');
   const [fetchTrigger, setFetchTrigger] = useState(0);
 
   // Modais
@@ -92,7 +95,7 @@ export default function TestesPromocao() {
   // evitando que o usuário fique em uma página inexistente para a nova busca.
   useEffect(() => {
     setCurrentPage(1);
-  }, [buscaAplicada, statusFiltroAplicado, cobrancaFiltroAplicado]);
+  }, [buscaAplicada, statusFiltroAplicado, cobrancaFiltroAplicado, supervisorFiltroAplicado]);
 
   const fetchTestes = async () => {
     setLoading(true);
@@ -116,6 +119,7 @@ export default function TestesPromocao() {
     setBuscaAplicada(busca);
     setStatusFiltroAplicado(statusFiltro);
     setCobrancaFiltroAplicado(cobrancaFiltro);
+    setSupervisorFiltroAplicado(supervisorFiltro);
     setCurrentPage(1);
   };
 
@@ -126,6 +130,8 @@ export default function TestesPromocao() {
     setStatusFiltroAplicado('');
     setCobrancaFiltro('todos');
     setCobrancaFiltroAplicado('todos');
+    setSupervisorFiltro('');
+    setSupervisorFiltroAplicado('');
     setCurrentPage(1);
   };
 
@@ -205,7 +211,65 @@ export default function TestesPromocao() {
     return `Mês ${mesAtualNum} - ${subEtapa} (Folha ${folhaAtual?.nomeFolha || '-'})`;
   };
 
-  // Filtra todos os testes com base no termo de busca (Nome ou RE), status selecionado e cobrança.
+  // Por que existe: Obtém a lista de supervisores que possuem ao menos um teste de promoção
+  // atendendo aos outros filtros selecionados no painel (busca por colaborador, status e cobrança).
+  const supervisoresDisponiveis = Array.from(
+    new Set(
+      testes
+        .filter((teste) => {
+          // 1. Filtro de busca por texto (Nome ou RE)
+          if (busca.trim()) {
+            const termo = busca.toLowerCase();
+            const nomeMatch = teste.colaborador_nome?.toLowerCase().includes(termo);
+            const reMatch = teste.colaborador_re?.toLowerCase().includes(termo);
+            if (!nomeMatch && !reMatch) return false;
+          }
+
+          // 2. Filtro por status
+          if (statusFiltro && teste.status !== statusFiltro) {
+            return false;
+          }
+
+          // 3. Filtro por status de cobrança
+          if (cobrancaFiltro !== 'todos') {
+            if (teste.status !== 'ativo') return false;
+
+            const folhas = obterInfoFolhas(teste.data_inicio);
+            const premios = teste.historico_acoes.filter(a => a.acao === 'pagar_premio').length;
+            const mesAtualNum = premios + 1;
+            const folhaTeste = folhas.find(f => f.mesRef === mesAtualNum);
+
+            if (!folhaTeste) return false;
+
+            const numFolhaTeste = converterFolhaParaNumero(folhaTeste.nomeFolha);
+            const numFolhaHoje = converterFolhaParaNumero(obterFolhaCalendarioReal());
+
+            const jaRespondeu = teste.historico_acoes.some(a => a.acao === 'registrar_resposta' && a.mes_referencia === mesAtualNum);
+
+            if (cobrancaFiltro === 'falta_resposta') {
+              return numFolhaTeste <= numFolhaHoje && !jaRespondeu;
+            }
+            if (cobrancaFiltro === 'em_dia') {
+              return numFolhaTeste > numFolhaHoje || jaRespondeu;
+            }
+          }
+
+          return true;
+        })
+        .map((teste) => teste.supervisor_nome)
+        .filter((nome): nome is string => Boolean(nome && nome.trim() && nome !== '-'))
+    )
+  ).sort((a, b) => a.localeCompare(b));
+
+  // Por que existe: Se a alteração de outros filtros remover o supervisor atualmente selecionado da lista,
+  // limpa automaticamente o filtro de supervisor para não manter uma opção sem resultados.
+  useEffect(() => {
+    if (supervisorFiltro && !supervisoresDisponiveis.includes(supervisorFiltro)) {
+      setSupervisorFiltro('');
+    }
+  }, [supervisoresDisponiveis, supervisorFiltro]);
+
+  // Filtra todos os testes com base no termo de busca (Nome ou RE), status selecionado, cobrança e supervisor.
   // Por que existe: Centraliza a filtragem global no frontend, garantindo que os filtros
   // atuem sobre o total de registros do banco e não apenas na página exibida.
   const testesFiltrados = testes.filter((teste) => {
@@ -246,6 +310,11 @@ export default function TestesPromocao() {
       }
     }
 
+    // 4. Filtro por supervisor
+    if (supervisorFiltroAplicado && teste.supervisor_nome !== supervisorFiltroAplicado) {
+      return false;
+    }
+
     return true;
   });
 
@@ -274,7 +343,7 @@ export default function TestesPromocao() {
 
       {/* Painel de Filtros */}
       <form onSubmit={handleSearchSubmit} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-xs shadow-sm space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Busca por Nome/RE */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-neutral-450 uppercase tracking-wider">Buscar Colaborador</label>
@@ -290,31 +359,47 @@ export default function TestesPromocao() {
           {/* Filtro Status */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-neutral-450 uppercase tracking-wider">Status</label>
-            <select
+            <SearchableSelect
+              options={[
+                { value: '', label: 'Todos' },
+                { value: 'pendente', label: 'Pendente de Aprovação' },
+                { value: 'ativo', label: 'Ativo' },
+                { value: 'promovido', label: 'Promovido' },
+                { value: 'cancelado', label: 'Cancelado' },
+              ]}
               value={statusFiltro}
-              onChange={(e) => setStatusFiltro(e.target.value)}
-              className="w-full px-4 py-2 text-sm bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg text-neutral-800 dark:text-neutral-200 focus:outline-hidden cursor-pointer"
-            >
-              <option value="">Todos</option>
-              <option value="pendente">Pendente de Aprovação</option>
-              <option value="ativo">Ativo</option>
-              <option value="promovido">Promovido</option>
-              <option value="cancelado">Cancelado</option>
-            </select>
+              onChange={setStatusFiltro}
+              placeholder="Todos"
+            />
           </div>
 
           {/* Filtro de Cobrança */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-neutral-450 uppercase tracking-wider block">Cobrança (Ativos)</label>
-            <select
+            <SearchableSelect
+              options={[
+                { value: 'todos', label: 'Todos' },
+                { value: 'falta_resposta', label: 'Falta Resposta (Atual/Atrasados)' },
+                { value: 'em_dia', label: 'Em Dia (Futuros)' },
+              ]}
               value={cobrancaFiltro}
-              onChange={(e) => setCobrancaFiltro(e.target.value as any)}
-              className="w-full px-4 py-2 text-sm bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg text-neutral-800 dark:text-neutral-200 focus:outline-hidden cursor-pointer"
-            >
-              <option value="todos">Todos</option>
-              <option value="falta_resposta">Falta Resposta (Atual/Atrasados)</option>
-              <option value="em_dia">Em Dia (Futuros)</option>
-            </select>
+              onChange={(val) => setCobrancaFiltro(val as any)}
+              placeholder="Todos"
+            />
+          </div>
+
+          {/* Filtro por Supervisor */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-neutral-450 uppercase tracking-wider block">Supervisor</label>
+            <SearchableSelect
+              options={[
+                { value: '', label: 'Todos' },
+                ...supervisoresDisponiveis.map((sup) => ({ value: sup, label: sup })),
+              ]}
+              value={supervisorFiltro}
+              onChange={setSupervisorFiltro}
+              placeholder="Todos"
+            />
           </div>
 
           {/* Botões de Filtro */}

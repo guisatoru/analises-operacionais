@@ -174,31 +174,29 @@ export default function EscopoFormModal({
               <label className="block text-xs font-semibold text-neutral-600 mb-1.5 uppercase tracking-wider">
                 Ano da Competência *
               </label>
-              <select
-                value={ano}
-                onChange={(e) => setAno(parseInt(e.target.value) || new Date().getFullYear())}
-                className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-              >
-                <option value="2024">2024</option>
-                <option value="2025">2025</option>
-                <option value="2026">2026</option>
-                <option value="2027">2027</option>
-              </select>
+              <SearchableSelect
+                options={[
+                  { value: '2024', label: '2024' },
+                  { value: '2025', label: '2025' },
+                  { value: '2026', label: '2026' },
+                  { value: '2027', label: '2027' },
+                ]}
+                value={String(ano)}
+                onChange={(val) => setAno(parseInt(val) || new Date().getFullYear())}
+                placeholder="Selecione o ano..."
+              />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-neutral-600 mb-1.5 uppercase tracking-wider">
                 Mês da Competência *
               </label>
-              <select
-                value={mes}
-                onChange={(e) => setMes(parseInt(e.target.value) || new Date().getMonth() + 1)}
-                className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-              >
-                {mesesChoices.map(m => (
-                  <option key={m.num} value={m.num}>{m.nome}</option>
-                ))}
-              </select>
+              <SearchableSelect
+                options={mesesChoices.map(m => ({ value: String(m.num), label: m.nome }))}
+                value={String(mes)}
+                onChange={(val) => setMes(parseInt(val) || new Date().getMonth() + 1)}
+                placeholder="Selecione o mês..."
+              />
             </div>
           </div>
 
@@ -226,31 +224,27 @@ export default function EscopoFormModal({
                     <label className="block text-[10px] font-bold text-neutral-400 uppercase mb-1">
                       Cargo / Função *
                     </label>
-                    <select
+                    <SearchableSelect
+                      options={[
+                        { value: '', label: 'Selecione...' },
+                        ...cargosOpcoes.map((c) => ({ value: c.id, label: c.nome })),
+                      ]}
                       value={item.cargo}
-                      onChange={(e) => handleItemChange(index, 'cargo', e.target.value)}
-                      className="w-full p-2 border border-neutral-200 dark:border-neutral-855 rounded-lg bg-white dark:bg-neutral-900 text-xs"
-                    >
-                      <option value="">Selecione...</option>
-                      {cargosOpcoes.map((c) => (
-                        <option key={c.id} value={c.id}>{c.nome}</option>
-                      ))}
-                    </select>
+                      onChange={(val) => handleItemChange(index, 'cargo', val)}
+                      placeholder="Selecione..."
+                    />
                   </div>
 
-                  <div className="w-36">
+                  <div className="w-40">
                     <label className="block text-[10px] font-bold text-neutral-400 uppercase mb-1">
                       Turno *
                     </label>
-                    <select
+                    <SearchableSelect
+                      options={turnosOpcoes.map((t) => ({ value: t.id, label: t.nome }))}
                       value={item.turno}
-                      onChange={(e) => handleItemChange(index, 'turno', e.target.value)}
-                      className="w-full p-2 border border-neutral-200 dark:border-neutral-855 rounded-lg bg-white dark:bg-neutral-900 text-xs text-center"
-                    >
-                      {turnosOpcoes.map((t) => (
-                        <option key={t.id} value={t.id}>{t.nome}</option>
-                      ))}
-                    </select>
+                      onChange={(val) => handleItemChange(index, 'turno', val)}
+                      placeholder="Selecione..."
+                    />
                   </div>
 
                   <div className="w-24">

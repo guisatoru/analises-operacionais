@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/client';
 import { toast } from 'sonner';
+import SearchableSelect from '../ui/searchable-select';
 
 interface PermissionItem {
   id: string;
@@ -169,19 +170,13 @@ export default function PermissoesAcesso() {
           <label htmlFor="role-select" className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
             Função (Role) de Acesso
           </label>
-          <div className="relative">
-            <select
-              id="role-select"
+          <div className="w-full sm:w-64">
+            <SearchableSelect
+              options={roles.map((role) => ({ value: role.id, label: role.name }))}
               value={selectedRoleId}
-              onChange={(e) => handleRoleChange(e.target.value)}
-              className="w-full sm:w-64 px-4 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-sm font-semibold rounded-lg text-neutral-800 dark:text-neutral-200 focus:outline-hidden cursor-pointer"
-            >
-              {roles.map((role) => (
-                <option key={role.id} value={role.id}>
-                  {role.name}
-                </option>
-              ))}
-            </select>
+              onChange={handleRoleChange}
+              placeholder="Selecione a função..."
+            />
           </div>
         </div>
 

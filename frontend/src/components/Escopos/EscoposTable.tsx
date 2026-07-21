@@ -11,6 +11,7 @@ import {
 import api from '../../api/client';
 import { toast } from 'sonner';
 import { Skeleton } from '../ui/skeleton';
+import SearchableSelect from '../ui/searchable-select';
 import {
   Pagination,
   PaginationContent,
@@ -319,28 +320,24 @@ export default function EscoposTable({
                         <tr key={item.id || 'placeholder'} className="bg-neutral-50/50 dark:bg-neutral-850/30">
                           {/* Seleção do Cargo em edição */}
                           <td className="py-3 px-5 align-middle">
-                            <select
+                            <SearchableSelect
+                              options={[
+                                { value: '', label: 'Selecione...' },
+                                ...cargosOpcoes.map((c) => ({ value: c.id, label: c.nome })),
+                              ]}
                               value={editCargo}
-                              onChange={(e) => setEditCargo(e.target.value)}
-                              className="w-full p-1.5 border border-neutral-200 dark:border-neutral-850 rounded bg-white dark:bg-neutral-900 text-xs"
-                            >
-                              <option value="">Selecione...</option>
-                              {cargosOpcoes.map((c) => (
-                                <option key={c.id} value={c.id}>{c.nome}</option>
-                              ))}
-                            </select>
+                              onChange={setEditCargo}
+                              placeholder="Selecione..."
+                            />
                           </td>
                           {/* Seleção do Turno em edição */}
                           <td className="py-3 px-5 align-middle">
-                            <select
+                            <SearchableSelect
+                              options={turnosOpcoes.map((t) => ({ value: t.id, label: t.nome }))}
                               value={editTurno}
-                              onChange={(e) => setEditTurno(e.target.value)}
-                              className="w-full p-1.5 border border-neutral-200 dark:border-neutral-850 rounded bg-white dark:bg-neutral-900 text-xs"
-                            >
-                              {turnosOpcoes.map((t) => (
-                                <option key={t.id} value={t.id}>{t.nome}</option>
-                              ))}
-                            </select>
+                              onChange={setEditTurno}
+                              placeholder="Selecione..."
+                            />
                           </td>
                           {/* Campo de Quantidade */}
                           <td className="py-3 px-5 align-middle">

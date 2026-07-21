@@ -14,6 +14,7 @@ import api from '../../api/client';
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupButton } from '../ui/input-group';
 import type { Usuario } from './UsuariosTable';
 import FormField from '../ui/form-field';
+import SearchableSelect from '../ui/searchable-select';
 
 interface UsuarioFormModalProps {
   usuario: Usuario | null;
@@ -241,16 +242,17 @@ export default function UsuarioFormModal({
             <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1.5">
               Papel (Role)
             </label>
-            <select
+            <SearchableSelect
+              options={[
+                { value: 'administrador', label: 'Administrador' },
+                { value: 'gestao', label: 'Gestão' },
+                { value: 'aprendiz', label: 'Aprendiz' },
+              ]}
               value={formData.role}
-              onChange={(e) => handleChange('role', e.target.value)}
+              onChange={(val) => handleChange('role', val)}
               disabled={usuario !== null && usuario.username === currentUsername}
-              className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white disabled:opacity-50"
-            >
-              <option value="administrador">Administrador</option>
-              <option value="gestao">Gestão</option>
-              <option value="aprendiz">Aprendiz</option>
-            </select>
+              placeholder="Selecione o papel..."
+            />
             {usuario !== null && usuario.username === currentUsername && (
               <p className="text-[10px] text-neutral-400 mt-1">
                 Você não pode alterar o seu próprio papel de acesso.

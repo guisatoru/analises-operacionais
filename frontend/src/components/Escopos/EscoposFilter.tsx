@@ -103,17 +103,18 @@ export default function EscoposFilter({
           <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
             Ano
           </label>
-          <select
+          <SearchableSelect
+            options={[
+              { value: '', label: 'Todos' },
+              { value: '2024', label: '2024' },
+              { value: '2025', label: '2025' },
+              { value: '2026', label: '2026' },
+              { value: '2027', label: '2027' },
+            ]}
             value={anoFiltro}
-            onChange={(e) => setAnoFiltro(e.target.value)}
-            className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-          >
-            <option value="">Todos</option>
-            <option value="2024">2024</option>
-            <option value="2025">2025</option>
-            <option value="2026">2026</option>
-            <option value="2027">2027</option>
-          </select>
+            onChange={setAnoFiltro}
+            placeholder="Todos"
+          />
         </div>
 
         {/* Filtro por Mês */}
@@ -121,16 +122,15 @@ export default function EscoposFilter({
           <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
             Mês
           </label>
-          <select
+          <SearchableSelect
+            options={[
+              { value: '', label: 'Todos' },
+              ...mesesChoices.map(m => ({ value: String(m.num), label: m.nome })),
+            ]}
             value={mesFiltro}
-            onChange={(e) => setMesFiltro(e.target.value)}
-            className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-          >
-            <option value="">Todos</option>
-            {mesesChoices.map(m => (
-              <option key={m.num} value={m.num}>{m.nome}</option>
-            ))}
-          </select>
+            onChange={setMesFiltro}
+            placeholder="Todos"
+          />
         </div>
       </div>
 

@@ -3,6 +3,7 @@ import { X, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../api/client';
 import type { Loja } from './LojasTable';
+import SearchableSelect from '../ui/searchable-select';
 
 interface InsalubridadeConfig {
   id?: string;
@@ -146,38 +147,40 @@ export default function InsalubridadeModal({
               <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
                 Base de Cálculo da Fixa
               </label>
-              <select
+              <SearchableSelect
+                options={[
+                  { value: 'SALARIO_BASE', label: 'Salário Base do Cargo' },
+                  { value: 'MINIMO_NACIONAL', label: 'Salário Mínimo Nacional' },
+                ]}
                 value={insalConfig.insalubridade_fixa_base}
-                onChange={(e) =>
+                onChange={(val) =>
                   setInsalConfig({
                     ...insalConfig,
-                    insalubridade_fixa_base: e.target.value,
+                    insalubridade_fixa_base: val,
                   })
                 }
-                className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-              >
-                <option value="SALARIO_BASE">Salário Base do Cargo</option>
-                <option value="MINIMO_NACIONAL">Salário Mínimo Nacional</option>
-              </select>
+                placeholder="Selecione a base..."
+              />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
                 Modo de Recebedores (Fixa)
               </label>
-              <select
+              <SearchableSelect
+                options={[
+                  { value: 'TODOS', label: 'Todos do Escopo' },
+                  { value: 'PERSONALIZADO', label: 'Personalizado' },
+                ]}
                 value={insalConfig.insalubridade_fixa_recebedores_modo}
-                onChange={(e) =>
+                onChange={(val) =>
                   setInsalConfig({
                     ...insalConfig,
-                    insalubridade_fixa_recebedores_modo: e.target.value,
+                    insalubridade_fixa_recebedores_modo: val,
                   })
                 }
-                className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-              >
-                <option value="TODOS">Todos do Escopo</option>
-                <option value="PERSONALIZADO">Personalizado</option>
-              </select>
+                placeholder="Selecione o modo..."
+              />
             </div>
 
             {insalConfig.insalubridade_fixa_recebedores_modo === 'PERSONALIZADO' && (
@@ -234,19 +237,20 @@ export default function InsalubridadeModal({
               <label className="block text-xs font-semibold text-neutral-600 uppercase mb-1">
                 Base de Cálculo da Banheirista
               </label>
-              <select
+              <SearchableSelect
+                options={[
+                  { value: 'SALARIO_BASE', label: 'Salário Base do Cargo' },
+                  { value: 'MINIMO_NACIONAL', label: 'Salário Mínimo Nacional' },
+                ]}
                 value={insalConfig.insalubridade_banheirista_base}
-                onChange={(e) =>
+                onChange={(val) =>
                   setInsalConfig({
                     ...insalConfig,
-                    insalubridade_banheirista_base: e.target.value,
+                    insalubridade_banheirista_base: val,
                   })
                 }
-                className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
-              >
-                <option value="SALARIO_BASE">Salário Base do Cargo</option>
-                <option value="MINIMO_NACIONAL">Salário Mínimo Nacional</option>
-              </select>
+                placeholder="Selecione a base..."
+              />
             </div>
 
             <div className="col-span-2 flex items-center gap-2.5 pt-2">

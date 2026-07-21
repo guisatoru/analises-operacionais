@@ -409,15 +409,12 @@ export function AgendaActionModal({
               {/* Status do Agendamento */}
               <div className="space-y-1.5">
                 <span className="block text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase">Status</span>
-                <select
+                <SearchableSelect
+                  options={statusOptions}
                   value={localForm.status}
-                  onChange={(e) => setLocalForm(prev => ({ ...prev, status: e.target.value as any }))}
-                  className="w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-4 py-2.5 text-sm font-semibold outline-none text-neutral-900 dark:text-neutral-100"
-                >
-                  {statusOptions.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setLocalForm(prev => ({ ...prev, status: val as any }))}
+                  placeholder="Selecione o status..."
+                />
               </div>
 
               {/* Observação Interna */}

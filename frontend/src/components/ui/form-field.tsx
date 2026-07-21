@@ -1,4 +1,5 @@
 import React from 'react';
+import SearchableSelect from './searchable-select';
 
 interface Option {
   value: string;
@@ -34,7 +35,7 @@ export default function FormField({
   onChange,
   placeholder,
   required = false,
-  options,
+  options = [],
   className = '',
   min,
   step,
@@ -42,7 +43,7 @@ export default function FormField({
   const inputStyle = "w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white";
   const fieldId = id || `form-field-${label.replace(/\s+/g, '-').toLowerCase()}`;
 
-  const handleValueChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.value);
   };
 
@@ -56,20 +57,12 @@ export default function FormField({
       </label>
       
       {type === 'select' ? (
-        <select
-          id={fieldId}
+        <SearchableSelect
+          options={options}
           value={value}
-          onChange={handleValueChange}
-          required={required}
-          className={inputStyle}
-        >
-          <option value="">Selecione...</option>
-          {options?.map((op) => (
-            <option key={op.value} value={op.value}>
-              {op.label}
-            </option>
-          ))}
-        </select>
+          onChange={onChange}
+          placeholder={placeholder || "Selecione..."}
+        />
       ) : (
         <input
           type={type}
