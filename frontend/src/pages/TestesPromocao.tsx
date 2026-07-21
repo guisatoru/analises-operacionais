@@ -211,63 +211,16 @@ export default function TestesPromocao() {
     return `Mês ${mesAtualNum} - ${subEtapa} (Folha ${folhaAtual?.nomeFolha || '-'})`;
   };
 
-  // Por que existe: Obtém a lista de supervisores que possuem ao menos um teste de promoção
-  // atendendo aos outros filtros selecionados no painel (busca por colaborador, status e cobrança).
+  // Por que existe: Obtém a lista completa de todos os supervisores cadastrados nos testes.
+  // Mantemos a lista de supervisores independente de outros filtros para evitar que
+  // a escolha do supervisor seja apagada automaticamente ao alternar outros filtros (como a cobrança).
   const supervisoresDisponiveis = Array.from(
     new Set(
       testes
-        .filter((teste) => {
-          // 1. Filtro de busca por texto (Nome ou RE)
-          if (busca.trim()) {
-            const termo = busca.toLowerCase();
-            const nomeMatch = teste.colaborador_nome?.toLowerCase().includes(termo);
-            const reMatch = teste.colaborador_re?.toLowerCase().includes(termo);
-            if (!nomeMatch && !reMatch) return false;
-          }
-
-          // 2. Filtro por status
-          if (statusFiltro && teste.status !== statusFiltro) {
-            return false;
-          }
-
-          // 3. Filtro por status de cobrança
-          if (cobrancaFiltro !== 'todos') {
-            if (teste.status !== 'ativo') return false;
-
-            const folhas = obterInfoFolhas(teste.data_inicio);
-            const premios = teste.historico_acoes.filter(a => a.acao === 'pagar_premio').length;
-            const mesAtualNum = premios + 1;
-            const folhaTeste = folhas.find(f => f.mesRef === mesAtualNum);
-
-            if (!folhaTeste) return false;
-
-            const numFolhaTeste = converterFolhaParaNumero(folhaTeste.nomeFolha);
-            const numFolhaHoje = converterFolhaParaNumero(obterFolhaCalendarioReal());
-
-            const jaRespondeu = teste.historico_acoes.some(a => a.acao === 'registrar_resposta' && a.mes_referencia === mesAtualNum);
-
-            if (cobrancaFiltro === 'falta_resposta') {
-              return numFolhaTeste <= numFolhaHoje && !jaRespondeu;
-            }
-            if (cobrancaFiltro === 'em_dia') {
-              return numFolhaTeste > numFolhaHoje || jaRespondeu;
-            }
-          }
-
-          return true;
-        })
         .map((teste) => teste.supervisor_nome)
         .filter((nome): nome is string => Boolean(nome && nome.trim() && nome !== '-'))
     )
   ).sort((a, b) => a.localeCompare(b));
-
-  // Por que existe: Se a alteração de outros filtros remover o supervisor atualmente selecionado da lista,
-  // limpa automaticamente o filtro de supervisor para não manter uma opção sem resultados.
-  useEffect(() => {
-    if (supervisorFiltro && !supervisoresDisponiveis.includes(supervisorFiltro)) {
-      setSupervisorFiltro('');
-    }
-  }, [supervisoresDisponiveis, supervisorFiltro]);
 
   // Filtra todos os testes com base no termo de busca (Nome ou RE), status selecionado, cobrança e supervisor.
   // Por que existe: Centraliza a filtragem global no frontend, garantindo que os filtros
