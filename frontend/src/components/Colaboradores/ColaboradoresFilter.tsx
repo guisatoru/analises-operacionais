@@ -5,7 +5,7 @@ import SearchableSelect from '../ui/searchable-select';
 
 interface LojaRef {
   id: string;
-  nome_referencia: string;
+  nome_totvs: string;
 }
 
 interface ColaboradoresFilterProps {
@@ -232,12 +232,13 @@ export default function ColaboradoresFilter({
             <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
               Loja TOTVS
             </label>
+            {/* Por que existe: Exibe o nome TOTVS da loja no filtro, conforme o solicitado pelo usuário. */}
             <SearchableSelect
               options={[
                 { value: '', label: 'Todas as Lojas' },
                 ...lojasOpcoes.map((l) => ({
                   value: String(l.id),
-                  label: l.nome_referencia,
+                  label: l.nome_totvs,
                 })),
               ]}
               value={lojaFiltro}

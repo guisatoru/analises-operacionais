@@ -545,14 +545,15 @@ def colaborador_filtro_opcoes(request):
         filtros_loja["loja"] = ""
         qs_loja = Colaborador.objects.filter(status="D").exclude(cargo="AUXILIAR ADMINISTRAT").select_related("loja")
         qs_loja = _aplicar_filtros_demitidos(qs_loja, filtros_loja)
-        lojas_set = set(qs_loja.filter(loja__isnull=False).values_list("loja_id", "loja__nome_referencia"))
+        # Por que existe: Obtém o nome_totvs (com fallback para nome_referencia) para exibição correta no filtro de loja totvs.
+        lojas_set = set(qs_loja.filter(loja__isnull=False).values_list("loja_id", "loja__nome_totvs", "loja__nome_referencia"))
         lojas_list = sorted(
-            [{"id": str(lid), "nome_referencia": lref} for lid, lref in lojas_set],
-            key=lambda x: x["nome_referencia"]
+            [{"id": str(lid), "nome_totvs": ltotvs if ltotvs else lref} for lid, ltotvs, lref in lojas_set],
+            key=lambda x: x["nome_totvs"]
         )
         has_null_loja = qs_loja.filter(loja__isnull=True).exists()
         if has_null_loja:
-            lojas_list.append({"id": "null", "nome_referencia": "(Vazio)"})
+            lojas_list.append({"id": "null", "nome_totvs": "(Vazio)"})
 
         # 4. Opções de Status Gestão
         filtros_sg = filtros_base.copy()
@@ -578,14 +579,15 @@ def colaborador_filtro_opcoes(request):
         filtros_loja["loja"] = ""
         qs_loja = _buscar_colaboradores_ativos()
         qs_loja = _aplicar_filtros_colaboradores(qs_loja, filtros_loja)
-        lojas_set = set(qs_loja.filter(loja__isnull=False).values_list("loja_id", "loja__nome_referencia"))
+        # Por que existe: Obtém o nome_totvs (com fallback para nome_referencia) para exibição correta no filtro de loja totvs.
+        lojas_set = set(qs_loja.filter(loja__isnull=False).values_list("loja_id", "loja__nome_totvs", "loja__nome_referencia"))
         lojas_list = sorted(
-            [{"id": str(lid), "nome_referencia": lref} for lid, lref in lojas_set],
-            key=lambda x: x["nome_referencia"]
+            [{"id": str(lid), "nome_totvs": ltotvs if ltotvs else lref} for lid, ltotvs, lref in lojas_set],
+            key=lambda x: x["nome_totvs"]
         )
         has_null_loja = qs_loja.filter(loja__isnull=True).exists()
         if has_null_loja:
-            lojas_list.append({"id": "null", "nome_referencia": "(Vazio)"})
+            lojas_list.append({"id": "null", "nome_totvs": "(Vazio)"})
 
         # 4. Opções de Status
         filtros_st = filtros_base.copy()
