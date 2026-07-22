@@ -65,11 +65,12 @@ def salario_list_create_api(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(["GET", "PUT", "DELETE"])
+@api_view(["GET", "PUT", "PATCH", "DELETE"])
 @permission_classes([IsAuthenticated, IsAdministrador])
 def salario_detail_update_delete_api(request, pk):
     """
-    Visualiza, edita ou exclui um salário específico por meio do ID.
+    Por que existe: Permite a visualização, edição (via PUT ou PATCH para suporte parcial) ou exclusão 
+    de um registro específico de salário base por ID.
     """
     try:
         salario = Salario.objects.get(pk=pk)
@@ -80,7 +81,7 @@ def salario_detail_update_delete_api(request, pk):
         serializer = SalarioSerializer(salario)
         return Response(serializer.data)
         
-    elif request.method == "PUT":
+    elif request.method in ["PUT", "PATCH"]:
         serializer = SalarioSerializer(salario, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()

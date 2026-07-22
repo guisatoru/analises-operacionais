@@ -57,7 +57,7 @@ export default function Salarios() {
 
   const fetchCargos = async () => {
     try {
-      const response = await api.get('/colaboradores/cargos/');
+      const response = await api.get('/cargos/');
       const dados = Array.isArray(response.data) ? response.data : (response.data.results || []);
       setCargos(dados);
     } catch (err) {
@@ -68,7 +68,7 @@ export default function Salarios() {
   const fetchSalarios = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/colaboradores/salarios/');
+      const response = await api.get('/lojas/api/salarios/');
       const dados = Array.isArray(response.data) ? response.data : (response.data.results || []);
       setSalarios(dados);
     } catch (err) {
@@ -119,9 +119,9 @@ export default function Salarios() {
       };
 
       if (selectedSalario) {
-        await api.patch(`/colaboradores/salarios/${selectedSalario.id}/`, payload);
+        await api.patch(`/lojas/api/salarios/${selectedSalario.id}/`, payload);
       } else {
-        await api.post('/colaboradores/salarios/', payload);
+        await api.post('/lojas/api/salarios/', payload);
       }
 
       setShowModal(false);
@@ -143,7 +143,7 @@ export default function Salarios() {
   const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir este registro de salário base?')) return;
     try {
-      await api.delete(`/colaboradores/salarios/${id}/`);
+      await api.delete(`/lojas/api/salarios/${id}/`);
       fetchSalarios();
     } catch (err) {
       console.error('Erro ao excluir salário:', err);
