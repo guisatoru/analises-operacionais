@@ -311,7 +311,7 @@ export default function NovoTesteModal({ onClose, onSaveSuccess }: NovoTesteModa
                     <span className="text-xs">Sincronizando pontos da GeoVictoria...</span>
                   </div>
                 ) : errorAusencias ? (
-                  <div className="p-4 flex gap-2 text-xs text-red-655 bg-red-500/10 border-t border-red-500/10">
+                  <div className="p-4 flex gap-2 text-xs text-red-600 dark:text-red-400 bg-red-500/10 border-t border-red-500/10">
                     <AlertCircle className="h-4 w-4 shrink-0" />
                     <span>{errorAusencias}</span>
                   </div>

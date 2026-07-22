@@ -548,7 +548,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
                           onClick={() => setRespostaSupervisor('cancelar')}
                           className={`py-3 px-4 text-xs font-bold rounded-xl border text-center transition-all cursor-pointer ${
                             respostaSupervisor === 'cancelar'
-                              ? 'border-red-655 bg-red-650 text-white dark:border-red-500 dark:bg-red-650'
+                              ? 'border-red-600 bg-red-600 text-white dark:border-red-500 dark:bg-red-600'
                               : 'border-neutral-200 dark:border-neutral-850 hover:bg-neutral-50 dark:hover:bg-neutral-850 text-neutral-700 dark:text-neutral-300'
                           }`}
                         >
@@ -607,37 +607,73 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
               {/* Se status for ATIVO e JÁ TIVER resposta do supervisor */}
               {teste.status === 'ativo' && respostaSupervisorReg && (
                 <form onSubmit={handleConfirmarAcaoFinal} className="space-y-5">
-                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 rounded-xl text-xs flex flex-col gap-3 animate-fade-in">
-                    <div className="flex justify-between items-center border-b border-emerald-500/20 pb-2">
-                      <span className="font-bold uppercase tracking-wider">
-                        Etapa 2: Confirmar Ação para o Mês {mesAtual}
-                      </span>
-                      <span className="font-bold text-[10px] bg-emerald-500/20 px-2.5 py-0.5 rounded-full">
-                        Folha: {folhaAtual?.nomeFolha || '-'}
-                      </span>
-                    </div>
-                    <div className="space-y-1">
-                      <p>
-                        <strong>Supervisor:</strong> {respostaSupervisorReg.solicitado_por} •{' '}
-                        <strong>Resposta registrada em:</strong> {formatDate(respostaSupervisorReg.data_acao)}
-                      </p>
-                      <p>
-                        <strong>Decisão Selecionada:</strong>{' '}
-                        <span className="underline font-bold">
-                          {respostaSupervisorReg.resposta_supervisor === 'pagar_premio'
-                            ? 'Pagar Prêmio (Prorrogar)'
-                            : respostaSupervisorReg.resposta_supervisor === 'promover'
-                            ? 'Promover Colaborador'
-                            : 'Cancelar Teste'}
-                        </span>
-                      </p>
-                      {respostaSupervisorReg.observacao && (
-                        <p className="bg-white/40 dark:bg-black/20 p-2 rounded-lg text-neutral-700 dark:text-neutral-300 italic mt-2">
-                          " {respostaSupervisorReg.observacao} "
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                  {(() => {
+                    /*
+                      Por que existe: Esta função autoexecutável determina dinamicamente o estilo
+                      e as mensagens de instrução baseadas na resposta registrada pelo supervisor
+                      para a Etapa 2 de tomada de decisão, facilitando a identificação visual 
+                      das ações de Pagar Prêmio (Azul), Promover (Verde) ou Cancelar (Vermelho).
+                    */
+                    const decisao = respostaSupervisorReg.resposta_supervisor;
+                    let bgClass = 'bg-blue-500/10 border-blue-500/20 text-blue-800 dark:text-blue-355';
+                    let borderHeaderClass = 'border-blue-500/20';
+                    let labelDecisao = 'Pagar Prêmio (Prorrogar)';
+                    let instrucaoAcao = 'Confirmar o Lançamento de Pagamento & Prorrogar Teste';
+                    let descricaoAcao = 'O supervisor decidiu pagar o prêmio e continuar o teste. Confirme o pagamento para prorrogar o teste do colaborador por mais um mês.';
+                    let Icone = Play;
+
+                    if (decisao === 'promover') {
+                      bgClass = 'bg-emerald-500/10 border-emerald-500/20 text-emerald-800 dark:text-emerald-300';
+                      borderHeaderClass = 'border-emerald-500/20';
+                      labelDecisao = 'Promover Colaborador';
+                      instrucaoAcao = 'Confirmar a Efetivação da Promoção';
+                      descricaoAcao = 'O supervisor decidiu promover o colaborador. Confirme a promoção para registrar a efetivação definitiva no novo cargo.';
+                      Icone = UserCheck;
+                    } else if (decisao === 'cancelar') {
+                      bgClass = 'bg-red-500/10 border-red-500/20 text-red-800 dark:text-red-350';
+                      borderHeaderClass = 'border-red-500/20';
+                      labelDecisao = 'Cancelar Teste';
+                      instrucaoAcao = 'Confirmar o Cancelamento do Teste';
+                      descricaoAcao = 'O supervisor decidiu cancelar o teste. Confirme o cancelamento para finalizar o teste. O colaborador retornará ao seu cargo original.';
+                      Icone = XCircle;
+                    }
+
+                    return (
+                      <div className={`p-4 rounded-xl border text-xs flex flex-col gap-3 animate-fade-in ${bgClass}`}>
+                        <div className={`flex justify-between items-center border-b pb-2 ${borderHeaderClass}`}>
+                          <span className="font-bold uppercase tracking-wider flex items-center gap-1.5">
+                            <Icone className="h-4.5 w-4.5 shrink-0" />
+                            Etapa 2: Confirmar Ação para o Mês {mesAtual}
+                          </span>
+                          <span className="font-bold text-[10px] bg-neutral-900/10 dark:bg-white/10 px-2.5 py-0.5 rounded-full">
+                            Folha: {folhaAtual?.nomeFolha || '-'}
+                          </span>
+                        </div>
+                        <div className="space-y-2.5">
+                          <div>
+                            <p className="text-[10px] opacity-75 font-bold uppercase tracking-wider">O QUE DEVE SER FEITO:</p>
+                            <p className="font-bold text-sm leading-tight mt-0.5">{instrucaoAcao}</p>
+                            <p className="text-xs opacity-85 mt-1">{descricaoAcao}</p>
+                          </div>
+                          <div className="border-t border-current/10 pt-2 space-y-1 mt-1 opacity-90 text-[11px]">
+                            <p>
+                              <strong>Supervisor:</strong> {respostaSupervisorReg.solicitado_por} •{' '}
+                              <strong>Resposta registrada em:</strong> {formatDate(respostaSupervisorReg.data_acao)}
+                            </p>
+                            <p>
+                              <strong>Decisão Selecionada:</strong>{' '}
+                              <span className="underline font-bold">{labelDecisao}</span>
+                            </p>
+                            {respostaSupervisorReg.observacao && (
+                              <p className="bg-white/40 dark:bg-black/25 p-2.5 rounded-lg text-neutral-800 dark:text-neutral-200 italic mt-2 border border-current/5 whitespace-pre-wrap">
+                                "{respostaSupervisorReg.observacao}"
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   <div className="p-5 bg-neutral-50 dark:bg-neutral-950/20 border border-neutral-200 dark:border-neutral-850 rounded-xl space-y-4">
                     <div className="space-y-1.5">
@@ -715,7 +751,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
                   <span className="text-xs">Sincronizando pontos...</span>
                 </div>
               ) : errorAusencias ? (
-                <div className="p-4 flex gap-2 text-xs text-red-655 bg-red-500/10 rounded-xl border border-red-500/20">
+                <div className="p-4 flex gap-2 text-xs text-red-600 dark:text-red-400 bg-red-500/10 rounded-xl border border-red-500/20">
                   <AlertCircle className="h-4.5 w-4.5 shrink-0 text-red-500" />
                   <span>{errorAusencias}</span>
                 </div>
@@ -799,7 +835,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
                       item.acao === 'ativar' ? 'border-blue-500 text-blue-500' :
                       item.acao === 'pagar_premio' ? 'border-amber-500 text-amber-500' :
                       item.acao === 'promover' ? 'border-green-600 text-green-600' :
-                      'border-red-655 text-red-655'
+                      'border-red-600 text-red-600 dark:border-red-400 dark:text-red-400'
                     }`}>
                       <span className="h-1.5 w-1.5 rounded-full bg-current" />
                     </span>
