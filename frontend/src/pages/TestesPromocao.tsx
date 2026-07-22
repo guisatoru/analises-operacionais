@@ -78,6 +78,15 @@ export default function TestesPromocao() {
   const [cobrancaFiltroAplicado, setCobrancaFiltroAplicado] = useState<'todos' | 'falta_resposta' | 'em_dia'>('todos');
   const [supervisorFiltro, setSupervisorFiltro] = useState('');
   const [supervisorFiltroAplicado, setSupervisorFiltroAplicado] = useState('');
+
+  // Por que existe: Permite filtrar os testes ativos pela etapa em que se encontram (Aguardando Resposta ou Aguardando Ação).
+  const [etapaFiltro, setEtapaFiltro] = useState('');
+  const [etapaFiltroAplicado, setEtapaFiltroAplicado] = useState('');
+
+  // Por que existe: Permite filtrar os testes pela ação específica que o supervisor respondeu/solicitou (Pagar Prêmio, Promover, Cancelar).
+  const [acaoPendenteFiltro, setAcaoPendenteFiltro] = useState('');
+  const [acaoPendenteFiltroAplicado, setAcaoPendenteFiltroAplicado] = useState('');
+
   const [fetchTrigger, setFetchTrigger] = useState(0);
 
   // Modais
@@ -95,7 +104,14 @@ export default function TestesPromocao() {
   // evitando que o usuário fique em uma página inexistente para a nova busca.
   useEffect(() => {
     setCurrentPage(1);
-  }, [buscaAplicada, statusFiltroAplicado, cobrancaFiltroAplicado, supervisorFiltroAplicado]);
+  }, [
+    buscaAplicada,
+    statusFiltroAplicado,
+    cobrancaFiltroAplicado,
+    supervisorFiltroAplicado,
+    etapaFiltroAplicado,
+    acaoPendenteFiltroAplicado
+  ]);
 
   const fetchTestes = async () => {
     setLoading(true);
@@ -120,6 +136,8 @@ export default function TestesPromocao() {
     setStatusFiltroAplicado(statusFiltro);
     setCobrancaFiltroAplicado(cobrancaFiltro);
     setSupervisorFiltroAplicado(supervisorFiltro);
+    setEtapaFiltroAplicado(etapaFiltro);
+    setAcaoPendenteFiltroAplicado(acaoPendenteFiltro);
     setCurrentPage(1);
   };
 
@@ -132,6 +150,10 @@ export default function TestesPromocao() {
     setCobrancaFiltroAplicado('todos');
     setSupervisorFiltro('');
     setSupervisorFiltroAplicado('');
+    setEtapaFiltro('');
+    setEtapaFiltroAplicado('');
+    setAcaoPendenteFiltro('');
+    setAcaoPendenteFiltroAplicado('');
     setCurrentPage(1);
   };
 
@@ -205,10 +227,19 @@ export default function TestesPromocao() {
     const folhas = obterInfoFolhas(teste.data_inicio);
     const folhaAtual = folhas.find(f => f.mesRef === mesAtualNum);
 
-    const jaRespondeu = teste.historico_acoes.some(a => a.acao === 'registrar_resposta' && a.mes_referencia === mesAtualNum);
-    const subEtapa = jaRespondeu ? 'Aguardando Ação' : 'Aguardando Resposta';
+    const acaoResposta = teste.historico_acoes.find(
+      a => a.acao === 'registrar_resposta' && a.mes_referencia === mesAtualNum
+    );
+    const subEtapa = acaoResposta ? 'Aguardando Ação' : 'Aguardando Resposta';
     
-    return `Mês ${mesAtualNum} - ${subEtapa} (Folha ${folhaAtual?.nomeFolha || '-'})`;
+    let decisaoTexto = '';
+    if (acaoResposta?.resposta_supervisor) {
+      const resp = acaoResposta.resposta_supervisor;
+      decisaoTexto = resp === 'pagar_premio' ? ' (Pagar Prêmio)' : 
+                     resp === 'promover' ? ' (Promover)' : ' (Cancelar)';
+    }
+    
+    return `Mês ${mesAtualNum} - ${subEtapa}${decisaoTexto} (Folha ${folhaAtual?.nomeFolha || '-'})`;
   };
 
   // Por que existe: Obtém a lista completa de todos os supervisores cadastrados nos testes.
@@ -268,6 +299,38 @@ export default function TestesPromocao() {
       return false;
     }
 
+    // 5. Filtro por Etapa do Fluxo (Aguardando Resposta ou Aguardando Ação)
+    if (etapaFiltroAplicado) {
+      if (teste.status !== 'ativo') return false;
+
+      const premios = teste.historico_acoes.filter(a => a.acao === 'pagar_premio').length;
+      const mesAtualNum = premios + 1;
+      const jaRespondeu = teste.historico_acoes.some(a => a.acao === 'registrar_resposta' && a.mes_referencia === mesAtualNum);
+
+      if (etapaFiltroAplicado === 'aguardando_resposta' && jaRespondeu) {
+        return false;
+      }
+      if (etapaFiltroAplicado === 'aguardando_acao' && !jaRespondeu) {
+        return false;
+      }
+    }
+
+    // 6. Filtro por Ação Aguardando (Pagar Prêmio, Promover, Cancelar)
+    if (acaoPendenteFiltroAplicado) {
+      if (teste.status !== 'ativo') return false;
+
+      const premios = teste.historico_acoes.filter(a => a.acao === 'pagar_premio').length;
+      const mesAtualNum = premios + 1;
+      const acaoResposta = teste.historico_acoes.find(
+        a => a.acao === 'registrar_resposta' && a.mes_referencia === mesAtualNum
+      );
+
+      // Se não houver resposta registrada ainda, ou a resposta do supervisor for diferente do filtro, remove
+      if (!acaoResposta || acaoResposta.resposta_supervisor !== acaoPendenteFiltroAplicado) {
+        return false;
+      }
+    }
+
     return true;
   });
 
@@ -296,7 +359,7 @@ export default function TestesPromocao() {
 
       {/* Painel de Filtros */}
       <form onSubmit={handleSearchSubmit} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-xs shadow-sm space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
           {/* Busca por Nome/RE */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-neutral-450 uppercase tracking-wider">Buscar Colaborador</label>
@@ -355,22 +418,53 @@ export default function TestesPromocao() {
             />
           </div>
 
-          {/* Botões de Filtro */}
-          <div className="flex items-end gap-3">
-            <button
-              type="submit"
-              className="flex-1 py-2 text-sm font-semibold bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-750 text-neutral-800 dark:text-neutral-100 rounded-lg transition-colors cursor-pointer"
-            >
-              Filtrar
-            </button>
-            <button
-              type="button"
-              onClick={handleClearFilters}
-              className="py-2 px-3 text-sm font-semibold border border-neutral-200 dark:border-neutral-850 hover:bg-neutral-50 dark:hover:bg-neutral-850 text-neutral-500 rounded-lg transition-colors cursor-pointer"
-            >
-              Limpar
-            </button>
+          {/* Filtro Etapa do Fluxo */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-neutral-450 uppercase tracking-wider block">Etapa do Fluxo</label>
+            <SearchableSelect
+              options={[
+                { value: '', label: 'Todos' },
+                { value: 'aguardando_resposta', label: 'Aguardando Resposta' },
+                { value: 'aguardando_acao', label: 'Aguardando Ação' },
+              ]}
+              value={etapaFiltro}
+              onChange={setEtapaFiltro}
+              placeholder="Todos"
+            />
           </div>
+
+          {/* Filtro Ação Aguardando */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-neutral-450 uppercase tracking-wider block">Ação Aguardando</label>
+            <SearchableSelect
+              options={[
+                { value: '', label: 'Todos' },
+                { value: 'pagar_premio', label: 'Pagar Prêmio' },
+                { value: 'promover', label: 'Promover' },
+                { value: 'cancelar', label: 'Cancelar' },
+              ]}
+              value={acaoPendenteFiltro}
+              onChange={setAcaoPendenteFiltro}
+              placeholder="Todos"
+            />
+          </div>
+        </div>
+
+        {/* Botões de Filtro */}
+        <div className="flex justify-end gap-3 pt-3 border-t border-neutral-100 dark:border-neutral-850">
+          <button
+            type="button"
+            onClick={handleClearFilters}
+            className="py-2 px-4 text-sm font-semibold border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-850 text-neutral-500 rounded-lg transition-colors cursor-pointer"
+          >
+            Limpar Filtros
+          </button>
+          <button
+            type="submit"
+            className="py-2 px-6 text-sm font-semibold bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:bg-neutral-850 dark:hover:bg-neutral-100 rounded-lg transition-colors cursor-pointer"
+          >
+            Filtrar
+          </button>
         </div>
       </form>
 
@@ -449,7 +543,10 @@ export default function TestesPromocao() {
                           const numFolhaTeste = converterFolhaParaNumero(folhaTeste.nomeFolha);
                           const numFolhaHoje = converterFolhaParaNumero(obterFolhaCalendarioReal());
 
-                          const jaRespondeu = teste.historico_acoes.some(a => a.acao === 'registrar_resposta' && a.mes_referencia === mesAtualNum);
+                          const acaoResposta = teste.historico_acoes.find(
+                            a => a.acao === 'registrar_resposta' && a.mes_referencia === mesAtualNum
+                          );
+                          const jaRespondeu = !!acaoResposta;
                           const faltaResposta = numFolhaTeste <= numFolhaHoje && !jaRespondeu;
 
                           if (faltaResposta) {
@@ -459,10 +556,27 @@ export default function TestesPromocao() {
                               </span>
                             );
                           } else if (jaRespondeu) {
+                            const resp = acaoResposta?.resposta_supervisor;
+                            const respDisplay = resp === 'pagar_premio' ? 'Pagar Prêmio' :
+                                                resp === 'promover' ? 'Promover' :
+                                                resp === 'cancelar' ? 'Cancelar' : '';
                             return (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[9px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/15 uppercase tracking-wider">
-                                Aguardando Ação
-                              </span>
+                              <div className="flex flex-col gap-1 items-start">
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[9px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/15 uppercase tracking-wider whitespace-nowrap">
+                                  Aguardando Ação
+                                </span>
+                                {respDisplay && (
+                                  <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[9px] font-bold uppercase tracking-wider border whitespace-nowrap ${
+                                    resp === 'pagar_premio'
+                                      ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/15'
+                                      : resp === 'promover'
+                                      ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/15'
+                                      : 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/15'
+                                  }`}>
+                                    Ação: {respDisplay}
+                                  </span>
+                                )}
+                              </div>
                             );
                           } else {
                             return (
