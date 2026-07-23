@@ -356,9 +356,21 @@ export default function TestesPromocao() {
         a => a.acao === 'registrar_resposta' && a.mes_referencia === mesAtualNum
       );
 
-      // Se não houver resposta registrada ainda, ou a resposta do supervisor for diferente do filtro, remove
-      if (!acaoResposta || acaoResposta.resposta_supervisor !== acaoPendenteFiltroAplicado) {
-        return false;
+      if (!acaoResposta) return false;
+
+      const resp = acaoResposta.resposta_supervisor;
+      if (acaoPendenteFiltroAplicado === 'pagar_premio') {
+        if (resp !== 'pagar_premio' && resp !== 'pagar_premio_cancelar') {
+          return false;
+        }
+      } else if (acaoPendenteFiltroAplicado === 'cancelar') {
+        if (resp !== 'cancelar' && resp !== 'pagar_premio_cancelar') {
+          return false;
+        }
+      } else {
+        if (resp !== acaoPendenteFiltroAplicado) {
+          return false;
+        }
       }
     }
 
@@ -481,6 +493,7 @@ export default function TestesPromocao() {
                 { value: 'pagar_premio', label: 'Pagar Prêmio' },
                 { value: 'promover', label: 'Promover' },
                 { value: 'cancelar', label: 'Cancelar' },
+                { value: 'pagar_premio_cancelar', label: 'Pagar Prêmio e Cancelar' },
               ]}
               value={acaoPendenteFiltro}
               onChange={setAcaoPendenteFiltro}
