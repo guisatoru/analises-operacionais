@@ -207,7 +207,7 @@ function App() {
             />
             <Route 
               path="/ausencias" 
-              element={permissions.colaboradores?.view ? <Ausencias /> : <Navigate to="/" replace />} 
+              element={permissions.ausencias?.view ? <Ausencias /> : <Navigate to="/" replace />} 
             />
             <Route 
               path="/colaboradores" 

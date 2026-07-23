@@ -364,7 +364,7 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, p
                 </SidebarMenuItem>
               )}
               
-              {permissions?.colaboradores?.view === true && (
+              {permissions?.ausencias?.view === true && (
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     asChild 

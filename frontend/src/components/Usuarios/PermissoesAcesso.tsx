@@ -12,7 +12,8 @@ import {
   Save, 
   Loader2, 
   Info,
-  CircleDollarSign
+  CircleDollarSign,
+  AlertOctagon
 } from 'lucide-react';
 import api from '../../api/client';
 import { toast } from 'sonner';
@@ -49,6 +50,7 @@ const MODULE_CONFIG: Record<string, { label: string; icon: any; desc: string }> 
   usuarios: { label: 'Usuários & Permissões', icon: Users, desc: 'Controle de acessos e configurações de usuários' },
   salarios: { label: 'Salários de Dissídios', icon: CircleDollarSign, desc: 'Configuração de salários base por cargo e região (UF)' },
   testes_promocao: { label: 'Testes de Promoção', icon: Users, desc: 'Controle de testes de promoção e acompanhamento mensal' },
+  ausencias: { label: 'Análise de Ausências', icon: AlertOctagon, desc: 'Auditoria de faltas, atestados e suspensões' },
 };
 
 /**

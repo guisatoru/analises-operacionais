@@ -309,7 +309,8 @@ def role_list(request):
     modulos = [
         "dashboard", "lojas", "apoio", "colaboradores", "turnover",
         "escopos", "comparativo", "headcount", "diarias", "premios",
-        "importacoes", "usuarios", "salarios", "testes_promocao"
+        "importacoes", "usuarios", "salarios", "testes_promocao",
+        "ausencias"
     ]
     
     for group in groups:

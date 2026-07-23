@@ -11,7 +11,10 @@ import {
   CalendarCheck,
   Coins,
   CircleDollarSign,
-  TrendingDown
+  TrendingDown,
+  AlertOctagon,
+  Map,
+  CalendarDays
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -23,28 +26,34 @@ interface DashboardProps {
  * 
  * Por que existe: Serve como a tela de boas-vindas inicial para o usuário logado,
  * fornecendo um panorama geral da plataforma com atalhos para todas as seções
- * operacionais e financeiras do Sistema Operacional.
+ * administrativas da plataforma de auditorias de turnover e headcount.
  */
 export default function Dashboard({ permissions }: DashboardProps) {
-  // Lista de cards para os atalhos da tela inicial, com acesso rápido a todas as seções do sistema.
+  // Lista estática com todas as opções de recursos da plataforma
   const cards = [
     {
-      title: 'Gestão de Lojas',
-      description: 'Gerencie as lojas do grupo e visualize a insalubridade, adicionais de salário e escopos operacionais.',
+      title: 'Gerenciamento de Lojas',
+      description: 'Cadastre e gerencie filiais, informações de endereço, coordenadores e supervisores.',
       path: '/lojas',
       icon: Store,
     },
     {
-      title: 'Agenda do Apoio',
-      description: 'Gerencie a escala mensal e os agendamentos da equipe de apoio operacional.',
+      title: 'Mapa de Lojas',
+      description: 'Visualize a localização geográfica de todas as lojas e filiais ativas no mapa.',
+      path: '/lojas/mapa',
+      icon: Map,
+    },
+    {
+      title: 'Agenda de Apoio (Limpeza)',
+      description: 'Cadastre lançamentos operacionais de serviços de limpeza e acompanhe a agenda de escalas.',
       path: '/agenda',
       icon: CalendarCheck,
     },
     {
       title: 'Histórico de Limpeza',
-      description: 'Acompanhe o controle e o tempo decorrido desde a última limpeza de vidros nas lojas.',
+      description: 'Consulte o histórico detalhado de todas as agendas de apoio e limpezas realizadas.',
       path: '/agenda/historico',
-      icon: CheckCircle2,
+      icon: CalendarDays,
     },
     {
       title: 'Base de Colaboradores',
@@ -63,6 +72,12 @@ export default function Dashboard({ permissions }: DashboardProps) {
       description: 'Controle o fluxo mensal de testes de promoção e avaliações práticas de auxiliares e operadores.',
       path: '/testes',
       icon: Users,
+    },
+    {
+      title: 'Análise de Ausências',
+      description: 'Monitore faltas, atestados e suspensões por colaborador, loja ou região em tempo real.',
+      path: '/ausencias',
+      icon: AlertOctagon,
     },
     {
       title: 'Escopos Mensais',
@@ -127,11 +142,13 @@ export default function Dashboard({ permissions }: DashboardProps) {
     // Mapeamento dos caminhos das rotas para as chaves correspondentes de permissão
     const pathMap: Record<string, string> = {
       '/lojas': 'lojas',
+      '/lojas/mapa': 'lojas',
       '/agenda': 'apoio',
       '/agenda/historico': 'apoio',
       '/colaboradores': 'colaboradores',
       '/terminos': 'colaboradores',
       '/testes': 'testes_promocao',
+      '/ausencias': 'ausencias',
       '/escopos': 'escopos',
       '/comparativo': 'comparativo',
       '/headcount': 'headcount',
