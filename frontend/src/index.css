@@ -280,9 +280,7 @@ tr:last-child td {
   border-bottom: none;
 }
 
-tr:hover td {
-  background-color: hsl(var(--accent));
-}
+
 
 /* Card Visual Claro/Neutro */
 .card-premium {

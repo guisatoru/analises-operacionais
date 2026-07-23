@@ -748,7 +748,7 @@ export default function Ausencias() {
                                   </thead>
                                   <tbody>
                                     {row.detalhes.map((det, idx) => (
-                                      <tr key={idx} className="border-b border-neutral-100 dark:border-neutral-850/50 hover:bg-neutral-50/20 dark:hover:bg-neutral-850/10">
+                                      <tr key={idx} className="border-b border-neutral-100 dark:border-neutral-850/50 hover:bg-neutral-100 dark:hover:bg-neutral-800">
                                         <td className="p-2.5 font-semibold text-neutral-800 dark:text-neutral-200">{formatarData(det.data)}</td>
                                         <td className="p-2.5 text-neutral-700 dark:text-neutral-300">{det.descricao}</td>
                                       </tr>
