@@ -230,8 +230,8 @@ def _sync_geovictoria_background():
 
     try:
         today = date.today()
-        # Sincroniza desde 6 meses atrás até hoje
-        inicio = today - timedelta(days=180)
+        # Sincroniza desde 1 mês atrás (30 dias) até hoje
+        inicio = today - timedelta(days=30)
         
         resultado = sincronizar_ausencias_api(
             start_date=inicio,

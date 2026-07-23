@@ -12,7 +12,7 @@ class Command(BaseCommand):
     help = "Sincroniza faltas, atestados e suspensões dos colaboradores da GeoVictoria para o banco local."
 
     def add_arguments(self, parser):
-        parser.add_argument("--inicio", type=str, help="Data de início (YYYY-MM-DD). Padrão: 6 meses atrás")
+        parser.add_argument("--inicio", type=str, help="Data de início (YYYY-MM-DD). Padrão: 1 mês atrás")
         parser.add_argument("--fim", type=str, help="Data de fim (YYYY-MM-DD). Padrão: Hoje")
 
     def handle(self, *args, **options):
@@ -27,7 +27,7 @@ class Command(BaseCommand):
         if inicio_str:
             inicio = datetime.strptime(inicio_str, "%Y-%m-%d").date()
         else:
-            inicio = fim - timedelta(days=180)
+            inicio = fim - timedelta(days=30)
 
         self.stdout.write(f"Iniciando sincronização de ausências de {inicio} até {fim}...")
 
