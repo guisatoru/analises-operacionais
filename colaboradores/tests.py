@@ -409,16 +409,21 @@ class TerminoAPITests(TestCase):
         Por que existe: Garante que a ordenação 'ausencias' traz os colaboradores
         com maior soma de faltas e atestados no total primeiro.
         """
+        from colaboradores.models import Ausencia
+
         today = date.today()
         self.colaborador.termino_1 = today + timedelta(days=5)
         self.colaborador.termino_2 = today + timedelta(days=35)
-        self.colaborador.faltas_geovictoria = 2
-        self.colaborador.atestados_geovictoria = 1
         self.colaborador.cpf = "99999999999"
         self.colaborador.save()
 
+        # Colaborador (total 3 ausências)
+        Ausencia.objects.create(colaborador=self.colaborador, tipo="falta", data=today - timedelta(days=1), descricao="Falta")
+        Ausencia.objects.create(colaborador=self.colaborador, tipo="falta", data=today - timedelta(days=2), descricao="Falta")
+        Ausencia.objects.create(colaborador=self.colaborador, tipo="atestado", data=today - timedelta(days=3), descricao="Atestado")
+
         # Colaborador com poucas ausências (total 1)
-        Colaborador.objects.create(
+        colab_pouco = Colaborador.objects.create(
             re="888888",
             nome="Colaborador Pouco",
             loja=self.loja,
@@ -427,13 +432,12 @@ class TerminoAPITests(TestCase):
             status="A",
             termino_1=today + timedelta(days=5),
             termino_2=today + timedelta(days=35),
-            faltas_geovictoria=1,
-            atestados_geovictoria=0,
             cpf="88888888888",
         )
+        Ausencia.objects.create(colaborador=colab_pouco, tipo="falta", data=today - timedelta(days=1), descricao="Falta")
 
         # Colaborador com muitas ausências (total 5)
-        Colaborador.objects.create(
+        colab_muito = Colaborador.objects.create(
             re="777777",
             nome="Colaborador Muito",
             loja=self.loja,
@@ -442,10 +446,13 @@ class TerminoAPITests(TestCase):
             status="A",
             termino_1=today + timedelta(days=5),
             termino_2=today + timedelta(days=35),
-            faltas_geovictoria=3,
-            atestados_geovictoria=2,
             cpf="77777777777",
         )
+        Ausencia.objects.create(colaborador=colab_muito, tipo="falta", data=today - timedelta(days=1), descricao="Falta")
+        Ausencia.objects.create(colaborador=colab_muito, tipo="falta", data=today - timedelta(days=2), descricao="Falta")
+        Ausencia.objects.create(colaborador=colab_muito, tipo="falta", data=today - timedelta(days=3), descricao="Falta")
+        Ausencia.objects.create(colaborador=colab_muito, tipo="atestado", data=today - timedelta(days=4), descricao="Atestado")
+        Ausencia.objects.create(colaborador=colab_muito, tipo="atestado", data=today - timedelta(days=5), descricao="Atestado")
 
         # Buscar ordenando por 'ausencias'
         response = self.client.get(self.url, {"ordenar": "ausencias"})
@@ -459,17 +466,16 @@ class TerminoAPITests(TestCase):
         self.assertEqual(results[1]["colaborador"]["re"], "999999")
         self.assertEqual(results[2]["colaborador"]["re"], "888888")
 
-    def test_sync_geovictoria_skips_terminated_and_kept_employees(self):
+    def test_congelamento_ausencias_apos_decisao_definitiva(self):
         """
-        Garante que a sincronização da GeoVictoria pula colaboradores que possuem
-        decisão de término (Dispensar) ou decisão de manter (Efetivar) no segundo período.
+        Garante que faltas/atestados ocorridos após a decisão definitiva de término (termino)
+        ou manutenção (manter na etapa 2) não são contabilizados na página de términos.
         """
-        from unittest.mock import patch
-        
-        # Criar colaboradores adicionais
+        from colaboradores.models import Ausencia
+
         today = date.today()
-        
-        # Colaborador 1: Prorrogado no 1º Termino (deve sincronizar)
+
+        # Colaborador 1: Prorrogado no 1º Termino (não definitivo, deve contar tudo)
         colab_prorrogado = Colaborador.objects.create(
             re="111111",
             nome="Colab Prorrogado",
@@ -488,7 +494,7 @@ class TerminoAPITests(TestCase):
             observacao="Prorrogar",
         )
 
-        # Colaborador 2: Mantido no 2º Termino (deve ser pulado)
+        # Colaborador 2: Mantido no 2º Termino (definitivo, deve congelar hoje)
         colab_mantido = Colaborador.objects.create(
             re="222222",
             nome="Colab Mantido",
@@ -513,7 +519,7 @@ class TerminoAPITests(TestCase):
             observacao="Efetivar",
         )
 
-        # Colaborador 3: Dispensado (acao=termino) no 1º Termino (deve ser pulado)
+        # Colaborador 3: Dispensado no 1º Termino (definitivo, deve congelar hoje)
         colab_dispensado = Colaborador.objects.create(
             re="333333",
             nome="Colab Dispensado",
@@ -532,32 +538,31 @@ class TerminoAPITests(TestCase):
             observacao="Dispensar",
         )
 
-        sync_url = reverse("colaboradores:sync_geovictoria")
+        # Criar ausências para todos eles (uma antes da decisão e uma após)
+        # Antes da decisão (2 dias atrás)
+        Ausencia.objects.create(colaborador=colab_prorrogado, tipo="falta", data=today - timedelta(days=2), descricao="Falta antes")
+        Ausencia.objects.create(colaborador=colab_mantido, tipo="falta", data=today - timedelta(days=2), descricao="Falta antes")
+        Ausencia.objects.create(colaborador=colab_dispensado, tipo="falta", data=today - timedelta(days=2), descricao="Falta antes")
 
-        # Modificado: Usar patch para interceptar o disparo da thread em segundo plano da views_sync
-        with patch("colaboradores.views_sync.threading.Thread") as mock_thread:
-            response = self.client.post(sync_url)
-            self.assertEqual(response.status_code, 200)
-            
-            # Verificar se a Thread foi criada
-            self.assertTrue(mock_thread.called)
-            
-            # Extrair os argumentos passados para a Thread (o target é _sync_geovictoria_background e args é a lista de CPFs)
-            call_kwargs = mock_thread.call_args[1]
-            args_passed = call_kwargs.get("args")
-            cpfs_list = args_passed[0] if args_passed else []
-            
-            # Obter CPFs na lista enviada para sincronização
-            cpfs_enviados = [item["cpf"] for item in cpfs_list]
-            
-            # Colab prorrogado DEVE estar nos CPFs enviados (não foi dispensado nem efetivado na etapa 2)
-            self.assertIn("11111111111", cpfs_enviados)
-            
-            # Colab mantido na etapa 2 NÃO DEVE estar na lista
-            self.assertNotIn("22222222222", cpfs_enviados)
-            
-            # Colab dispensado na etapa 1 NÃO DEVE estar na lista
-            self.assertNotIn("33333333333", cpfs_enviados)
+        # Depois da decisão (2 dias no futuro)
+        Ausencia.objects.create(colaborador=colab_prorrogado, tipo="falta", data=today + timedelta(days=2), descricao="Falta depois")
+        Ausencia.objects.create(colaborador=colab_mantido, tipo="falta", data=today + timedelta(days=2), descricao="Falta depois")
+        Ausencia.objects.create(colaborador=colab_dispensado, tipo="falta", data=today + timedelta(days=2), descricao="Falta depois")
+
+        # Chamar API da listagem de términos
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+
+        results = {item["colaborador"]["re"]: item for item in response.data["results"]}
+
+        # Colab Prorrogado (não definitivo) -> Deve contar 2 faltas (antes e depois)
+        self.assertEqual(int(results["111111"]["faltas"]), 2)
+
+        # Colab Mantido (definitivo) -> Deve contar apenas 1 falta (antes)
+        self.assertEqual(int(results["222222"]["faltas"]), 1)
+
+        # Colab Dispensado (definitivo) -> Deve contar apenas 1 falta (antes)
+        self.assertEqual(int(results["333333"]["faltas"]), 1)
 
 
 class GeoVictoriaFilterTests(TestCase):
@@ -606,3 +611,104 @@ class GeoVictoriaFilterTests(TestCase):
             # A falta de '2026-07-10' deve ser ignorada pois é anterior a '2026-07-15'
             # Apenas a falta de '2026-07-16' deve ser contabilizada (1 dia)
             self.assertEqual(res["99999999999"]["faltas"], 1)
+
+
+class GeoVictoriaAusenciasSyncTests(TestCase):
+    """
+    Por que existe: Garante que o serviço de sincronização retroativa de ausências
+    salva corretamente faltas, atestados e suspensões por dia individual, 
+    pulando colaboradores demitidos na gestão e ignorando dias antes da admissão.
+    """
+
+    def setUp(self):
+        from lojas.models import Loja
+        from colaboradores.models import Colaborador
+        
+        # Cria loja para teste
+        self.loja = Loja.objects.create(nome_referencia="Loja Teste", centro_de_custo="CC1", quadro="Quadro Teste")
+        
+        # Colaborador ativo comum
+        self.colab_ativo = Colaborador.objects.create(
+            re="R1",
+            nome="Colaborador Ativo",
+            loja=self.loja,
+            centro_custo="CC1",
+            data_admissao=date(2026, 1, 1),
+            cpf="11111111111",
+            status="A",
+            status_gestao="ATIVO"
+        )
+        
+        # Colaborador demitido na gestão (deve ser ignorado na sincronização)
+        self.colab_demitido = Colaborador.objects.create(
+            re="R2",
+            nome="Colaborador Demitido",
+            loja=self.loja,
+            centro_custo="CC1",
+            data_admissao=date(2026, 1, 1),
+            cpf="22222222222",
+            status="A",
+            status_gestao="DEMITIDO"
+        )
+
+    def test_sincronizar_ausencias_api_saves_correct_types_and_days(self):
+        from unittest.mock import patch
+        from colaboradores.services.geovictoria_ausencias_sync import sincronizar_ausencias_api
+        from colaboradores.models import Ausencia
+
+        # Simula resposta da API GeoVictoria
+        mock_payload = [
+            # Atestado de 3 dias para Colaborador Ativo (2026-07-10 até 2026-07-12)
+            {
+                "UserIdentifier": "11111111111",
+                "TimeOffTypeDescription": "ATESTADO MEDICO",
+                "Starts": "20260710000000",
+                "Ends": "20260712000000",
+                "Comment": "Atestado de gripe",
+            },
+            # Falta de 1 dia para Colaborador Ativo (2026-07-15)
+            {
+                "UserIdentifier": "11111111111",
+                "TimeOffTypeDescription": "FALTA INJUSTIFICADA",
+                "Starts": "20260715000000",
+                "Ends": "20260715000000",
+            },
+            # Suspensão de 2 dias para Colaborador Ativo (2026-07-20 até 2026-07-21)
+            {
+                "UserIdentifier": "11111111111",
+                "TimeOffTypeDescription": "SUSPENSÃO DISCIPLINAR",
+                "Starts": "20260720000000",
+                "Ends": "20260721000000",
+            },
+            # Registro de ausência para Colaborador Demitido (deve ser ignorado porque ele não entra na busca de CPFs)
+            {
+                "UserIdentifier": "22222222222",
+                "TimeOffTypeDescription": "FALTA",
+                "Starts": "20260710000000",
+                "Ends": "20260710000000",
+            }
+        ]
+
+        with patch("colaboradores.services.geovictoria_ausencias_sync.get_token", return_value="mock-token"), \
+             patch("colaboradores.services.geovictoria_ausencias_sync._geovictoria_request", return_value=mock_payload):
+
+            res = sincronizar_ausencias_api(
+                start_date=date(2026, 7, 1),
+                end_date=date(2026, 7, 25)
+            )
+
+            # Verifica retorno da sincronização
+            self.assertEqual(res["total_colaboradores"], 1) # Apenas o ativo entra no mapeamento
+            self.assertEqual(res["novas"], 6) # 3 dias atestado + 1 dia falta + 2 dias suspensão = 6 registros
+
+            # Verifica se os registros foram criados no banco
+            self.assertTrue(Ausencia.objects.filter(colaborador=self.colab_ativo, tipo="atestado", data=date(2026, 7, 10)).exists())
+            self.assertTrue(Ausencia.objects.filter(colaborador=self.colab_ativo, tipo="atestado", data=date(2026, 7, 11)).exists())
+            self.assertTrue(Ausencia.objects.filter(colaborador=self.colab_ativo, tipo="atestado", data=date(2026, 7, 12)).exists())
+            self.assertTrue(Ausencia.objects.filter(colaborador=self.colab_ativo, tipo="falta", data=date(2026, 7, 15)).exists())
+            self.assertTrue(Ausencia.objects.filter(colaborador=self.colab_ativo, tipo="suspensao", data=date(2026, 7, 20)).exists())
+            self.assertTrue(Ausencia.objects.filter(colaborador=self.colab_ativo, tipo="suspensao", data=date(2026, 7, 21)).exists())
+
+            # Garante que nenhum registro foi criado para o colaborador demitido
+            self.assertFalse(Ausencia.objects.filter(colaborador=self.colab_demitido).exists())
+

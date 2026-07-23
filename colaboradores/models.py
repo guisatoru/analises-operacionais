@@ -32,9 +32,6 @@ class Colaborador(models.Model):
     status = models.CharField("Status", max_length=100, db_index=True)
     cargo = models.CharField("Cargo", max_length=150, db_index=True)
     cpf = models.CharField("CPF", max_length=14, null=True, blank=True)
-    faltas_geovictoria = models.IntegerField("Faltas GeoVictoria", default=0)
-    atestados_geovictoria = models.IntegerField("Atestados GeoVictoria", default=0)
-    geovictoria_atualizado_em = models.DateField("GeoVictoria atualizado em", null=True, blank=True)
     termino_1 = models.DateField("Término 1", null=True, blank=True, db_index=True)
     termino_2 = models.DateField("Término 2", null=True, blank=True, db_index=True)
 
@@ -319,6 +316,42 @@ class PresencaRelogio(models.Model):
         verbose_name = "Presença do Relógio"
         verbose_name_plural = "Presenças do Relógio"
         ordering = ["-data_hora"]
+
+
+class Ausencia(models.Model):
+    """
+    Por que existe: Armazena o registro individual de faltas, atestados e suspensões dos colaboradores,
+    desmembrando períodos de afastamento em datas específicas para facilitar a análise e relatórios.
+    """
+    TIPO_CHOICES = [
+        ("falta", "Falta"),
+        ("atestado", "Atestado"),
+        ("suspensao", "Suspensão"),
+    ]
+
+    colaborador = models.ForeignKey(
+        Colaborador,
+        on_delete=models.CASCADE,
+        related_name="ausencias_registradas",
+        verbose_name="Colaborador",
+    )
+    tipo = models.CharField("Tipo", max_length=20, choices=TIPO_CHOICES, db_index=True)
+    descricao = models.CharField("Descrição Original", max_length=255)
+    data = models.DateField("Data da Ausência", db_index=True)
+    observacao = models.TextField("Observação", blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Ausência"
+        verbose_name_plural = "Ausências"
+        unique_together = ("colaborador", "data")
+        ordering = ["-data"]
+
+    def __str__(self):
+        return f"{self.colaborador.nome} - {self.get_tipo_display()} em {self.data}"
+
 
 
 

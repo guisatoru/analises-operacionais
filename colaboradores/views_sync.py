@@ -1,6 +1,6 @@
 import csv
 import threading
-from datetime import date
+from datetime import date, timedelta
 
 from django.http import HttpResponse
 from rest_framework import status
@@ -15,10 +15,9 @@ from .services.geovictoria_lojas_sync import (
     set_progresso_sync_lojas,
     sincronizar_lojas_geo_colaboradores,
 )
-from .services.geovictoria_sync import (
+from .services.geovictoria_ausencias_sync import (
     get_progresso_sync,
     set_progresso_sync,
-    sincronizar_colaboradores,
 )
 from .views_listas import (
     _aplicar_filtros_colaboradores,
@@ -152,68 +151,16 @@ def exportar_pendencias_lojas_geovictoria(request, tipo):
 @permission_classes([IsAuthenticated, IsGestaoOrAdministrador])
 def sync_geovictoria(request):
     """
-    Sincroniza as faltas e atestados da GeoVictoria dos colaboradores da listagem de termos em background.
+    Sincroniza as faltas e atestados da GeoVictoria dos colaboradores em background (últimos 6 meses).
     """
-    # Como os filtros na listagem de termos são passados via parâmetros GET na URL,
-    # continuamos lendo do request.GET para esta chamada de sincronização.
-    search_query = request.GET.get("search", "").strip().lower()
-    data_filtro = request.GET.get("data_filtro", "")
-    data_fim = request.GET.get("data_fim", "")
-    coordenador_query = request.GET.get("coordenador", "")
-    status_gestao_query = request.GET.get("status_gestao", "")
-    re_query = request.GET.get("re", "")
-    nome_query = request.GET.get("nome", "")
-
-    colaboradores_qs = _buscar_colaboradores_com_termino()
-    # Esta filtragem garante que o processo de sincronização considere apenas os colaboradores filtrados por RE e nome.
-    colaboradores_qs = _filtrar_terminos_queryset(
-        colaboradores_qs,
-        search_query,
-        coordenador_query,
-        status_gestao_query,
-        re_query=re_query,
-        nome_query=nome_query,
-    )
-    processed_colaboradores = _processar_colaboradores_termino(
-        colaboradores_qs,
-        date.today(),
-        data_filtro,
-        data_fim,
-    )
-
-    cpfs_para_sincronizar = []
-    for item in processed_colaboradores:
-        colaborador = item["colaborador"]
-        history = item["history"]
-
-        # Por que existe: Evita sincronizar dados de faltas/atestados para colaboradores que já possuem
-        # decisões definitivas tomadas (como "termino" em qualquer um dos termos, ou "manter" no segundo termo),
-        # garantindo que os dados históricos fiquem congelados no momento da decisão.
-        pular_sync = False
-        for controle in history:
-            if (controle.etapa == 2 and controle.acao == "manter") or (controle.acao == "termino"):
-                pular_sync = True
-                break
-
-        if pular_sync:
-            continue
-
-        if colaborador.cpf:
-            cpfs_para_sincronizar.append({
-                "cpf": str(colaborador.cpf).strip(),
-                "admissao": colaborador.data_admissao,
-                "id": colaborador.id,
-            })
-
     set_progresso_sync(
         0,
-        f"Iniciando sincronização de {len(cpfs_para_sincronizar)} colaboradores...",
+        "Iniciando sincronização de ausências...",
         "processing",
     )
 
     thread = threading.Thread(
         target=_sync_geovictoria_background,
-        args=(cpfs_para_sincronizar,),
         daemon=True,
     )
     thread.start()
@@ -227,15 +174,14 @@ def sync_geovictoria(request):
             user_id=request.user.id,
             content_type_id=ContentType.objects.get_for_model(Colaborador).pk,
             object_id=0,
-            object_repr="Sincronização de Faltas/Atestados GeoVictoria",
+            object_repr="Sincronização de Ausências GeoVictoria",
             action_flag=CHANGE,
-            change_message=f"Iniciou a sincronização de faltas e atestados da GeoVictoria para {len(cpfs_para_sincronizar)} colaboradores."
+            change_message="Iniciou a sincronização de ausências (faltas, atestados e suspensões) da GeoVictoria para colaboradores ativos."
         )
 
     return Response({
         "status": "started",
-        "message": f"Sincronizando {len(cpfs_para_sincronizar)} colaboradores...",
-        "total": len(cpfs_para_sincronizar),
+        "message": "Sincronização de ausências iniciada em segundo plano.",
     })
 
 @api_view(["GET"])
@@ -273,22 +219,29 @@ def _sync_lojas_geovictoria_background(colaboradores):
     except Exception as exc:
         set_progresso_sync_lojas(0, f"Erro: {str(exc)}", "error")
 
-def _sync_geovictoria_background(cpfs_para_sincronizar):
+def _sync_geovictoria_background():
     """
-    Executa a sincronização de faltas e atestados em segundo plano para manter a tela responsiva.
+    Executa a sincronização de ausências em segundo plano para manter a tela responsiva.
     """
+    from colaboradores.services.geovictoria_ausencias_sync import sincronizar_ausencias_api
+    
     def atualizar_progresso(progresso, mensagem):
         set_progresso_sync(progresso, mensagem, "processing")
 
     try:
-        resultado = sincronizar_colaboradores(
-            cpfs_com_admissao=cpfs_para_sincronizar,
+        today = date.today()
+        # Sincroniza desde 6 meses atrás até hoje
+        inicio = today - timedelta(days=180)
+        
+        resultado = sincronizar_ausencias_api(
+            start_date=inicio,
+            end_date=today,
             progress_callback=atualizar_progresso,
         )
 
         set_progresso_sync(
             100,
-            f"Sincronização concluída! {resultado['sucesso']} sucessos, {resultado['erros']} erros.",
+            f"Sincronização concluída! {resultado['novas']} novas ausências salvas.",
             "completed",
         )
     except Exception as exc:

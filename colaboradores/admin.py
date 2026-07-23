@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.admin.models import LogEntry
-from .models import Colaborador, ControleTermino, TestePromocao, HistoricoAcaoTeste
+from .models import Colaborador, ControleTermino, TestePromocao, HistoricoAcaoTeste, Ausencia
 
 @admin.register(Colaborador)
 class ColaboradorAdmin(admin.ModelAdmin):
@@ -13,9 +13,6 @@ class ColaboradorAdmin(admin.ModelAdmin):
         "cargo",
         "status",
         "data_admissao",
-        "faltas_geovictoria",
-        "atestados_geovictoria",
-        "geovictoria_atualizado_em",
     )
     
     # Campos que permitem clicar para editar
@@ -41,9 +38,7 @@ class ColaboradorAdmin(admin.ModelAdmin):
         ("Datas de Controle", {
             "fields": ("data_admissao", "data_demissao", "termino_1", "termino_2")
         }),
-        ("GeoVictoria", {
-            "fields": ("faltas_geovictoria", "atestados_geovictoria", "geovictoria_atualizado_em")
-        }),
+
         ("Datas de Sistema", {
             "fields": ("created_at", "updated_at"),
             "classes": ("collapse",)  # Esconde por padrão
@@ -137,5 +132,17 @@ class HistoricoAcaoTesteAdmin(admin.ModelAdmin):
         "realizado_por",
     )
     ordering = ("-data_acao",)
+
+
+@admin.register(Ausencia)
+class AusenciaAdmin(admin.ModelAdmin):
+    """
+    Por que existe: Exibe o detalhamento de ausências (faltas, atestados e suspensões)
+    dos colaboradores no painel Django Admin para auditorias rápidas.
+    """
+    list_display = ("colaborador", "tipo", "data", "descricao", "created_at")
+    list_filter = ("tipo", "data")
+    search_fields = ("colaborador__nome", "colaborador__re", "descricao", "observacao")
+    ordering = ("-data",)
 
 

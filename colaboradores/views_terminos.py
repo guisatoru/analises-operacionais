@@ -152,13 +152,11 @@ def terminos_list(request):
     paginator.page_size = 10
     page = paginator.paginate_queryset(processed_colaboradores, request)
     if page is not None:
-        _preencher_resumo_geovictoria(page)
         serializer = TerminoColaboradorSerializer(page, many=True)
         response = paginator.get_paginated_response(serializer.data)
         response.data["sincronizado_em"] = cache_info["sincronizado_em"] if cache_info else None
         return response
 
-    _preencher_resumo_geovictoria(processed_colaboradores)
     serializer = TerminoColaboradorSerializer(processed_colaboradores, many=True)
     return Response({
         "results": serializer.data,
@@ -229,8 +227,8 @@ def exportar_terminos_excel(request):
             "Fase Atual": state["tipoTermino"],
             "Status": state["statusControle"],
             "Status Gestão": colaborador.status_gestao or "-",
-            "Faltas": colaborador.faltas_geovictoria if colaborador.cpf else 0,
-            "Atestados": colaborador.atestados_geovictoria if colaborador.cpf else 0,
+            "Faltas": item.get("faltas", 0),
+            "Atestados": item.get("atestados", 0),
             "Última Obs": ultima_obs,
         })
 
@@ -292,7 +290,7 @@ def colaborador_geovictoria_details(request, colaborador_id):
 
     Por que existe: Esta view fornece ao modal de decisão de término no frontend um 
     detalhamento cronológico e individual das ausências do colaborador (data, tipo, dias e 
-    observação) sob demanda.
+    observação) sob demanda do banco de dados local.
     """
     colaborador = get_object_or_404(Colaborador, id=colaborador_id)
 
@@ -303,13 +301,29 @@ def colaborador_geovictoria_details(request, colaborador_id):
         )
 
     try:
-        today = date.today()
-        details = geovictoria.get_timeoff_details(
-            colaborador.cpf,
-            colaborador.data_admissao,
-            today,
-            admissao=colaborador.data_admissao,
-        )
+        from .models import Ausencia
+
+        # Busca o histórico de decisões do colaborador para congelar no término ou manutenção definitiva
+        history = list(colaborador.controles_termino.all())
+        data_limite = None
+        for controle in history:
+            if (controle.acao == "termino") or (controle.etapa == 2 and controle.acao == "manter"):
+                dt_decisao = controle.created_at.date()
+                if data_limite is None or dt_decisao < data_limite:
+                    data_limite = dt_decisao
+
+        ausencias_qs = Ausencia.objects.filter(colaborador=colaborador)
+        if data_limite:
+            ausencias_qs = ausencias_qs.filter(data__lte=data_limite)
+
+        details = []
+        for aus in ausencias_qs.order_by("data"):
+            details.append({
+                "tipo": aus.tipo.upper(),
+                "descricao": aus.descricao,
+                "data": aus.data.strftime("%Y-%m-%d"),
+                "observacao": aus.observacao or ""
+            })
         return Response(details)
     except Exception as exc:
         return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -319,11 +333,26 @@ def _buscar_colaboradores_com_termino():
     """
     Mantém a consulta base de término em um único lugar para tela, exportação e sincronização.
     """
+    from datetime import timedelta
+    cutoff_date = date.today() - timedelta(days=10)
+
     return Colaborador.objects.exclude(status="D").exclude(
         cargo="AUXILIAR ADMINISTRAT"
     ).filter(
         Q(termino_1__isnull=False) | Q(termino_2__isnull=False)
-    ).select_related("loja").prefetch_related("controles_termino")
+    ).filter(
+        Q(termino_1__gte=cutoff_date) | Q(termino_2__gte=cutoff_date) | Q(controles_termino__isnull=False)
+    ).distinct().select_related(
+        "loja",
+        "loja__coordenador",
+        "loja__supervisor",
+        "loja_gestao",
+        "loja_gestao__coordenador",
+        "loja_gestao__supervisor",
+        "loja_geo",
+    ).prefetch_related(
+        "controles_termino",
+    )
 
 
 def _filtrar_terminos_queryset(
@@ -406,7 +435,7 @@ def _filtrar_terminos_queryset(
 
 
 def _processar_colaboradores_termino(
-    colaboradores_qs, today, data_filtro, data_fim, etapa_filtro=None, acao_filtro=None
+    colaboradores_qs, today, data_filtro, data_fim, etapa_filtro=None, acao_filtro=None, calcular_ausencias=True
 ):
     """
     Calcula a fase de término e remove registros que não devem aparecer na tela.
@@ -415,6 +444,17 @@ def _processar_colaboradores_termino(
     e permite filtrar os colaboradores pertencentes à primeira ou segunda etapa do período
     de experiência ou pela decisão/ação tomada antes da paginação e exportação.
     """
+    from collections import defaultdict
+    from .models import Ausencia
+
+    colab_ids = [c.id for c in colaboradores_qs]
+    ausencias_por_colab = defaultdict(list)
+    
+    if calcular_ausencias:
+        todas_ausencias = Ausencia.objects.filter(colaborador_id__in=colab_ids)
+        for aus in todas_ausencias:
+            ausencias_por_colab[aus.colaborador_id].append(aus)
+
     processed_colaboradores = []
 
     for colaborador in colaboradores_qs:
@@ -467,11 +507,44 @@ def _processar_colaboradores_termino(
         if _data_fora_do_periodo(relevant_date, data_filtro, data_fim):
             continue
 
+        # Calcula o congelamento de faltas/atestados se houver decisão definitiva
+        data_limite = None
+        for controle in history:
+            if (controle.acao == "termino") or (controle.etapa == 2 and controle.acao == "manter"):
+                dt_decisao = controle.created_at.date()
+                if data_limite is None or dt_decisao < data_limite:
+                    data_limite = dt_decisao
+
+        faltas_count = 0
+        atestados_count = 0
+
+        if calcular_ausencias:
+            colab_ausencias = ausencias_por_colab.get(colaborador.id, [])
+            for aus in colab_ausencias:
+                if data_limite and aus.data > data_limite:
+                    continue
+                if aus.tipo == "falta":
+                    faltas_count += 1
+                elif aus.tipo == "atestado":
+                    atestados_count += 1
+
+            if colaborador.cpf:
+                faltas_val = str(faltas_count)
+                atestados_val = str(atestados_count)
+            else:
+                faltas_val = "-"
+                atestados_val = "-"
+        else:
+            faltas_val = "0"
+            atestados_val = "0"
+
         processed_colaboradores.append({
             "colaborador": colaborador,
             "state": state,
             "relevant_date": relevant_date,
             "history": history,
+            "faltas": faltas_val,
+            "atestados": atestados_val,
         })
 
     return processed_colaboradores
@@ -504,19 +577,17 @@ def _montar_cache_info_geovictoria(colaboradores_qs):
     """
     Mostra ao usuário quando os dados de faltas e atestados vieram do cache sincronizado.
     """
-    geovictoria_atualizado_em = colaboradores_qs.aggregate(
-        ultima_atualizacao=models.Max("geovictoria_atualizado_em")
-    )["ultima_atualizacao"]
-    total_sincronizados = colaboradores_qs.filter(
-        geovictoria_atualizado_em__isnull=False
-    ).count()
+    from .models import Ausencia
+    max_updated = Ausencia.objects.aggregate(
+        max_updated=models.Max("updated_at")
+    )["max_updated"]
 
-    if not geovictoria_atualizado_em:
+    if not max_updated:
         return None
 
     return {
-        "sincronizado_em": geovictoria_atualizado_em.strftime("%d/%m/%Y"),
-        "total_sucesso": total_sincronizados,
+        "sincronizado_em": max_updated.strftime("%d/%m/%Y"),
+        "total_sucesso": colaboradores_qs.count(),
         "total_erros": 0,
     }
 
@@ -529,38 +600,22 @@ def _ordenar_colaboradores_termino(processed_colaboradores, ordenar_por):
         # Por que existe: Ordena os colaboradores pelo total acumulado de ausências (faltas + atestados) de forma decrescente.
         processed_colaboradores.sort(
             key=lambda item: (
-                (item["colaborador"].faltas_geovictoria or 0) +
-                (item["colaborador"].atestados_geovictoria or 0)
+                int(item.get("faltas", 0) if item.get("faltas") != "-" else 0) +
+                int(item.get("atestados", 0) if item.get("atestados") != "-" else 0)
             ),
             reverse=True,
         )
     elif ordenar_por == "faltas":
         processed_colaboradores.sort(
-            key=lambda item: item["colaborador"].faltas_geovictoria,
+            key=lambda item: int(item.get("faltas", 0) if item.get("faltas") != "-" else 0),
             reverse=True,
         )
     elif ordenar_por == "atestados":
         processed_colaboradores.sort(
-            key=lambda item: item["colaborador"].atestados_geovictoria,
+            key=lambda item: int(item.get("atestados", 0) if item.get("atestados") != "-" else 0),
             reverse=True,
         )
     else:
         processed_colaboradores.sort(
             key=lambda item: (item["relevant_date"] is None, item["relevant_date"])
         )
-
-
-def _preencher_resumo_geovictoria(page_obj):
-    """
-    Prepara os valores exibidos na página atual sem consultar novamente a API externa.
-    """
-    for item in page_obj:
-        colaborador = item["colaborador"]
-        cpf = str(colaborador.cpf).strip() if colaborador.cpf else None
-
-        if cpf:
-            item["faltas"] = colaborador.faltas_geovictoria
-            item["atestados"] = colaborador.atestados_geovictoria
-        else:
-            item["faltas"] = "-"
-            item["atestados"] = "-"

@@ -496,7 +496,7 @@ def colaborador_filtro_opcoes(request):
             re_query=re_val,
             nome_query=nome_val,
         )
-        proc_coord = _processar_colaboradores_termino(qs_coord, today, data_filtro, data_fim)
+        proc_coord = _processar_colaboradores_termino(qs_coord, today, data_filtro, data_fim, calcular_ausencias=False)
         coords_set = set()
         has_null_coord = False
         for item in proc_coord:
@@ -519,7 +519,7 @@ def colaborador_filtro_opcoes(request):
             re_query=re_val,
             nome_query=nome_val,
         )
-        proc_sg = _processar_colaboradores_termino(qs_sg, today, data_filtro, data_fim)
+        proc_sg = _processar_colaboradores_termino(qs_sg, today, data_filtro, data_fim, calcular_ausencias=False)
         sg_set = set()
         has_null_sg = False
         for item in proc_sg:
