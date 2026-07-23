@@ -23,7 +23,7 @@ import SearchableSelect from '../components/ui/searchable-select';
 
 export interface HistoricoAcao {
   id: string;
-  acao: 'ativar' | 'pagar_premio' | 'promover' | 'cancelar' | 'registrar_resposta';
+  acao: 'ativar' | 'pagar_premio' | 'promover' | 'cancelar' | 'registrar_resposta' | 'pagar_premio_cancelar';
   acao_display: string;
   mes_referencia: number;
   observacao: string;
@@ -31,7 +31,7 @@ export interface HistoricoAcao {
   realizado_por: string;
   data_acao: string;
   created_at: string;
-  resposta_supervisor?: 'pagar_premio' | 'promover' | 'cancelar';
+  resposta_supervisor?: 'pagar_premio' | 'promover' | 'cancelar' | 'pagar_premio_cancelar';
 }
 
 export interface TestePromocaoItem {
@@ -87,6 +87,10 @@ export default function TestesPromocao() {
   const [acaoPendenteFiltro, setAcaoPendenteFiltro] = useState('');
   const [acaoPendenteFiltroAplicado, setAcaoPendenteFiltroAplicado] = useState('');
 
+  // Por que existe: Permite filtrar os testes pela folha do ciclo ativo em que se encontram.
+  const [folhaFiltro, setFolhaFiltro] = useState('');
+  const [folhaFiltroAplicado, setFolhaFiltroAplicado] = useState('');
+
   const [fetchTrigger, setFetchTrigger] = useState(0);
 
   // Modais
@@ -110,7 +114,8 @@ export default function TestesPromocao() {
     cobrancaFiltroAplicado,
     supervisorFiltroAplicado,
     etapaFiltroAplicado,
-    acaoPendenteFiltroAplicado
+    acaoPendenteFiltroAplicado,
+    folhaFiltroAplicado
   ]);
 
   const fetchTestes = async () => {
@@ -138,6 +143,7 @@ export default function TestesPromocao() {
     setSupervisorFiltroAplicado(supervisorFiltro);
     setEtapaFiltroAplicado(etapaFiltro);
     setAcaoPendenteFiltroAplicado(acaoPendenteFiltro);
+    setFolhaFiltroAplicado(folhaFiltro);
     setCurrentPage(1);
   };
 
@@ -154,6 +160,8 @@ export default function TestesPromocao() {
     setEtapaFiltroAplicado('');
     setAcaoPendenteFiltro('');
     setAcaoPendenteFiltroAplicado('');
+    setFolhaFiltro('');
+    setFolhaFiltroAplicado('');
     setCurrentPage(1);
   };
 
@@ -213,6 +221,20 @@ export default function TestesPromocao() {
     }
   };
 
+  // Por que existe: Obtém a folha de pagamento atual em que o teste se encontra para fins de filtragem.
+  const obterFolhaAtualTeste = (teste: TestePromocaoItem): string | null => {
+    if (teste.status === 'promovido' || teste.status === 'cancelado') {
+      return null;
+    }
+    const premios = teste.historico_acoes.filter(
+      a => a.acao === 'pagar_premio' || a.acao === 'pagar_premio_cancelar'
+    ).length;
+    const mesAtualNum = teste.status === 'pendente' ? 1 : premios + 1;
+    const folhas = obterInfoFolhas(teste.data_inicio);
+    const folhaAtual = folhas.find(f => f.mesRef === mesAtualNum);
+    return folhaAtual ? folhaAtual.nomeFolha : null;
+  };
+
   const getMesAtual = (teste: TestePromocaoItem) => {
     if (teste.status === 'promovido' || teste.status === 'cancelado') {
       return 'Finalizado';
@@ -220,7 +242,7 @@ export default function TestesPromocao() {
     if (teste.status === 'pendente') {
       return 'Aguardando Ativação';
     }
-    const premios = teste.historico_acoes.filter(a => a.acao === 'pagar_premio').length;
+    const premios = teste.historico_acoes.filter(a => a.acao === 'pagar_premio' || a.acao === 'pagar_premio_cancelar').length;
     const mesAtualNum = premios + 1;
     
     // Calcula as folhas associadas
@@ -236,11 +258,20 @@ export default function TestesPromocao() {
     if (acaoResposta?.resposta_supervisor) {
       const resp = acaoResposta.resposta_supervisor;
       decisaoTexto = resp === 'pagar_premio' ? ' (Pagar Prêmio)' : 
-                     resp === 'promover' ? ' (Promover)' : ' (Cancelar)';
+                     resp === 'promover' ? ' (Promover)' : 
+                     resp === 'pagar_premio_cancelar' ? ' (Pagar Prêmio e Cancelar)' : ' (Cancelar)';
     }
     
     return `Mês ${mesAtualNum} - ${subEtapa}${decisaoTexto} (Folha ${folhaAtual?.nomeFolha || '-'})`;
   };
+
+  const folhasDisponiveis = Array.from(
+    new Set(
+      testes
+        .map(obterFolhaAtualTeste)
+        .filter((folha): folha is string => Boolean(folha))
+    )
+  ).sort((a, b) => converterFolhaParaNumero(a) - converterFolhaParaNumero(b));
 
   // Por que existe: Obtém a lista completa de todos os supervisores cadastrados nos testes.
   // Mantemos a lista de supervisores independente de outros filtros para evitar que
@@ -253,7 +284,7 @@ export default function TestesPromocao() {
     )
   ).sort((a, b) => a.localeCompare(b));
 
-  // Filtra todos os testes com base no termo de busca (Nome ou RE), status selecionado, cobrança e supervisor.
+  // Filtra todos os testes com base no termo de busca (Nome ou RE), status selecionado, cobrança, supervisor e folha.
   // Por que existe: Centraliza a filtragem global no frontend, garantindo que os filtros
   // atuem sobre o total de registros do banco e não apenas na página exibida.
   const testesFiltrados = testes.filter((teste) => {
@@ -275,7 +306,7 @@ export default function TestesPromocao() {
       if (teste.status !== 'ativo') return false;
 
       const folhas = obterInfoFolhas(teste.data_inicio);
-      const premios = teste.historico_acoes.filter(a => a.acao === 'pagar_premio').length;
+      const premios = teste.historico_acoes.filter(a => a.acao === 'pagar_premio' || a.acao === 'pagar_premio_cancelar').length;
       const mesAtualNum = premios + 1;
       const folhaTeste = folhas.find(f => f.mesRef === mesAtualNum);
 
@@ -303,7 +334,7 @@ export default function TestesPromocao() {
     if (etapaFiltroAplicado) {
       if (teste.status !== 'ativo') return false;
 
-      const premios = teste.historico_acoes.filter(a => a.acao === 'pagar_premio').length;
+      const premios = teste.historico_acoes.filter(a => a.acao === 'pagar_premio' || a.acao === 'pagar_premio_cancelar').length;
       const mesAtualNum = premios + 1;
       const jaRespondeu = teste.historico_acoes.some(a => a.acao === 'registrar_resposta' && a.mes_referencia === mesAtualNum);
 
@@ -319,7 +350,7 @@ export default function TestesPromocao() {
     if (acaoPendenteFiltroAplicado) {
       if (teste.status !== 'ativo') return false;
 
-      const premios = teste.historico_acoes.filter(a => a.acao === 'pagar_premio').length;
+      const premios = teste.historico_acoes.filter(a => a.acao === 'pagar_premio' || a.acao === 'pagar_premio_cancelar').length;
       const mesAtualNum = premios + 1;
       const acaoResposta = teste.historico_acoes.find(
         a => a.acao === 'registrar_resposta' && a.mes_referencia === mesAtualNum
@@ -327,6 +358,14 @@ export default function TestesPromocao() {
 
       // Se não houver resposta registrada ainda, ou a resposta do supervisor for diferente do filtro, remove
       if (!acaoResposta || acaoResposta.resposta_supervisor !== acaoPendenteFiltroAplicado) {
+        return false;
+      }
+    }
+
+    // 7. Filtro por folha
+    if (folhaFiltroAplicado) {
+      const folhaTeste = obterFolhaAtualTeste(teste);
+      if (folhaTeste !== folhaFiltroAplicado) {
         return false;
       }
     }
@@ -448,6 +487,20 @@ export default function TestesPromocao() {
               placeholder="Todos"
             />
           </div>
+
+          {/* Filtro Folha do Teste */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-neutral-450 uppercase tracking-wider block">Folha do Teste</label>
+            <SearchableSelect
+              options={[
+                { value: '', label: 'Todas' },
+                ...folhasDisponiveis.map((folha) => ({ value: folha, label: folha })),
+              ]}
+              value={folhaFiltro}
+              onChange={setFolhaFiltro}
+              placeholder="Todas"
+            />
+          </div>
         </div>
 
         {/* Botões de Filtro */}
@@ -501,7 +554,7 @@ export default function TestesPromocao() {
                     {/* Colaborador */}
                     <td className="py-4 px-6">
                       <div className="font-semibold text-neutral-900 dark:text-white">{teste.colaborador_nome}</div>
-                      <div className="text-xs text-neutral-500">RE {teste.colaborador_re} • {teste.colaborador_cargo}</div>
+                      <div className="text-xs text-neutral-600 dark:text-neutral-300">RE {teste.colaborador_re} • {teste.colaborador_cargo}</div>
                       {teste.cargo_teste && (
                         <div className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold mt-0.5">
                           Em teste para: {teste.cargo_teste}
@@ -512,8 +565,8 @@ export default function TestesPromocao() {
                     {/* Loja / Supervisor / Coordenador */}
                     <td className="py-4 px-6">
                       <div className="font-medium text-neutral-800 dark:text-neutral-200">{teste.loja_nome}</div>
-                      <div className="text-xs text-neutral-500 mt-0.5">Sup: {teste.supervisor_nome}</div>
-                      <div className="text-xs text-neutral-500">Coord: {teste.coordenador_nome || '-'}</div>
+                      <div className="text-xs text-neutral-600 dark:text-neutral-300 mt-0.5">Sup: {teste.supervisor_nome}</div>
+                      <div className="text-xs text-neutral-600 dark:text-neutral-300">Coord: {teste.coordenador_nome || '-'}</div>
                     </td>
 
                     {/* Data de Início */}
@@ -535,7 +588,7 @@ export default function TestesPromocao() {
                         {getStatusBadge(teste.status)}
                         {teste.status === 'ativo' && (() => {
                           const folhas = obterInfoFolhas(teste.data_inicio);
-                          const premios = teste.historico_acoes.filter(a => a.acao === 'pagar_premio').length;
+                          const premios = teste.historico_acoes.filter(a => a.acao === 'pagar_premio' || a.acao === 'pagar_premio_cancelar').length;
                           const mesAtualNum = premios + 1;
                           const folhaTeste = folhas.find(f => f.mesRef === mesAtualNum);
                           if (!folhaTeste) return null;
@@ -559,6 +612,7 @@ export default function TestesPromocao() {
                             const resp = acaoResposta?.resposta_supervisor;
                             const respDisplay = resp === 'pagar_premio' ? 'Pagar Prêmio' :
                                                 resp === 'promover' ? 'Promover' :
+                                                resp === 'pagar_premio_cancelar' ? 'Pagar Prêmio e Cancelar' :
                                                 resp === 'cancelar' ? 'Cancelar' : '';
                             return (
                               <div className="flex flex-col gap-1 items-start">
@@ -571,6 +625,8 @@ export default function TestesPromocao() {
                                       ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/15'
                                       : resp === 'promover'
                                       ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/15'
+                                      : resp === 'pagar_premio_cancelar'
+                                      ? 'bg-rose-500/10 text-rose-600 dark:text-rose-455 border-rose-500/15'
                                       : 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/15'
                                   }`}>
                                     Ação: {respDisplay}

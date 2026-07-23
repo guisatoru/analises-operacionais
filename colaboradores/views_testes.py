@@ -273,14 +273,14 @@ def teste_registrar_acao(request, pk):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    if acao not in ["registrar_resposta", "pagar_premio", "promover", "cancelar"]:
+    if acao not in ["registrar_resposta", "pagar_premio", "promover", "cancelar", "pagar_premio_cancelar"]:
         return Response(
             {"error": "Ação mensal inválida."},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     # Conta prêmios pagos para determinar em qual mês de controle estamos (Mês 1, 2, 3 ou 4)
-    premios_pagos = teste.historico_acoes.filter(acao="pagar_premio").count()
+    premios_pagos = teste.historico_acoes.filter(acao__in=["pagar_premio", "pagar_premio_cancelar"]).count()
     mes_atual = premios_pagos + 1
 
     # Obter nome do supervisor do colaborador para preencher automaticamente
@@ -291,8 +291,8 @@ def teste_registrar_acao(request, pk):
     if acao == "registrar_resposta":
         resposta_supervisor = request.data.get("resposta_supervisor")
         
-        # No primeiro mês a resposta é automaticamente pagar
-        if mes_atual == 1:
+        # No primeiro mês a resposta é automaticamente pagar, a menos que seja explicitamente pagar_premio_cancelar
+        if mes_atual == 1 and resposta_supervisor != "pagar_premio_cancelar":
             resposta_supervisor = "pagar_premio"
 
         if not resposta_supervisor:
@@ -301,7 +301,7 @@ def teste_registrar_acao(request, pk):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if resposta_supervisor not in ["pagar_premio", "promover", "cancelar"]:
+        if resposta_supervisor not in ["pagar_premio", "promover", "cancelar", "pagar_premio_cancelar"]:
             return Response(
                 {"error": "Resposta do supervisor inválida."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -328,10 +328,10 @@ def teste_registrar_acao(request, pk):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Exigência de observação para finalização (Promover ou Cancelar)
-        if resposta_supervisor in ["promover", "cancelar"] and not observacao:
+        # Exigência de observação para finalização (Promover, Cancelar ou Pagar Prêmio e Cancelar)
+        if resposta_supervisor in ["promover", "cancelar", "pagar_premio_cancelar"] and not observacao:
             return Response(
-                {"error": f"Para a resposta de {resposta_supervisor.capitalize()} é obrigatório registrar uma observação."},
+                {"error": f"Para a resposta de {resposta_supervisor.replace('_', ' ').capitalize()} é obrigatório registrar uma observação."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -350,7 +350,7 @@ def teste_registrar_acao(request, pk):
         return Response(TestePromocaoSerializer(teste).data, status=status.HTTP_201_CREATED)
 
     else:
-        # Ação final: pagar_premio, promover ou cancelar
+        # Ação final: pagar_premio, promover, cancelar ou pagar_premio_cancelar
         # Valida se já existe resposta do supervisor para o mês atual
         resposta_reg = teste.historico_acoes.filter(acao="registrar_resposta", mes_referencia=mes_atual).first()
         if not resposta_reg:
@@ -377,11 +377,11 @@ def teste_registrar_acao(request, pk):
             data_acao=date.today(),
         )
 
-        # Atualiza o status final se for Promover ou Cancelar
+        # Atualiza o status final se for Promover ou Cancelar (ou Pagar Prêmio e Cancelar)
         if acao == "promover":
             teste.status = "promovido"
             teste.save()
-        elif acao == "cancelar":
+        elif acao in ["cancelar", "pagar_premio_cancelar"]:
             teste.status = "cancelado"
             teste.save()
 

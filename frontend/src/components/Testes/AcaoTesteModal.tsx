@@ -47,7 +47,7 @@ export default function AcaoTesteModal({ teste, onClose, onSaveSuccess }: AcaoTe
   const [errorAusencias, setErrorAusencias] = useState<string | null>(null);
 
   // Form de Decisão Mensal
-  const [respostaSupervisor, setRespostaSupervisor] = useState<'pagar_premio' | 'promover' | 'cancelar' | ''>('');
+  const [respostaSupervisor, setRespostaSupervisor] = useState<'pagar_premio' | 'promover' | 'cancelar' | 'pagar_premio_cancelar' | ''>('');
   const [observacao, setObservacao] = useState('');
 
   // Ações de execução
@@ -66,6 +66,8 @@ export default function AcaoTesteModal({ teste, onClose, onSaveSuccess }: AcaoTe
       fetchAusencias();
     }
   }, [activeTab, teste.id]);
+
+
 
   /**
    * Busca dados de ausências (faltas/atestados) do colaborador no backend.
@@ -152,7 +154,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
 
   // Determinar o mês atual do teste
   const getMesAtualNum = () => {
-    const premios = teste.historico_acoes.filter(a => a.acao === 'pagar_premio').length;
+    const premios = teste.historico_acoes.filter(a => a.acao === 'pagar_premio' || a.acao === 'pagar_premio_cancelar').length;
     return premios + 1;
   };
 
@@ -163,16 +165,26 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
     a => a.acao === 'registrar_resposta' && a.mes_referencia === mesAtual
   );
 
+  // Por que existe: Pré-seleciona a opção de Pagar Prêmio como padrão no primeiro mês de teste,
+  // permitindo que o supervisor decida alternar para Pagar Prêmio e Cancelar caso necessário.
+  useEffect(() => {
+    if (teste.status === 'ativo' && !respostaSupervisorReg && mesAtual === 1) {
+      setRespostaSupervisor('pagar_premio');
+    }
+  }, [teste.id, mesAtual, respostaSupervisorReg]);
+
   const handleRegistrarRespostaSupervisor = async (e: React.FormEvent) => {
     e.preventDefault();
-    const decisao = mesAtual === 1 ? 'pagar_premio' : respostaSupervisor;
+    const decisao = mesAtual === 1 
+      ? (respostaSupervisor === 'pagar_premio_cancelar' ? 'pagar_premio_cancelar' : 'pagar_premio') 
+      : respostaSupervisor;
 
     if (!decisao) {
       toast.error('Selecione uma resposta do supervisor para salvar.');
       return;
     }
     if (decisao !== 'pagar_premio' && !observacao.trim()) {
-      toast.error('A observação é obrigatória para promover ou cancelar o teste.');
+      toast.error('A observação é obrigatória para promover, cancelar ou pagar prêmio e cancelar o teste.');
       return;
     }
 
@@ -225,7 +237,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
   // Mapeia o status de cada mês baseado no histórico de ações do colaborador
   const obterStatusMes = (mesNum: number) => {
     const acoesMes = teste.historico_acoes.filter(a => a.mes_referencia === mesNum);
-    const acaoFinal = acoesMes.find(a => ['pagar_premio', 'promover', 'cancelar'].includes(a.acao));
+    const acaoFinal = acoesMes.find(a => ['pagar_premio', 'promover', 'cancelar', 'pagar_premio_cancelar'].includes(a.acao));
     const acaoResposta = acoesMes.find(a => a.acao === 'registrar_resposta');
 
     if (acaoFinal) {
@@ -253,11 +265,20 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
           color: 'text-red-600 dark:text-red-400 bg-red-500/10 border-red-500/20'
         };
       }
+      if (acaoFinal.acao === 'pagar_premio_cancelar') {
+        return {
+          status: 'cancelado',
+          label: 'Prêmio Pago & Cancelado',
+          sublabel: `Cancelado com prêmio em ${formatDate(acaoFinal.data_acao)} por ${acaoFinal.realizado_por}`,
+          color: 'text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20'
+        };
+      }
     }
 
     if (acaoResposta) {
       const respDisplay = acaoResposta.resposta_supervisor === 'pagar_premio' ? 'Pagar Prêmio' : 
-                          acaoResposta.resposta_supervisor === 'promover' ? 'Promover' : 'Cancelar';
+                          acaoResposta.resposta_supervisor === 'promover' ? 'Promover' : 
+                          acaoResposta.resposta_supervisor === 'pagar_premio_cancelar' ? 'Pagar Prêmio e Cancelar' : 'Cancelar';
       return {
         status: 'aguardando_acao',
         label: 'Aguardando Ação',
@@ -319,7 +340,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
             <h3 className="font-bold text-lg text-neutral-900 dark:text-neutral-100">
               Controle do Teste de Promoção
             </h3>
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-neutral-600 dark:text-neutral-300 font-medium">
               {teste.colaborador_nome} (RE {teste.colaborador_re})
             </p>
           </div>
@@ -501,62 +522,79 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
                     </span>
                   </div>
 
-                  {mesAtual === 1 ? (
+                  {mesAtual === 1 && (
                     <div className="p-4 bg-amber-500/5 border border-amber-500/20 text-amber-700 dark:text-amber-400 rounded-xl text-xs space-y-2">
                       <div className="flex gap-2.5 items-center">
                         <AlertTriangle className="h-4.5 w-4.5 text-amber-500 shrink-0" />
-                        <span className="font-bold">Aviso do Mês 1 (Resposta Automática):</span>
+                        <span className="font-bold">Regras do Mês 1:</span>
                       </div>
                       <p className="leading-relaxed">
-                        No primeiro mês de teste, a resposta do supervisor é automaticamente <strong>Pagar Prêmio (Prorrogar)</strong>. Não é permitido promover o colaborador no primeiro mês de teste.
+                        No primeiro mês de teste, a resposta do supervisor é por padrão pagar o prêmio para prorrogar. Não é permitido promover o colaborador. Caso precise cancelar o teste neste mês, utilize a opção <strong>Pagar Prêmio e Cancelar</strong>.
                       </p>
                     </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-neutral-450 uppercase tracking-wider block">Decisão do Supervisor *</label>
-                      <div className="grid grid-cols-3 gap-3">
-                        {/* Botão Pagar Prêmio */}
-                        <button
-                          type="button"
-                          disabled={mesAtual === 4}
-                          onClick={() => setRespostaSupervisor('pagar_premio')}
-                          className={`py-3 px-4 text-xs font-bold rounded-xl border text-center transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
-                            respostaSupervisor === 'pagar_premio'
-                              ? 'border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-950'
-                              : 'border-neutral-200 dark:border-neutral-850 hover:bg-neutral-50 dark:hover:bg-neutral-850 text-neutral-700 dark:text-neutral-300'
-                          }`}
-                        >
-                          Pagar Prêmio (Prorrogar)
-                        </button>
-
-                        {/* Botão Promover */}
-                        <button
-                          type="button"
-                          onClick={() => setRespostaSupervisor('promover')}
-                          className={`py-3 px-4 text-xs font-bold rounded-xl border text-center transition-all cursor-pointer ${
-                            respostaSupervisor === 'promover'
-                              ? 'border-green-600 bg-green-600 text-white dark:border-green-500 dark:bg-green-600'
-                              : 'border-neutral-200 dark:border-neutral-850 hover:bg-neutral-50 dark:hover:bg-neutral-850 text-neutral-700 dark:text-neutral-300'
-                          }`}
-                        >
-                          Promover
-                        </button>
-
-                        {/* Botão Cancelar */}
-                        <button
-                          type="button"
-                          onClick={() => setRespostaSupervisor('cancelar')}
-                          className={`py-3 px-4 text-xs font-bold rounded-xl border text-center transition-all cursor-pointer ${
-                            respostaSupervisor === 'cancelar'
-                              ? 'border-red-600 bg-red-600 text-white dark:border-red-500 dark:bg-red-600'
-                              : 'border-neutral-200 dark:border-neutral-850 hover:bg-neutral-50 dark:hover:bg-neutral-850 text-neutral-700 dark:text-neutral-300'
-                          }`}
-                        >
-                          Cancelar Teste
-                        </button>
-                      </div>
-                    </div>
                   )}
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-neutral-450 uppercase tracking-wider block">Decisão do Supervisor *</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {/* Botão Pagar Prêmio */}
+                      <button
+                        type="button"
+                        disabled={mesAtual === 4}
+                        onClick={() => setRespostaSupervisor('pagar_premio')}
+                        className={`py-3 px-4 text-xs font-bold rounded-xl border text-center transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
+                          respostaSupervisor === 'pagar_premio'
+                            ? 'border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-950'
+                            : 'border-neutral-200 dark:border-neutral-850 hover:bg-neutral-50 dark:hover:bg-neutral-850 text-neutral-700 dark:text-neutral-300'
+                        }`}
+                      >
+                        Pagar Prêmio (Prorrogar)
+                      </button>
+
+                      {/* Botão Promover */}
+                      <button
+                        type="button"
+                        disabled={mesAtual === 1}
+                        onClick={() => setRespostaSupervisor('promover')}
+                        className={`py-3 px-4 text-xs font-bold rounded-xl border text-center transition-all cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed ${
+                          respostaSupervisor === 'promover'
+                            ? 'border-green-600 bg-green-600 text-white dark:border-green-500 dark:bg-green-600'
+                            : 'border-neutral-200 dark:border-neutral-850 hover:bg-neutral-50 dark:hover:bg-neutral-850 text-neutral-700 dark:text-neutral-300'
+                        }`}
+                        title={mesAtual === 1 ? "Não é permitido promover no primeiro mês de teste." : ""}
+                      >
+                        Promover
+                      </button>
+
+                      {/* Botão Pagar Prêmio e Cancelar */}
+                      <button
+                        type="button"
+                        onClick={() => setRespostaSupervisor('pagar_premio_cancelar')}
+                        className={`py-3 px-4 text-xs font-bold rounded-xl border text-center transition-all cursor-pointer ${
+                          respostaSupervisor === 'pagar_premio_cancelar'
+                            ? 'border-rose-600 bg-rose-600 text-white dark:border-rose-500 dark:bg-rose-600'
+                            : 'border-neutral-200 dark:border-neutral-850 hover:bg-neutral-50 dark:hover:bg-neutral-850 text-neutral-700 dark:text-neutral-300'
+                        }`}
+                      >
+                        Pagar Prêmio e Cancelar
+                      </button>
+
+                      {/* Botão Cancelar */}
+                      <button
+                        type="button"
+                        disabled={mesAtual === 1}
+                        onClick={() => setRespostaSupervisor('cancelar')}
+                        className={`py-3 px-4 text-xs font-bold rounded-xl border text-center transition-all cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed ${
+                          respostaSupervisor === 'cancelar'
+                            ? 'border-red-600 bg-red-600 text-white dark:border-red-500 dark:bg-red-600'
+                            : 'border-neutral-200 dark:border-neutral-850 hover:bg-neutral-50 dark:hover:bg-neutral-850 text-neutral-700 dark:text-neutral-300'
+                        }`}
+                        title={mesAtual === 1 ? "Para cancelar no primeiro mês, selecione Pagar Prêmio e Cancelar." : ""}
+                      >
+                        Cancelar Teste
+                      </button>
+                    </div>
+                  </div>
 
                   {/* Restrição Informativa do Mês 4 */}
                   {mesAtual === 4 && (
@@ -571,17 +609,17 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
 
                   {(mesAtual === 1 || respostaSupervisor) && (
                     <div className="space-y-4 p-5 bg-neutral-50 dark:bg-neutral-950/20 border border-neutral-200 dark:border-neutral-850 rounded-xl animate-fade-in">
-                      {/* Observação (obrigatória para promover/cancelar, recomendada para prorrogar) */}
+                      {/* Observação (obrigatória para promover/cancelar/pagar_premio_cancelar, recomendada para prorrogar) */}
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-bold text-neutral-450 uppercase tracking-wider block">
-                          Observações do Supervisor {(mesAtual !== 1 && respostaSupervisor !== 'pagar_premio') ? '*' : '(Opcional)'}
+                          Observações do Supervisor {respostaSupervisor !== 'pagar_premio' ? '*' : '(Opcional)'}
                         </label>
                         <textarea
-                          placeholder={(mesAtual !== 1 && respostaSupervisor !== 'pagar_premio')
-                            ? "Descreva os motivos da promoção ou cancelamento informados pelo supervisor..."
+                          placeholder={respostaSupervisor !== 'pagar_premio'
+                            ? "Descreva os motivos da promoção, cancelamento ou pagamento e cancelamento informados pelo supervisor..."
                             : "Informações adicionais da resposta do supervisor..."
                           }
-                          required={mesAtual !== 1 && respostaSupervisor !== 'pagar_premio'}
+                          required={respostaSupervisor !== 'pagar_premio'}
                           rows={3}
                           value={observacao}
                           onChange={(e) => setObservacao(e.target.value)}
@@ -612,7 +650,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
                       Por que existe: Esta função autoexecutável determina dinamicamente o estilo
                       e as mensagens de instrução baseadas na resposta registrada pelo supervisor
                       para a Etapa 2 de tomada de decisão, facilitando a identificação visual 
-                      das ações de Pagar Prêmio (Azul), Promover (Verde) ou Cancelar (Vermelho).
+                      das ações de Pagar Prêmio (Azul), Promover (Verde), Cancelar (Vermelho) ou Pagar e Cancelar (Rose).
                     */
                     const decisao = respostaSupervisorReg.resposta_supervisor;
                     let bgClass = 'bg-blue-500/10 border-blue-500/20 text-blue-800 dark:text-blue-355';
@@ -635,6 +673,13 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
                       labelDecisao = 'Cancelar Teste';
                       instrucaoAcao = 'Confirmar o Cancelamento do Teste';
                       descricaoAcao = 'O supervisor decidiu cancelar o teste. Confirme o cancelamento para finalizar o teste. O colaborador retornará ao seu cargo original.';
+                      Icone = XCircle;
+                    } else if (decisao === 'pagar_premio_cancelar') {
+                      bgClass = 'bg-rose-500/10 border-rose-500/20 text-rose-800 dark:text-rose-350';
+                      borderHeaderClass = 'border-rose-500/20';
+                      labelDecisao = 'Pagar Prêmio e Cancelar';
+                      instrucaoAcao = 'Confirmar o Pagamento de Prêmio e o Cancelamento do Teste';
+                      descricaoAcao = 'O supervisor decidiu pagar o prêmio correspondente ao mês e cancelar o teste. Confirme a ação para registrar o prêmio devido e finalizar o teste como cancelado.';
                       Icone = XCircle;
                     }
 
@@ -698,7 +743,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
                             ? 'bg-neutral-900 dark:bg-white dark:text-neutral-950 hover:bg-neutral-850 dark:hover:bg-neutral-100'
                             : respostaSupervisorReg.resposta_supervisor === 'promover'
                             ? 'bg-green-600 hover:bg-green-500'
-                            : 'bg-red-600 hover:bg-red-500'
+                            : 'bg-rose-600 hover:bg-rose-500'
                         }`}
                       >
                         {executing && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
@@ -706,6 +751,8 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
                           ? 'Confirmar Pagamento e Prorrogar'
                           : respostaSupervisorReg.resposta_supervisor === 'promover'
                           ? 'Confirmar Promoção'
+                          : respostaSupervisorReg.resposta_supervisor === 'pagar_premio_cancelar'
+                          ? 'Confirmar Pagamento e Cancelar Teste'
                           : 'Confirmar Cancelamento do Teste'}
                       </button>
                     </div>
@@ -835,6 +882,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
                       item.acao === 'ativar' ? 'border-blue-500 text-blue-500' :
                       item.acao === 'pagar_premio' ? 'border-amber-500 text-amber-500' :
                       item.acao === 'promover' ? 'border-green-600 text-green-600' :
+                      item.acao === 'pagar_premio_cancelar' ? 'border-rose-500 text-rose-500' :
                       'border-red-600 text-red-600 dark:border-red-400 dark:text-red-400'
                     }`}>
                       <span className="h-1.5 w-1.5 rounded-full bg-current" />
