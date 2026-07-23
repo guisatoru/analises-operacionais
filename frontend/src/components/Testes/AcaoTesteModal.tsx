@@ -11,7 +11,8 @@ import {
   Info,
   Play,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Edit
 } from 'lucide-react';
 import api from '../../api/client';
 import { toast } from 'sonner';
@@ -49,6 +50,7 @@ export default function AcaoTesteModal({ teste, onClose, onSaveSuccess }: AcaoTe
   // Form de Decisão Mensal
   const [respostaSupervisor, setRespostaSupervisor] = useState<'pagar_premio' | 'promover' | 'cancelar' | 'pagar_premio_cancelar' | ''>('');
   const [observacao, setObservacao] = useState('');
+  const [editandoResposta, setEditandoResposta] = useState(false);
 
   // Ações de execução
   const [executing, setExecuting] = useState(false);
@@ -173,6 +175,26 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
     }
   }, [teste.id, mesAtual, respostaSupervisorReg]);
 
+  // Por que existe: Garante que o estado de edição da resposta seja reiniciado
+  // quando o usuário alternar entre diferentes testes no modal.
+  useEffect(() => {
+    setEditandoResposta(false);
+  }, [teste.id]);
+
+  const iniciarEdicao = () => {
+    if (respostaSupervisorReg) {
+      setRespostaSupervisor(respostaSupervisorReg.resposta_supervisor as any);
+      setObservacao(respostaSupervisorReg.observacao || '');
+      setEditandoResposta(true);
+    }
+  };
+
+  const cancelarEdicao = () => {
+    setRespostaSupervisor('');
+    setObservacao('');
+    setEditandoResposta(false);
+  };
+
   const handleRegistrarRespostaSupervisor = async (e: React.FormEvent) => {
     e.preventDefault();
     const decisao = mesAtual === 1 
@@ -199,6 +221,7 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
       toast.success('Resposta do supervisor registrada com sucesso!');
       setRespostaSupervisor('');
       setObservacao('');
+      setEditandoResposta(false);
       onSaveSuccess();
     } catch (err: any) {
       console.error('Erro ao registrar resposta do supervisor:', err);
@@ -507,8 +530,8 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
                 </div>
               )}
 
-              {/* Se status for ATIVO */}
-              {teste.status === 'ativo' && !respostaSupervisorReg && (
+              {/* Se status for ATIVO e NÃO TIVER resposta do supervisor OU se estiver no modo de edição */}
+              {teste.status === 'ativo' && (!respostaSupervisorReg || editandoResposta) && (
                 <form onSubmit={handleRegistrarRespostaSupervisor} className="space-y-5">
                   <div className="p-4 bg-blue-500/10 border border-blue-500/20 text-blue-800 dark:text-blue-300 rounded-xl text-xs flex justify-between items-center animate-fade-in">
                     <div className="flex gap-2 items-center">
@@ -627,14 +650,23 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
                         />
                       </div>
 
-                      <div className="flex justify-end gap-2.5">
+                       <div className="flex justify-end gap-2.5">
+                        {editandoResposta && (
+                          <button
+                            type="button"
+                            onClick={cancelarEdicao}
+                            className="inline-flex items-center gap-1.5 px-5 py-2 border border-neutral-300 dark:border-neutral-750 text-neutral-700 dark:text-neutral-300 rounded-full text-xs font-bold hover:bg-neutral-100 dark:hover:bg-neutral-850 transition-colors cursor-pointer"
+                          >
+                            Cancelar Edição
+                          </button>
+                        )}
                         <button
                           type="submit"
                           disabled={executing}
                           className="inline-flex items-center gap-1.5 px-5 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full text-xs font-bold hover:bg-neutral-850 dark:hover:bg-neutral-100 disabled:opacity-50 transition-colors cursor-pointer"
                         >
                           {executing && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                          Salvar Resposta do Supervisor
+                          {editandoResposta ? 'Salvar Alteração' : 'Salvar Resposta do Supervisor'}
                         </button>
                       </div>
                     </div>
@@ -642,8 +674,8 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
                 </form>
               )}
 
-              {/* Se status for ATIVO e JÁ TIVER resposta do supervisor */}
-              {teste.status === 'ativo' && respostaSupervisorReg && (
+              {/* Se status for ATIVO e JÁ TIVER resposta do supervisor e não estiver editando */}
+              {teste.status === 'ativo' && respostaSupervisorReg && !editandoResposta && (
                 <form onSubmit={handleConfirmarAcaoFinal} className="space-y-5">
                   {(() => {
                     /*
@@ -735,6 +767,14 @@ Por favor, verifique se aprova o início do teste de promoção para este colabo
                     </div>
 
                     <div className="flex justify-end gap-2.5">
+                      <button
+                        type="button"
+                        onClick={iniciarEdicao}
+                        className="inline-flex items-center gap-1.5 px-5 py-2.5 border border-neutral-300 dark:border-neutral-750 text-neutral-700 dark:text-neutral-300 rounded-full text-xs font-bold hover:bg-neutral-100 dark:hover:bg-neutral-850 transition-colors cursor-pointer"
+                      >
+                        <Edit className="h-3.5 w-3.5 shrink-0" />
+                        Editar Resposta
+                      </button>
                       <button
                         type="submit"
                         disabled={executing}

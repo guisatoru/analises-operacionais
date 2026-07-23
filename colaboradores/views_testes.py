@@ -321,13 +321,6 @@ def teste_registrar_acao(request, pk):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        # Evita duplicidade de registro de resposta para o mesmo mês
-        if teste.historico_acoes.filter(acao="registrar_resposta", mes_referencia=mes_atual).exists():
-            return Response(
-                {"error": f"Já existe uma resposta do supervisor registrada para o Mês {mes_atual}."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         # Exigência de observação para finalização (Promover, Cancelar ou Pagar Prêmio e Cancelar)
         if resposta_supervisor in ["promover", "cancelar", "pagar_premio_cancelar"] and not observacao:
             return Response(
@@ -335,19 +328,27 @@ def teste_registrar_acao(request, pk):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Registra a resposta do supervisor
-        historico = HistoricoAcaoTeste.objects.create(
-            teste=teste,
-            acao="registrar_resposta",
-            resposta_supervisor=resposta_supervisor,
-            mes_referencia=mes_atual,
-            observacao=observacao,
-            solicitado_por=supervisor_nome,
-            realizado_por=request.user.username if request.user.is_authenticated else "Sistema",
-            data_acao=date.today(),
-        )
+        # Se já existe resposta do supervisor para o mês atual, atualiza; caso contrário, cria novo
+        historico = teste.historico_acoes.filter(acao="registrar_resposta", mes_referencia=mes_atual).first()
+        if historico:
+            historico.resposta_supervisor = resposta_supervisor
+            historico.observacao = observacao
+            historico.realizado_por = request.user.username if request.user.is_authenticated else "Sistema"
+            historico.data_acao = date.today()
+            historico.save()
+        else:
+            historico = HistoricoAcaoTeste.objects.create(
+                teste=teste,
+                acao="registrar_resposta",
+                resposta_supervisor=resposta_supervisor,
+                mes_referencia=mes_atual,
+                observacao=observacao,
+                solicitado_por=supervisor_nome,
+                realizado_por=request.user.username if request.user.is_authenticated else "Sistema",
+                data_acao=date.today(),
+            )
 
-        return Response(TestePromocaoSerializer(teste).data, status=status.HTTP_201_CREATED)
+        return Response(TestePromocaoSerializer(teste).data, status=status.HTTP_200_OK)
 
     else:
         # Ação final: pagar_premio, promover, cancelar ou pagar_premio_cancelar
