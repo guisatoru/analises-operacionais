@@ -36,6 +36,9 @@ urlpatterns = [
     path('testes/<int:pk>/aprovar/', views_testes.teste_aprovar, name='teste_aprovar'),
     path('testes/<int:pk>/registrar-acao/', views_testes.teste_registrar_acao, name='teste_registrar_acao'),
     path('testes/<int:pk>/download/', views_testes.teste_anexo_download, name='teste_anexo_download'),
+    path('ausencias/analise/', views.ausencias_analise_api, name='ausencias_analise_api'),
+    path('ausencias/analise/filtro-opcoes/', views.ausencias_analise_filtro_opcoes_api, name='ausencias_analise_filtro_opcoes_api'),
+    path('ausencias/analise/exportar/', views.exportar_ausencias_excel, name='ausencias_analise_export'),
 ]
 
 

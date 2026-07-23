@@ -712,3 +712,187 @@ class GeoVictoriaAusenciasSyncTests(TestCase):
             # Garante que nenhum registro foi criado para o colaborador demitido
             self.assertFalse(Ausencia.objects.filter(colaborador=self.colab_demitido).exists())
 
+
+class AusenciaAnalysisAPITests(TestCase):
+    """
+    Por que existe: Garante a correção matemática e lógica do cálculo de médias,
+    limites do Top 30% maiores, filtros e retorno de suspensões da API de análise de ausências.
+    """
+    def setUp(self):
+        from django.contrib.auth.models import Group, User
+        from lojas.models import Loja, Coordenador
+        from colaboradores.models import Colaborador
+        
+        # Grupo e usuário autenticado com permissão GestaoOrAdministrador
+        self.grupo_gestao = Group.objects.create(name="Gestao")
+        self.user = User.objects.create_user(username="testuser", password="password")
+        self.user.groups.add(self.grupo_gestao)
+        
+        # Cria a permissão para visualizar o módulo colaboradores
+        from usuarios.models import RolePermission
+        RolePermission.objects.create(
+            group=self.grupo_gestao,
+            module="colaboradores",
+            can_view=True
+        )
+        
+        self.client.login(username="testuser", password="password")
+
+        # Coordenadores
+        self.coord_a = Coordenador.objects.create(nome="Coord A")
+        self.coord_b = Coordenador.objects.create(nome="Coord B")
+
+        # Lojas
+        self.loja_1 = Loja.objects.create(nome_referencia="Loja 1", centro_de_custo="101", coordenador=self.coord_a, uf="SP")
+        self.loja_2 = Loja.objects.create(nome_referencia="Loja 2", centro_de_custo="102", coordenador=self.coord_b, uf="RJ")
+
+        # Colaboradores (3 colaboradores em Loja 1, 2 em Loja 2)
+        # Ativos
+        today = date.today()
+        self.colab_1 = Colaborador.objects.create(re="100001", nome="Ana Maria", loja=self.loja_1, cpf="111", status="A", data_admissao=today)
+        self.colab_2 = Colaborador.objects.create(re="100002", nome="Bruno Sousa", loja=self.loja_1, cpf="222", status="A", data_admissao=today)
+        self.colab_3 = Colaborador.objects.create(re="100003", nome="Carlos Santos", loja=self.loja_1, cpf="333", status="A", data_admissao=today)
+        self.colab_4 = Colaborador.objects.create(re="100004", nome="Diana Costa", loja=self.loja_2, cpf="444", status="A", data_admissao=today)
+        
+        # Demitido (deve ser desconsiderado)
+        self.colab_demitido = Colaborador.objects.create(re="100005", nome="Demitido", loja=self.loja_2, cpf="555", status="D", data_admissao=today)
+
+    def test_average_and_top_30_calculation(self):
+        from colaboradores.models import Ausencia
+        today = date.today()
+
+        # Criar ausências (faltas):
+        # colab_1: 4 faltas
+        # colab_2: 2 faltas
+        # colab_3: 1 falta
+        # colab_4: 0 faltas
+        # Total ativos = 4 (colab_1, colab_2, colab_3, colab_4)
+        # Total faltas = 7
+        # Média = 7 / 4 = 1.75
+        # Colaboradores ativos com >= 1 falta: 3 (colab_1, colab_2, colab_3)
+        # Contagem ordenada: [1, 2, 4]
+        # Percentil 70 (30% maiores): len = 3, idx = int(3 * 0.70) = 2.
+        # counts[2] = 4 (limite_top_30)
+        # Acima da média (> 1.75): colab_1 (4), colab_2 (2)
+        # Top 30% (>= 4): colab_1 (4)
+
+        for i in range(4):
+            Ausencia.objects.create(colaborador=self.colab_1, tipo="falta", data=today - timedelta(days=i), descricao=f"Falta {i}")
+        for i in range(2):
+            Ausencia.objects.create(colaborador=self.colab_2, tipo="falta", data=today - timedelta(days=i), descricao=f"Falta {i}")
+        Ausencia.objects.create(colaborador=self.colab_3, tipo="falta", data=today, descricao="Falta 0")
+
+        url = "/colaboradores/ausencias/analise/?aba=faltas"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+        stats = response.data["stats"]
+        self.assertEqual(stats["total_colaboradores_ativos"], 4)
+        self.assertEqual(stats["total_ausencias"], 7)
+        self.assertEqual(stats["media_geral"], 2.33)
+        self.assertEqual(stats["colaboradores_acima_media"], 1)  # Apenas Ana (4) é > 2.33
+        self.assertEqual(stats["colaboradores_top_30"], 1)  # Apenas Ana (4)
+
+        # Verificar resultados individuais
+        results = {item["re"]: item for item in response.data["results"]}
+        # Ana Maria (4 faltas) -> acima_da_media=True, top_30_percent=True
+        self.assertTrue(results["100001"]["acima_da_media"])
+        self.assertTrue(results["100001"]["top_30_percent"])
+
+        # Bruno Sousa (2 faltas) -> acima_da_media=False, top_30_percent=False
+        self.assertFalse(results["100002"]["acima_da_media"])
+        self.assertFalse(results["100002"]["top_30_percent"])
+
+        # Carlos Santos (1 falta) -> acima_da_media=False, top_30_percent=False
+        self.assertFalse(results["100003"]["acima_da_media"])
+        self.assertFalse(results["100003"]["top_30_percent"])
+
+    def test_filter_by_loja_coordenador_regiao_and_search(self):
+        from colaboradores.models import Ausencia
+        today = date.today()
+
+        Ausencia.objects.create(colaborador=self.colab_1, tipo="falta", data=today, descricao="Falta")
+        Ausencia.objects.create(colaborador=self.colab_4, tipo="falta", data=today, descricao="Falta")
+
+        # Filtro por loja_id da Loja 1
+        url = f"/colaboradores/ausencias/analise/?aba=faltas&loja={self.loja_1.id}"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["stats"]["total_colaboradores_ativos"], 3) # colab 1, 2, 3
+
+        # Filtro por coordenador Coord B
+        url = "/colaboradores/ausencias/analise/?aba=faltas&coordenador=Coord B"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["stats"]["total_colaboradores_ativos"], 1) # colab 4
+
+        # Filtro por região SP
+        url = "/colaboradores/ausencias/analise/?aba=faltas&regiao=SP"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["stats"]["total_colaboradores_ativos"], 3)
+
+        # Filtro por busca de nome
+        url = "/colaboradores/ausencias/analise/?aba=faltas&search=maria"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["stats"]["total_colaboradores_ativos"], 1)
+        self.assertEqual(response.data["results"][0]["re"], "100001")
+
+    def test_suspensions_list_api(self):
+        from colaboradores.models import Ausencia
+        today = date.today()
+
+        Ausencia.objects.create(colaborador=self.colab_1, tipo="suspensao", data=today, descricao="Atraso Grave")
+        Ausencia.objects.create(colaborador=self.colab_4, tipo="suspensao", data=today, descricao="Indisciplina")
+
+        url = "/colaboradores/ausencias/analise/?aba=suspensoes"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        
+        self.assertEqual(len(response.data["results"]), 2)
+        stats = response.data["stats"]
+        self.assertEqual(stats["total_ausencias"], 2)
+        self.assertEqual(stats["colaboradores_suspensos"], 2)
+        
+        first = response.data["results"][0]
+        self.assertEqual(first["quantidade"], 1)
+        self.assertEqual(first["detalhes"][0]["descricao"], "Atraso Grave")
+
+    def test_exportar_ausencias_excel(self):
+        from colaboradores.models import Ausencia
+        today = date.today()
+        Ausencia.objects.create(colaborador=self.colab_1, tipo="falta", data=today, descricao="Falta 0")
+
+        url = "/colaboradores/ausencias/analise/exportar/?aba=faltas&filtro_tabela=todos"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        self.assertTrue(len(response.content) > 0)
+
+    def test_soma_tab_requires_both_types(self):
+        from colaboradores.models import Ausencia
+        today = date.today()
+
+        # colab_1 has both falta and atestado
+        Ausencia.objects.create(colaborador=self.colab_1, tipo="falta", data=today, descricao="Falta A")
+        Ausencia.objects.create(colaborador=self.colab_1, tipo="atestado", data=today - timedelta(days=1), descricao="Atestado A")
+
+        # colab_2 has only falta
+        Ausencia.objects.create(colaborador=self.colab_2, tipo="falta", data=today, descricao="Falta B")
+
+        # colab_3 has only atestado
+        Ausencia.objects.create(colaborador=self.colab_3, tipo="atestado", data=today, descricao="Atestado B")
+
+        url = "/colaboradores/ausencias/analise/?aba=soma"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+        # Should only list colab_1
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["re"], "100001")
+        
+        # Stats should represent only colab_1's occurrences
+        self.assertEqual(response.data["stats"]["total_ausencias"], 2)
+
+

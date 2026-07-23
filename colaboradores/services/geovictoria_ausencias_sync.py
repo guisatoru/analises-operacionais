@@ -131,8 +131,6 @@ def sincronizar_ausencias_api(start_date: date, end_date: date, progress_callbac
 
                 starts_str = entry.get("Starts", "")[:8]
                 ends_str = entry.get("Ends", "")[:8]
-                obs = entry.get("Comment", "") or entry.get("Observacao", "") or ""
-
                 try:
                     start_dt = datetime.strptime(starts_str, "%Y%m%d").date()
                     end_dt = datetime.strptime(ends_str, "%Y%m%d").date()
@@ -151,7 +149,6 @@ def sincronizar_ausencias_api(start_date: date, end_date: date, progress_callbac
                             "data": current_day,
                             "tipo": tipo,
                             "descricao": entry.get("TimeOffTypeDescription", "") or "",
-                            "observacao": obs,
                         })
                 except Exception as e:
                     logger.error(f"Erro ao processar período de ausência para o CPF {entry_cpf}: {e}")
@@ -190,12 +187,10 @@ def sincronizar_ausencias_api(start_date: date, end_date: date, progress_callbac
                         has_changed = (
                             existing.tipo != val["tipo"]
                             or existing.descricao != val["descricao"]
-                            or existing.observacao != val["observacao"]
                         )
                         if has_changed:
                             existing.tipo = val["tipo"]
                             existing.descricao = val["descricao"]
-                            existing.observacao = val["observacao"]
                             to_update.append(existing)
                     else:
                         to_create.append(
@@ -204,7 +199,6 @@ def sincronizar_ausencias_api(start_date: date, end_date: date, progress_callbac
                                 data=val["data"],
                                 tipo=val["tipo"],
                                 descricao=val["descricao"],
-                                observacao=val["observacao"],
                             )
                         )
 
@@ -215,7 +209,7 @@ def sincronizar_ausencias_api(start_date: date, end_date: date, progress_callbac
                     if to_update:
                         Ausencia.objects.bulk_update(
                             to_update,
-                            fields=["tipo", "descricao", "observacao"],
+                            fields=["tipo", "descricao"],
                             batch_size=500
                         )
                         total_atualizadas += len(to_update)

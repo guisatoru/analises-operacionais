@@ -27,6 +27,7 @@ const HistoricoAgenda = lazy(() => import('./pages/HistoricoAgenda'));
 const Headcount = lazy(() => import('./pages/Headcount'));
 const Salarios = lazy(() => import('./pages/Salarios'));
 const TestesPromocao = lazy(() => import('./pages/TestesPromocao'));
+const Ausencias = lazy(() => import('./pages/Ausencias'));
 
 
 /**
@@ -203,6 +204,10 @@ function App() {
             <Route 
               path="/turnover" 
               element={permissions.turnover?.view ? <Turnover /> : <Navigate to="/" replace />} 
+            />
+            <Route 
+              path="/ausencias" 
+              element={permissions.colaboradores?.view ? <Ausencias /> : <Navigate to="/" replace />} 
             />
             <Route 
               path="/colaboradores" 

@@ -14,6 +14,7 @@ import {
   ChevronDown,
   ChevronRight,
   CalendarCheck,
+  CalendarX,
   Coins,
   CircleDollarSign
 } from 'lucide-react';
@@ -358,6 +359,21 @@ export default function Sidebar({ username = 'Usuário', email = '', onLogout, p
                     <Link to="/turnover">
                       <TrendingDown className="h-5 w-5 shrink-0" />
                       {open && <span className="truncate">Turnover</span>}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+              
+              {permissions?.colaboradores?.view === true && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={location.pathname === '/ausencias'}
+                    title={!open ? "Ausências" : undefined}
+                  >
+                    <Link to="/ausencias">
+                      <CalendarX className="h-5 w-5 shrink-0" />
+                      {open && <span className="truncate">Ausências</span>}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

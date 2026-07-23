@@ -338,7 +338,6 @@ class Ausencia(models.Model):
     tipo = models.CharField("Tipo", max_length=20, choices=TIPO_CHOICES, db_index=True)
     descricao = models.CharField("Descrição Original", max_length=255)
     data = models.DateField("Data da Ausência", db_index=True)
-    observacao = models.TextField("Observação", blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

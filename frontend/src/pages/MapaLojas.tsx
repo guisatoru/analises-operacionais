@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Map as MapIcon, Search, Landmark, ShieldAlert, X, Users, MapPin, Briefcase, UserCheck } from 'lucide-react';
 import api from '../api/client';
 import { toast } from 'sonner';
+import { normalizeString } from '../lib/utils';
 
 interface Loja {
   id: string;
@@ -122,11 +123,12 @@ function SearchableSelect({ label, placeholder, options, valueId, onChange }: Se
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Por que existe: Filtra as opções de filiais de forma insensível a maiúsculas, minúsculas e acentuações.
   const filteredOptions = options.filter(opt => {
-    const term = search.toLowerCase();
+    const term = normalizeString(search);
     return (
-      opt.nome_referencia.toLowerCase().includes(term) ||
-      (opt.codigo_loja && opt.codigo_loja.toString().toLowerCase().includes(term))
+      normalizeString(opt.nome_referencia).includes(term) ||
+      (opt.codigo_loja && normalizeString(opt.codigo_loja.toString()).includes(term))
     );
   });
 
@@ -480,14 +482,14 @@ export default function MapaLojas() {
     }
   };
 
-  // Filtra as lojas no painel de busca
+  // Por que existe: Filtra as lojas no painel de busca de forma insensível a maiúsculas, minúsculas e acentuações, garantindo que buscas por "atacadao" e "atacadão" retornem o mesmo resultado.
   const filteredLojas = lojas.filter(loja => {
-    const term = searchQuery.toLowerCase();
+    const term = normalizeString(searchQuery);
     return (
-      loja.nome_referencia.toLowerCase().includes(term) ||
-      (loja.codigo_loja && loja.codigo_loja.toString().toLowerCase().includes(term)) ||
-      (loja.cliente && loja.cliente.toLowerCase().includes(term)) ||
-      (loja.centro_de_custo && loja.centro_de_custo.toLowerCase().includes(term))
+      normalizeString(loja.nome_referencia).includes(term) ||
+      (loja.codigo_loja && normalizeString(loja.codigo_loja.toString()).includes(term)) ||
+      (loja.cliente && normalizeString(loja.cliente).includes(term)) ||
+      (loja.centro_de_custo && normalizeString(loja.centro_de_custo).includes(term))
     );
   });
 

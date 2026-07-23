@@ -19,6 +19,11 @@ from .views_terminos import (
     exportar_terminos_excel,
     terminos_list,
 )
+from .views_ausencias import (
+    ausencias_analise_api,
+    ausencias_analise_filtro_opcoes_api,
+    exportar_ausencias_excel,
+)
 
 
 __all__ = [
@@ -41,4 +46,7 @@ __all__ = [
     "sync_lojas_geovictoria",
     "sync_lojas_geovictoria_progress",
     "terminos_list",
+    "ausencias_analise_api",
+    "ausencias_analise_filtro_opcoes_api",
+    "exportar_ausencias_excel",
 ]
