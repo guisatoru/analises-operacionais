@@ -366,7 +366,7 @@ export default function Ausencias() {
                 value={buscaText}
                 onChange={(e) => setBuscaText(e.target.value)}
                 placeholder="Nome ou RE..."
-                className="w-full h-9 pl-9 pr-3 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-150 text-xs focus:ring-1 focus:ring-violet-500 focus:outline-none placeholder-neutral-400"
+                className="w-full h-9 pl-9 pr-3 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 text-xs focus:ring-1 focus:ring-violet-500 focus:outline-none placeholder-neutral-400"
               />
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-neutral-400" />
             </div>
@@ -379,7 +379,7 @@ export default function Ausencias() {
               {/* Data Início */}
               <div className="w-1/2">
                 <Popover>
-                  <PopoverTrigger className="w-full justify-start text-left font-medium h-9 text-neutral-750 dark:text-neutral-150 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-350 dark:hover:border-neutral-700 rounded-lg px-3 text-xs inline-flex items-center hover:bg-neutral-50 dark:hover:bg-neutral-850 transition-all focus:outline-none">
+                  <PopoverTrigger className="w-full justify-start text-left font-medium h-9 text-neutral-750 dark:text-neutral-100 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-350 dark:hover:border-neutral-700 rounded-lg px-3 text-xs inline-flex items-center hover:bg-neutral-50 dark:hover:bg-neutral-850 transition-all focus:outline-none">
                     <CalendarDays className="mr-2 h-4 w-4 text-neutral-400 dark:text-neutral-500 shrink-0" />
                     {dataInicio ? (
                       format(parseISO(dataInicio), 'dd/MM/yyyy')
@@ -403,7 +403,7 @@ export default function Ausencias() {
               {/* Data Fim */}
               <div className="w-1/2">
                 <Popover>
-                  <PopoverTrigger className="w-full justify-start text-left font-medium h-9 text-neutral-750 dark:text-neutral-150 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-350 dark:hover:border-neutral-700 rounded-lg px-3 text-xs inline-flex items-center hover:bg-neutral-50 dark:hover:bg-neutral-850 transition-all focus:outline-none">
+                  <PopoverTrigger className="w-full justify-start text-left font-medium h-9 text-neutral-750 dark:text-neutral-100 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-350 dark:hover:border-neutral-700 rounded-lg px-3 text-xs inline-flex items-center hover:bg-neutral-50 dark:hover:bg-neutral-850 transition-all focus:outline-none">
                     <CalendarDays className="mr-2 h-4 w-4 text-neutral-400 dark:text-neutral-500 shrink-0" />
                     {dataFim ? (
                       format(parseISO(dataFim), 'dd/MM/yyyy')
@@ -677,7 +677,7 @@ export default function Ausencias() {
                     <React.Fragment key={row.id}>
                       <tr className="border-b border-neutral-100 dark:border-neutral-850 hover:bg-neutral-50/50 dark:hover:bg-neutral-850/10 transition-colors">
                         <td className="p-4 font-mono font-medium text-neutral-700 dark:text-neutral-350">{row.re}</td>
-                        <td className="p-4 font-semibold text-neutral-900 dark:text-neutral-150">{row.nome}</td>
+                        <td className="p-4 font-semibold text-neutral-900 dark:text-neutral-100">{row.nome}</td>
                         <td className="p-4 text-neutral-600 dark:text-neutral-400">{formatarData(row.data_admissao || '')}</td>
                         <td className="p-4 text-neutral-600 dark:text-neutral-400">{row.loja_nome}</td>
                         <td className="p-4 text-neutral-600 dark:text-neutral-400">
