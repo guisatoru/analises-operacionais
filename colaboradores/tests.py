@@ -870,29 +870,58 @@ class AusenciaAnalysisAPITests(TestCase):
         self.assertEqual(response["Content-Type"], "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         self.assertTrue(len(response.content) > 0)
 
-    def test_soma_tab_requires_both_types(self):
+    def test_soma_tab_logic(self):
+        """
+        Por que este teste existe:
+        Garante a correção da nova lógica na aba 'soma' (Faltas + Atestados).
+        Ela deve retornar colaboradores que possuem faltas OR atestados, excluindo 
+        os colaboradores que estejam no Top 30% individual de Faltas ou Atestados.
+        Em seguida, os cálculos estatísticos (média geral, acima da média e top 30%) 
+        devem ser realizados apenas em cima do subgrupo restante de colaboradores.
+        """
         from colaboradores.models import Ausencia
         today = date.today()
 
-        # colab_1 has both falta and atestado
-        Ausencia.objects.create(colaborador=self.colab_1, tipo="falta", data=today, descricao="Falta A")
-        Ausencia.objects.create(colaborador=self.colab_1, tipo="atestado", data=today - timedelta(days=1), descricao="Atestado A")
-
-        # colab_2 has only falta
+        # Faltas:
+        # colab_1: 4 faltas (Top 30% de faltas)
+        # colab_2: 1 falta
+        for i in range(4):
+            Ausencia.objects.create(colaborador=self.colab_1, tipo="falta", data=today - timedelta(days=i), descricao="Falta A")
         Ausencia.objects.create(colaborador=self.colab_2, tipo="falta", data=today, descricao="Falta B")
 
-        # colab_3 has only atestado
-        Ausencia.objects.create(colaborador=self.colab_3, tipo="atestado", data=today, descricao="Atestado B")
+        # Atestados:
+        # colab_1: 1 atestado
+        # colab_3: 4 atestados (Top 30% de atestados)
+        # colab_4: 1 atestado
+        Ausencia.objects.create(colaborador=self.colab_1, tipo="atestado", data=today - timedelta(days=4), descricao="Atestado A")
+        for i in range(4):
+            Ausencia.objects.create(colaborador=self.colab_3, tipo="atestado", data=today - timedelta(days=i), descricao="Atestado B")
+        Ausencia.objects.create(colaborador=self.colab_4, tipo="atestado", data=today, descricao="Atestado C")
 
+        # Requisição para a aba soma
         url = "/colaboradores/ausencias/analise/?aba=soma"
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
 
-        # Should only list colab_1
-        self.assertEqual(len(response.data["results"]), 1)
-        self.assertEqual(response.data["results"][0]["re"], "100001")
+        # Devem ser listados apenas colab_2 e colab_4 (colab_1 e colab_3 foram excluídos pelo Top 30% individual)
+        results = response.data["results"]
+        self.assertEqual(len(results), 2)
         
-        # Stats should represent only colab_1's occurrences
-        self.assertEqual(response.data["stats"]["total_ausencias"], 2)
+        re_list = [r["re"] for r in results]
+        self.assertIn("100002", re_list)  # colab_2
+        self.assertIn("100004", re_list)  # colab_4
+        self.assertNotIn("100001", re_list) # colab_1 excluído
+        self.assertNotIn("100003", re_list) # colab_3 excluído
+
+        # Stats de soma devem ser calculados com base no grupo restante (colab_2 e colab_4)
+        # colab_2: 1 falta + 0 atestado = 1 soma
+        # colab_4: 0 faltas + 1 atestado = 1 soma
+        # total_ausencias = 1 + 1 = 2
+        # media_geral = 2 / 2 = 1.0
+        stats = response.data["stats"]
+        self.assertEqual(stats["total_ausencias"], 2)
+        self.assertEqual(stats["media_geral"], 1.0)
+        self.assertEqual(stats["colaboradores_acima_media"], 0)
+        self.assertEqual(stats["colaboradores_top_30"], 0)
 
 

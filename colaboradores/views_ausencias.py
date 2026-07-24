@@ -91,6 +91,53 @@ def _obter_dados_analise_ausencias(request):
     for aus in ausencias_qs:
         ausencias_por_colab[aus.colaborador_id].append(aus)
 
+    """
+    Por que este bloco existe:
+    Precisamos pré-calcular os limites de Top 30% das faltas e dos atestados para
+    conseguirmos identificar e excluir os colaboradores que se enquadram nesses 
+    limites na aba 'soma' (Faltas + Atestados). A lógica calcula as médias individuais 
+    de cada ocorrência (faltas e atestados) e obtém o conjunto dos 30% de pior 
+    performance que estão acima da média geral daquela aba correspondente.
+    """
+    top_30_faltas_ids = set()
+    top_30_atestados_ids = set()
+
+    # Cálculo do Top 30% de Faltas
+    faltas_dados = []
+    for cid in colab_ids:
+        aus_list = ausencias_por_colab.get(cid, [])
+        faltas_c = sum(1 for a in aus_list if a.tipo == "falta")
+        if faltas_c > 0:
+            faltas_dados.append((cid, faltas_c))
+    
+    if faltas_dados:
+        total_f = sum(x[1] for x in faltas_dados)
+        media_f = total_f / len(faltas_dados)
+        above_avg_f = [x for x in faltas_dados if x[1] > media_f]
+        above_avg_f.sort(key=lambda x: x[1], reverse=True)
+        target_f = int(len(above_avg_f) * 0.3)
+        if len(above_avg_f) > 0 and target_f == 0:
+            target_f = 1
+        top_30_faltas_ids = {x[0] for x in above_avg_f[:target_f]}
+
+    # Cálculo do Top 30% de Atestados
+    atestados_dados = []
+    for cid in colab_ids:
+        aus_list = ausencias_por_colab.get(cid, [])
+        atestados_c = sum(1 for a in aus_list if a.tipo == "atestado")
+        if atestados_c > 0:
+            atestados_dados.append((cid, atestados_c))
+            
+    if atestados_dados:
+        total_a = sum(x[1] for x in atestados_dados)
+        media_a = total_a / len(atestados_dados)
+        above_avg_a = [x for x in atestados_dados if x[1] > media_a]
+        above_avg_a.sort(key=lambda x: x[1], reverse=True)
+        target_a = int(len(above_avg_a) * 0.3)
+        if len(above_avg_a) > 0 and target_a == 0:
+            target_a = 1
+        top_30_atestados_ids = {x[0] for x in above_avg_a[:target_a]}
+
     # Filtra e define o grupo qualificado dependendo da aba
     qualified_colab_aus = {}
     for cid in colab_ids:
@@ -108,7 +155,7 @@ def _obter_dados_analise_ausencias(request):
             qualified_colab_aus[cid] = (aus_list, faltas_count, atestados_count, soma_count, suspensoes_count, faltas_count)
         elif aba == "atestados" and atestados_count > 0:
             qualified_colab_aus[cid] = (aus_list, faltas_count, atestados_count, soma_count, suspensoes_count, atestados_count)
-        elif aba == "soma" and faltas_count > 0 and atestados_count > 0:
+        elif aba == "soma" and (faltas_count > 0 or atestados_count > 0) and cid not in top_30_faltas_ids and cid not in top_30_atestados_ids:
             qualified_colab_aus[cid] = (aus_list, faltas_count, atestados_count, soma_count, suspensoes_count, soma_count)
         elif aba == "suspensoes" and suspensoes_count > 0:
             qualified_colab_aus[cid] = (aus_list, faltas_count, atestados_count, soma_count, suspensoes_count, suspensoes_count)
