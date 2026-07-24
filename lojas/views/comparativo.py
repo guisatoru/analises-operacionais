@@ -84,6 +84,9 @@ def comparativo_loja(request):
                 "tabela_escopo_total": str(resultado.tabela_escopo_total),
                 "tabela_folha_total": str(resultado.tabela_folha_total),
                 "tabela_desvio_total": str(resultado.tabela_desvio_total),
+                "colaboradores_salario": resultado.colaboradores_salario,
+                "colaboradores_insalubridade": resultado.colaboradores_insalubridade,
+                "colaboradores_adicional_noturno": resultado.colaboradores_adicional_noturno,
             }
 
     return Response({

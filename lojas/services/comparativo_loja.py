@@ -116,6 +116,11 @@ class ResultadoComparativoLoja:
     folha_insalubridade_categoria_total: Decimal = Decimal("0.00")
     folha_adicional_noturno_categoria_total: Decimal = Decimal("0.00")
 
+    # Detalhe por colaborador para a tabela expansível (drill-down no frontend)
+    colaboradores_salario: List[Dict] = field(default_factory=list)
+    colaboradores_insalubridade: List[Dict] = field(default_factory=list)
+    colaboradores_adicional_noturno: List[Dict] = field(default_factory=list)
+
     @property
     def escopo_insalubridade_total(self) -> Decimal:
         """Soma das duas insalubridades do escopo (fixa + banheirista), para exibir na tabela."""
@@ -333,5 +338,72 @@ def montar_resultado_comparativo(
         ]
         resultado.escopo_adicional_noturno_total += det["adicional_noturno_total"]
         resultado.escopo_total += det["total"]
+
+    # =========================================================================
+    # DETALHAMENTO DE COLABORADORES POR CATEGORIA (Rubricas detalhadas)
+    # Por que existe: Permite que o usuário no frontend clique em uma categoria
+    # (Salário Base, Insalubridade, Adicional Noturno) para expandir e listar
+    # quais colaboradores receberam valores e quanto receberam no período selecionado.
+    # =========================================================================
+    folha_qs = LinhaFolha.objects.filter(
+        loja_id=loja_id,
+        dt_arq__in=datas_exatas,
+        verba__tipo_codigo="PROVENTO",
+        verba__considerar_na_contagem=True,
+    )
+
+    q_salario = _q_categoria_um_dos(CAT_FOLHA_SALARIO)
+    q_insalubridade = _q_categoria_um_dos(CAT_FOLHA_INSALUBRIDADE)
+    q_adicional_noturno = _q_categoria_um_dos(CAT_FOLHA_ADICIONAL_NOTURNO)
+
+    # Agrupa e soma no banco de dados por matricula (usando Group By matricula)
+    linhas_salario = (
+        folha_qs.filter(q_salario)
+        .values("matricula")
+        .annotate(total=Sum("valor"))
+        .order_by("-total")
+    )
+    
+    linhas_insalubridade = (
+        folha_qs.filter(q_insalubridade)
+        .values("matricula")
+        .annotate(total=Sum("valor"))
+        .order_by("-total")
+    )
+    
+    linhas_adicional_noturno = (
+        folha_qs.filter(q_adicional_noturno)
+        .values("matricula")
+        .annotate(total=Sum("valor"))
+        .order_by("-total")
+    )
+
+    # Coleta todas as matrículas para obter os nomes em uma única query
+    todas_matriculas = set()
+    for item in list(linhas_salario) + list(linhas_insalubridade) + list(linhas_adicional_noturno):
+        todas_matriculas.add(item["matricula"])
+
+    # Importação local do Colaborador para evitar importação circular no Django
+    from colaboradores.models import Colaborador
+    colaboradores_dict = {
+        colab.re: colab.nome
+        for colab in Colaborador.objects.filter(re__in=todas_matriculas)
+    }
+
+    def formatar_lista_colabs(linhas_agrupadas):
+        lista = []
+        for item in linhas_agrupadas:
+            mat = item["matricula"]
+            nome = colaboradores_dict.get(mat) or f"Colaborador {mat}"
+            lista.append({
+                "matricula": mat,
+                "nome": nome,
+                "valor": float(item["total"]),
+            })
+        return lista
+
+    resultado.colaboradores_salario = formatar_lista_colabs(linhas_salario)
+    resultado.colaboradores_insalubridade = formatar_lista_colabs(linhas_insalubridade)
+    resultado.colaboradores_adicional_noturno = formatar_lista_colabs(linhas_adicional_noturno)
 
     return resultado
